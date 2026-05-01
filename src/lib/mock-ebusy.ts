@@ -6,6 +6,10 @@ export type EbusyMatchResult = {
     externalPersonId: string;
     matchScore: number;
     matchReason: string;
+    displayName?: string;
+    email?: string;
+    birthDate?: string;
+    membershipNumber?: string;
   }>;
 };
 
