@@ -6,7 +6,7 @@ export default function AnmeldenPage() {
         <h1 style={{ maxWidth: "unset", fontSize: "2.5rem" }}>Neuanmeldung</h1>
         <p>
           Dieses Formular ist das erste fachliche Geruest. In der naechsten Ausbaustufe wird es
-          an Supabase gespeichert und spaeter mit eBuSy abgeglichen.
+          an Supabase gespeichert und spaeter serverseitig mit eBuSy abgeglichen.
         </p>
 
         <form className="form">

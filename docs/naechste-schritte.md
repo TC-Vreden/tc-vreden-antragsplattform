@@ -19,3 +19,4 @@
 - Zugangsdaten sicher hinterlegen
 - Mock-Modus auf echten Abgleich umstellen
 - Match-Logik verfeinern
+- API-Rechte fuer Personen, Attribute und Gruppen pruefen

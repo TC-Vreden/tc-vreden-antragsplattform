@@ -14,8 +14,8 @@ export default function HomePage() {
           <Link className="button" href="/anmelden">
             Neuanmeldung testen
           </Link>
-          <Link className="button secondary" href="/vorstand">
-            Vorstands-Cockpit ansehen
+          <Link className="button secondary" href="/verwaltung">
+            Interne Ansicht
           </Link>
         </div>
       </section>
@@ -26,7 +26,7 @@ export default function HomePage() {
           <ul className="list">
             <li>Neuanmeldung ueber eigenes Vereinsformular</li>
             <li>Zwischenspeicherung in Supabase</li>
-            <li>Pruefstatus fuer den Vorstand</li>
+            <li>interne Bearbeitung mit Personenabgleich</li>
             <li>Mock-Modus fuer eBuSy-Abgleich</li>
           </ul>
         </article>

@@ -16,7 +16,8 @@ Diese Web-App ist der erste technische Prototyp fuer die digitale Antragsplattfo
 - Supabase-Schema unter `supabase/schema.sql`
 - oeffentliche Startseite
 - Formular-Skelett fuer Neuanmeldung
-- Vorstands-Cockpit-Skelett
+- interner Verwaltungsbereich
+- serverseitiger eBuSy-Client mit Diagnostics und Fallback
 
 ## Was noch fehlt, bevor die App laeuft
 
@@ -36,3 +37,23 @@ Diese Web-App ist der erste technische Prototyp fuer die digitale Antragsplattfo
 ## Hinweis
 
 Die Dateien sind bewusst so angelegt, dass wir auch ohne freigeschaltete eBuSy-API weiterarbeiten koennen.
+
+## Lokale eBuSy-Zugangsdaten
+
+Lokale Zugangsdaten gehoeren in `.env.local`.
+
+Diese Datei ist durch `.gitignore` vom Repository ausgeschlossen und soll nicht nach GitHub hochgeladen werden.
+
+## Schutz interner Bereiche
+
+Interne Seiten und API-Endpunkte sollen nicht oeffentlich offen bleiben.
+
+Dafuer werden folgende Umgebungsvariablen verwendet:
+
+- `INTERNAL_ACCESS_USERNAME`
+- `INTERNAL_ACCESS_PASSWORD`
+
+Diese Basic-Auth-Sperre schuetzt:
+
+- `/verwaltung`
+- `/api/ebusy/*`

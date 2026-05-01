@@ -1,5 +1,7 @@
 export type EbusyMatchResult = {
   status: "pending" | "match_found" | "no_match";
+  source?: "mock" | "live";
+  message?: string;
   candidates: Array<{
     externalPersonId: string;
     matchScore: number;
@@ -17,6 +19,7 @@ export async function mockEbusyLookup(input: {
   if (normalized.includes("anna") || input.email.toLowerCase().includes("anna")) {
     return {
       status: "match_found",
+      source: "mock",
       candidates: [
         {
           externalPersonId: "12345",
@@ -29,6 +32,7 @@ export async function mockEbusyLookup(input: {
 
   return {
     status: "no_match",
+    source: "mock",
     candidates: []
   };
 }
