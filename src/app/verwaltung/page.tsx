@@ -42,8 +42,8 @@ export default async function VerwaltungPage() {
           <article className="card" style={{ padding: 18 }}>
             <h2 style={{ fontSize: "1.2rem" }}>Arbeitsweise</h2>
             <ul className="list">
-              <li>Formulardaten kommen getrennt von eBuSy herein</li>
-              <li>Der Personenabgleich erfolgt serverseitig</li>
+              <li>Im Moment ist dies eine direkte interne Suche in eBuSy</li>
+              <li>Der Personenabgleich erfolgt serverseitig ueber die API</li>
               <li>Sensible Finanzdaten werden nicht in der Oberflaeche gezeigt</li>
             </ul>
           </article>
@@ -60,6 +60,21 @@ export default async function VerwaltungPage() {
             </ul>
           </article>
         </div>
+
+        <article className="hint-box" style={{ marginBottom: 20 }}>
+          <strong>Aktueller Stand des Prototyps</strong>
+          <p style={{ margin: "10px 0 0" }}>
+            Der Bereich sucht aktuell noch nicht in bereits eingegangenen Webformularen, sondern
+            direkt in euren vorhandenen eBuSy-Mitgliedsdaten. Du gibst also Name, E-Mail oder
+            Geburtsdatum ein und das System prueft serverseitig, ob dazu schon eine Person in
+            eBuSy existiert.
+          </p>
+          <p style={{ margin: "10px 0 0" }}>
+            Der naechste Ausbauschritt ist dann: erst Webformular speichern, danach den
+            gespeicherten Antrag automatisch gegen eBuSy abgleichen und als Vorgang in einer
+            internen Liste anzeigen.
+          </p>
+        </article>
 
         <LookupForm />
 

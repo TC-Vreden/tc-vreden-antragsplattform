@@ -69,6 +69,10 @@ export function LookupForm() {
         Diese Suche bleibt intern. Angezeigt werden bewusst nur wenige Vergleichsfelder und keine
         sensiblen Finanz- oder SEPA-Daten.
       </p>
+      <p>
+        Aktuell ist das eine direkte Suche in eBuSy. Es wird also noch kein vorher ueber das
+        Formular gespeicherter Antrag benoetigt.
+      </p>
 
       <form
         className="form"
@@ -100,7 +104,7 @@ export function LookupForm() {
 
         <div className="cta-row">
           <button className="button" type="submit" disabled={loading}>
-            {loading ? "Suche laeuft..." : "Abgleich starten"}
+            {loading ? "Suche laeuft..." : "In eBuSy suchen"}
           </button>
         </div>
       </form>
