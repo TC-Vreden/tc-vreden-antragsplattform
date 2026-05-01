@@ -105,14 +105,12 @@ export function LookupForm() {
         </div>
       </form>
 
-      {error ? (
-        <p style={{ color: "var(--danger)", marginTop: 18 }}>{error}</p>
-      ) : null}
+      {error ? <p style={{ color: "var(--danger)", marginTop: 18 }}>{error}</p> : null}
 
       {result ? (
         <div style={{ marginTop: 18 }}>
           <span className="pill">
-            {result.source === "live" ? "Live-Abgleich" : "Mock-Abgleich"} · {result.status}
+            {result.source === "live" ? "Live-Abgleich" : "Testabgleich"} · {result.status}
           </span>
           {result.message ? <p style={{ marginTop: 12 }}>{result.message}</p> : null}
 

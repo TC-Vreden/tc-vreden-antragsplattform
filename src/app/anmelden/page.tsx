@@ -1,7 +1,10 @@
+import { TcVredenLogo } from "@/components/tc-vreden-logo";
+
 export default function AnmeldenPage() {
   return (
     <main className="page-shell">
       <section className="card">
+        <TcVredenLogo />
         <span className="eyebrow">Oeffentliches Formular</span>
         <h1 style={{ maxWidth: "unset", fontSize: "2.5rem" }}>Neuanmeldung</h1>
         <p>
@@ -71,7 +74,7 @@ export default function AnmeldenPage() {
           </div>
 
           <div className="field">
-            <label htmlFor="notes">Hinweise fuer den Vorstand</label>
+            <label htmlFor="notes">Hinweise fuer die Vereinsverwaltung</label>
             <textarea id="notes" name="notes" rows={4} />
           </div>
 

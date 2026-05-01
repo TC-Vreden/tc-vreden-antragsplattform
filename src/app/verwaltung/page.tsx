@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getEbusyDiagnostics } from "@/lib/ebusy";
 import { LookupForm } from "@/app/verwaltung/lookup-form";
+import { TcVredenLogo } from "@/components/tc-vreden-logo";
 
 const demoRows = [
   {
@@ -23,6 +24,7 @@ export default async function VerwaltungPage() {
   return (
     <main className="page-shell">
       <section className="card">
+        <TcVredenLogo />
         <span className="eyebrow">Interner Bereich</span>
         <h1 style={{ maxWidth: "unset", fontSize: "2.5rem" }}>Verwaltungsbereich</h1>
         <p>
@@ -75,8 +77,8 @@ export default async function VerwaltungPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Typ</th>
+              <th>Vorgang</th>
+              <th>Art</th>
               <th>Status</th>
               <th>Hinweis</th>
             </tr>

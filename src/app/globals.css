@@ -1,12 +1,13 @@
 :root {
-  --bg: #f4f7f4;
+  --bg: #f5f3eb;
   --surface: #ffffff;
-  --text: #17312b;
-  --muted: #5f6f67;
-  --line: #d9e4dc;
-  --brand: #136b45;
-  --brand-strong: #0d4f33;
-  --accent: #c6e437;
+  --text: #1e1e1c;
+  --muted: #55514b;
+  --line: #e5dfd0;
+  --brand: #1e1e1c;
+  --brand-strong: #111111;
+  --accent: #ffde00;
+  --accent-soft: #fff5a8;
   --danger: #a84e4e;
 }
 
@@ -15,16 +16,27 @@
 }
 
 html {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-body), "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background:
-    radial-gradient(circle at top right, rgba(198, 228, 55, 0.15), transparent 22%),
-    linear-gradient(180deg, #f7faf7 0%, #f1f6f2 55%, #edf4ee 100%);
+    radial-gradient(circle at top right, rgba(255, 222, 0, 0.14), transparent 22%),
+    linear-gradient(180deg, #fcfbf7 0%, #f5f3eb 55%, #f1eee4 100%);
   color: var(--text);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(30, 30, 28, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 30, 28, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
 }
 
 a {
@@ -36,25 +48,27 @@ a {
   max-width: 1100px;
   margin: 0 auto;
   padding: 32px 20px 72px;
+  position: relative;
+  z-index: 1;
 }
 
 .hero {
   background:
-    linear-gradient(135deg, rgba(19, 107, 69, 0.92), rgba(17, 88, 58, 0.95)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+    radial-gradient(circle at top left, rgba(255, 222, 0, 0.22), transparent 30%),
+    linear-gradient(135deg, rgba(30, 30, 28, 0.98), rgba(37, 37, 34, 0.96));
   color: white;
-  border: 1px solid rgba(19, 107, 69, 0.2);
+  border: 1px solid rgba(30, 30, 28, 0.12);
   border-radius: 28px;
   padding: 36px;
-  box-shadow: 0 20px 50px rgba(19, 49, 43, 0.14);
+  box-shadow: 0 24px 60px rgba(30, 30, 28, 0.16);
 }
 
 .eyebrow {
   display: inline-block;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  color: white;
+  background: rgba(255, 222, 0, 0.16);
+  color: #fff4af;
   font-size: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -66,16 +80,20 @@ h2,
 h3 {
   line-height: 1.1;
   margin: 0 0 16px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 h1 {
+  font-family: var(--font-heading), Impact, sans-serif;
   font-size: clamp(2.2rem, 5vw, 4.5rem);
-  max-width: 10ch;
+  max-width: 12ch;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 h2 {
   font-size: 1.8rem;
+  letter-spacing: 0.01em;
 }
 
 p {
@@ -86,6 +104,32 @@ p {
 .hero p {
   color: rgba(255, 255, 255, 0.88);
   max-width: 62ch;
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.brand-wordmark {
+  display: grid;
+  gap: 2px;
+  text-transform: uppercase;
+  color: white;
+}
+
+.brand-wordmark span {
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.98rem;
+  letter-spacing: 0.22em;
+}
+
+.brand-wordmark strong {
+  font-family: var(--font-heading), Impact, sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
 }
 
 .grid {
@@ -119,17 +163,17 @@ p {
   min-height: 46px;
   padding: 0 18px;
   border-radius: 999px;
-  border: 1px solid var(--brand);
-  background: var(--brand);
-  color: white;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #1e1e1c;
   font-weight: 600;
-  box-shadow: 0 10px 24px rgba(19, 107, 69, 0.22);
+  box-shadow: 0 10px 24px rgba(255, 222, 0, 0.24);
 }
 
 .button.secondary {
-  background: white;
-  color: var(--brand-strong);
-  border-color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: white;
+  border-color: rgba(255, 222, 0, 0.55);
   box-shadow: none;
 }
 
@@ -165,6 +209,13 @@ p {
   font: inherit;
 }
 
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid rgba(255, 222, 0, 0.45);
+  border-color: rgba(255, 222, 0, 0.85);
+}
+
 .checkbox-group {
   display: grid;
   gap: 12px;
@@ -184,7 +235,7 @@ p {
   display: inline-block;
   border-radius: 999px;
   padding: 6px 10px;
-  background: #edf7ef;
+  background: #fff7ba;
   color: var(--brand-strong);
   font-size: 0.9rem;
 }

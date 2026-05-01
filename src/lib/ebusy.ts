@@ -204,8 +204,8 @@ export async function lookupEbusyPerson(input: {
       source: "live",
       message:
         error instanceof Error
-          ? `${error.message} Der Prototyp faellt deshalb auf den Mock-Abgleich zurueck.`
-          : "Der Live-Abgleich ist fehlgeschlagen. Der Prototyp faellt deshalb auf den Mock-Abgleich zurueck."
+          ? `${error.message} Der Prototyp faellt deshalb auf einen internen Testabgleich zurueck.`
+          : "Der Live-Abgleich ist fehlgeschlagen. Der Prototyp faellt deshalb auf einen internen Testabgleich zurueck."
     };
   }
 }
@@ -216,7 +216,7 @@ export async function getEbusyDiagnostics() {
   if (mode !== "live") {
     return {
       mode,
-      checks: [{ endpoint: "mock", ok: true, message: "Mock-Modus aktiv" }]
+      checks: [{ endpoint: "test", ok: true, message: "Testmodus aktiv" }]
     };
   }
 
