@@ -20,6 +20,7 @@ const demoRows = [
 
 export default async function VerwaltungPage() {
   const diagnostics = await getEbusyDiagnostics();
+  const isLiveMode = diagnostics.mode === "live";
 
   return (
     <main className="page-shell">
@@ -60,6 +61,18 @@ export default async function VerwaltungPage() {
             </ul>
           </article>
         </div>
+
+        {!isLiveMode ? (
+          <article className="warning-box" style={{ marginBottom: 20 }}>
+            <strong>Hinweis zur Suche</strong>
+            <p style={{ margin: "10px 0 0" }}>
+              Die aktuelle Ansicht laeuft noch im Testmodus. Darum sucht der Bereich im Moment
+              noch nicht live in eBuSy, sondern verwendet nur den internen Testpfad. Erst nach
+              einem erfolgreichen Live-Deploy mit den richtigen Vercel-Umgebungsvariablen springt
+              der Modus hier auf <strong>live</strong>.
+            </p>
+          </article>
+        ) : null}
 
         <article className="hint-box" style={{ marginBottom: 20 }}>
           <strong>Aktueller Stand des Prototyps</strong>

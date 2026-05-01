@@ -67,8 +67,8 @@ a {
   display: inline-block;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 222, 0, 0.16);
-  color: #fff4af;
+  background: rgba(255, 222, 0, 0.26);
+  color: #6b5900;
   font-size: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -272,6 +272,13 @@ p {
   border: 1px solid rgba(255, 222, 0, 0.45);
   border-radius: 16px;
   background: linear-gradient(180deg, rgba(255, 248, 197, 0.72), rgba(255, 255, 255, 0.98));
+}
+
+.warning-box {
+  padding: 16px 18px;
+  border: 1px solid rgba(168, 78, 78, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 243, 214, 0.96), rgba(255, 255, 255, 0.98));
 }
 
 .table {
