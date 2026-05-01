@@ -281,6 +281,24 @@ p {
   background: linear-gradient(180deg, rgba(255, 243, 214, 0.96), rgba(255, 255, 255, 0.98));
 }
 
+.result-box {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: #fffdf6;
+}
+
+.result-box.is-success {
+  border-color: rgba(84, 142, 78, 0.35);
+  background: linear-gradient(180deg, rgba(240, 251, 234, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.result-box.is-empty {
+  border-color: rgba(168, 78, 78, 0.22);
+  background: linear-gradient(180deg, rgba(255, 248, 229, 0.96), rgba(255, 255, 255, 0.98));
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

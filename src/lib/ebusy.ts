@@ -19,6 +19,7 @@ type EbusyPerson = {
   user?: {
     email?: string;
     username?: string;
+    name?: string;
   };
   attributes?: Array<{
     id?: number;
@@ -102,6 +103,7 @@ export async function lookupEbusyPerson(input: {
     const normalizedLastName = input.lastName.trim().toLowerCase();
     const normalizedBirthDate = (input.birthDate ?? "").trim();
     const membershipMap = new Map<string, string>();
+    const seenPersonIds = new Set<string>();
 
     try {
       const membershipPage = await ebusyGet<{
@@ -124,6 +126,7 @@ export async function lookupEbusyPerson(input: {
         const person = result.response;
 
         if (person?.id) {
+          seenPersonIds.add(String(person.id));
           candidates.push({
             externalPersonId: String(person.id),
             matchScore: 98,
@@ -139,7 +142,7 @@ export async function lookupEbusyPerson(input: {
       }
     }
 
-    if (candidates.length === 0 && normalizedFirstName && normalizedLastName) {
+    if (candidates.length === 0 && (normalizedEmail || normalizedLastName)) {
       const pageSize = Number(process.env.EBUSY_PERSON_SCAN_PAGE_SIZE ?? "100");
       const maxPages = Number(process.env.EBUSY_PERSON_SCAN_MAX_PAGES ?? "10");
 
@@ -150,24 +153,81 @@ export async function lookupEbusyPerson(input: {
         );
 
         const pageMatches = (result.response?.content ?? []).filter((person) => {
-          const firstNameMatches = (person.firstname ?? "").trim().toLowerCase() === normalizedFirstName;
-          const lastNameMatches = (person.lastname ?? "").trim().toLowerCase() === normalizedLastName;
+          const personId = String(person.id ?? "");
+          if (!personId || seenPersonIds.has(personId)) {
+            return false;
+          }
+
+          const firstNameMatches = normalizedFirstName
+            ? (person.firstname ?? "").trim().toLowerCase() === normalizedFirstName
+            : true;
+          const lastNameMatches = normalizedLastName
+            ? (person.lastname ?? "").trim().toLowerCase() === normalizedLastName
+            : true;
           const birthDateMatches = normalizedBirthDate
             ? (person.birthday ?? "").trim() === normalizedBirthDate
             : true;
+          const emailMatches = normalizedEmail
+            ? [
+                person.contact?.email,
+                person.user?.email,
+                person.user?.username,
+                person.user?.name
+              ]
+                .filter(Boolean)
+                .some((value) => String(value).trim().toLowerCase() === normalizedEmail)
+            : false;
 
-          return firstNameMatches && lastNameMatches && birthDateMatches;
+          if (normalizedEmail && emailMatches) {
+            return true;
+          }
+
+          if (normalizedFirstName && normalizedLastName) {
+            return firstNameMatches && lastNameMatches && birthDateMatches;
+          }
+
+          if (!normalizedFirstName && normalizedLastName && normalizedBirthDate) {
+            return lastNameMatches && birthDateMatches;
+          }
+
+          if (!normalizedFirstName && normalizedLastName && normalizedEmail) {
+            return lastNameMatches && emailMatches;
+          }
+
+          return false;
         });
 
         for (const person of pageMatches) {
+          seenPersonIds.add(String(person.id ?? ""));
+
+          const matchedViaEmail =
+            normalizedEmail &&
+            [
+              person.contact?.email,
+              person.user?.email,
+              person.user?.username,
+              person.user?.name
+            ]
+              .filter(Boolean)
+              .some((value) => String(value).trim().toLowerCase() === normalizedEmail);
+
           candidates.push({
             externalPersonId: String(person.id ?? ""),
-            matchScore: normalizedBirthDate ? 96 : 88,
-            matchReason: normalizedBirthDate
-              ? "Treffer ueber Vorname, Nachname und Geburtsdatum"
-              : "Treffer ueber Vorname und Nachname",
+            matchScore: matchedViaEmail ? 97 : normalizedBirthDate ? 96 : 88,
+            matchReason: matchedViaEmail
+              ? "Treffer ueber hinterlegte E-Mail-Adresse"
+              : normalizedBirthDate && normalizedFirstName
+                ? "Treffer ueber Vorname, Nachname und Geburtsdatum"
+                : !normalizedFirstName && normalizedBirthDate
+                  ? "Treffer ueber Nachname und Geburtsdatum"
+                  : "Treffer ueber Vorname und Nachname",
             displayName: `${person.firstname ?? ""} ${person.lastname ?? ""}`.trim(),
-            email: person.contact?.email ?? person.user?.username ?? "",
+            email:
+              person.contact?.email ??
+              person.user?.email ??
+              person.user?.username ??
+              person.user?.name ??
+              "",
             birthDate: person.birthday,
             membershipNumber: membershipMap.get(String(person.id ?? "")) ?? ""
           });
@@ -193,7 +253,7 @@ export async function lookupEbusyPerson(input: {
       status: "no_match",
       source: "live",
       message:
-        "Kein passender eBuSy-Treffer ueber E-Mail oder die aktuelle Kombination aus Name und Geburtsdatum gefunden.",
+        "Kein passender eBuSy-Treffer ueber E-Mail oder die aktuelle Kombination aus Suchfeldern gefunden.",
       candidates: []
     };
   } catch (error) {

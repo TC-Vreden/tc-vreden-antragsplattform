@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 type Candidate = {
   externalPersonId: string;
@@ -25,10 +25,16 @@ export function LookupForm() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<LookupResult | null>(initialResult);
   const [error, setError] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [birthDate, setBirthDate] = useState("");
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setLoading(true);
     setError(null);
+    setResult(null);
 
     try {
       const response = await fetch("/api/ebusy/lookup", {
@@ -37,10 +43,10 @@ export function LookupForm() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          firstName: String(formData.get("firstName") || ""),
-          lastName: String(formData.get("lastName") || ""),
-          email: String(formData.get("email") || ""),
-          birthDate: String(formData.get("birthDate") || "")
+          firstName,
+          lastName,
+          email,
+          birthDate
         })
       });
 
@@ -74,31 +80,48 @@ export function LookupForm() {
         Formular gespeicherter Antrag benoetigt.
       </p>
 
-      <form
-        className="form"
-        action={async (formData) => {
-          await handleSubmit(formData);
-        }}
-      >
+      <form className="form" onSubmit={handleSubmit}>
         <div className="grid grid-2">
           <div className="field">
             <label htmlFor="lookup-firstName">Vorname</label>
-            <input id="lookup-firstName" name="firstName" />
+            <input
+              id="lookup-firstName"
+              name="firstName"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+            />
           </div>
           <div className="field">
             <label htmlFor="lookup-lastName">Nachname</label>
-            <input id="lookup-lastName" name="lastName" />
+            <input
+              id="lookup-lastName"
+              name="lastName"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+            />
           </div>
         </div>
 
         <div className="grid grid-2">
           <div className="field">
             <label htmlFor="lookup-email">E-Mail</label>
-            <input id="lookup-email" name="email" type="email" />
+            <input
+              id="lookup-email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
           </div>
           <div className="field">
             <label htmlFor="lookup-birthDate">Geburtsdatum</label>
-            <input id="lookup-birthDate" name="birthDate" type="date" />
+            <input
+              id="lookup-birthDate"
+              name="birthDate"
+              type="date"
+              value={birthDate}
+              onChange={(event) => setBirthDate(event.target.value)}
+            />
           </div>
         </div>
 
@@ -106,13 +129,15 @@ export function LookupForm() {
           <button className="button" type="submit" disabled={loading}>
             {loading ? "Suche laeuft..." : "In eBuSy suchen"}
           </button>
+          {loading ? <span className="pill">Suche wird ausgefuehrt...</span> : null}
         </div>
       </form>
 
       {error ? <p style={{ color: "var(--danger)", marginTop: 18 }}>{error}</p> : null}
 
       {result ? (
-        <div style={{ marginTop: 18 }}>
+        <div className={`result-box ${result.candidates.length > 0 ? "is-success" : "is-empty"}`}>
+          <h3 style={{ fontSize: "1.1rem", marginBottom: 10 }}>Suchergebnis</h3>
           <span className="pill">
             {result.source === "live" ? "Live-Abgleich" : "Testabgleich"} · {result.status}
           </span>
