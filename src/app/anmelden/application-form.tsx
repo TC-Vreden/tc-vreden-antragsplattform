@@ -8,6 +8,30 @@ type SubmissionState =
   | { kind: "success"; id: string }
   | { kind: "error"; message: string };
 
+function isValidIban(value: string) {
+  const iban = value.replace(/\s+/g, "").toUpperCase();
+
+  if (!iban) {
+    return true;
+  }
+
+  if (!/^DE\d{20}$/.test(iban)) {
+    return false;
+  }
+
+  const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`;
+  const numeric = rearranged.replace(/[A-Z]/g, (character) =>
+    String(character.charCodeAt(0) - 55)
+  );
+
+  let remainder = 0;
+  for (const digit of numeric) {
+    remainder = (remainder * 10 + Number(digit)) % 97;
+  }
+
+  return remainder === 1;
+}
+
 const membershipOptions = [
   { value: "adult_active", label: "Erwachsene aktiv" },
   { value: "adult_passive", label: "Erwachsene passiv" },
@@ -25,6 +49,7 @@ const membershipOptions = [
 export function ApplicationForm() {
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const [familyMode, setFamilyMode] = useState(false);
+  const [iban, setIban] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,7 +86,6 @@ export function ApplicationForm() {
       postalCode: String(formData.get("postalCode") || ""),
       city: String(formData.get("city") || ""),
       membershipKind: String(formData.get("membershipKind") || ""),
-      studentStatusUntil: String(formData.get("studentStatusUntil") || ""),
       familyMembers,
       acceptsStatutes: Boolean(formData.get("acceptsStatutes")),
       acceptsPrivacy: Boolean(formData.get("acceptsPrivacy")),
@@ -73,6 +97,14 @@ export function ApplicationForm() {
       accountHolderAddress: String(formData.get("accountHolderAddress") || ""),
       notes: String(formData.get("notes") || "")
     };
+
+    if (!isValidIban(payload.iban)) {
+      setState({
+        kind: "error",
+        message: "Die IBAN ist formal ungueltig. Bitte pruefe die Eingabe."
+      });
+      return;
+    }
 
     try {
       const response = await fetch("/api/applications", {
@@ -94,6 +126,7 @@ export function ApplicationForm() {
 
       form.reset();
       setFamilyMode(false);
+      setIban("");
       setState({ kind: "success", id: data.application.id });
     } catch (error) {
       setState({
@@ -154,31 +187,58 @@ export function ApplicationForm() {
         <input id="city" name="city" />
       </div>
 
-      <div className="grid grid-2">
-        <div className="field">
-          <label htmlFor="membershipKind">Art der Mitgliedschaft</label>
-          <select
-            id="membershipKind"
-            name="membershipKind"
-            defaultValue=""
-            onChange={(event) =>
-              setFamilyMode(["adult_child", "family"].includes(event.target.value))
-            }
-          >
-            <option value="" disabled>
-              Bitte auswaehlen
+      <div className="field">
+        <label htmlFor="membershipKind">Art der Mitgliedschaft</label>
+        <select
+          id="membershipKind"
+          name="membershipKind"
+          defaultValue=""
+          onChange={(event) =>
+            setFamilyMode(["adult_child", "family"].includes(event.target.value))
+          }
+        >
+          <option value="" disabled>
+            Bitte auswaehlen
+          </option>
+          {membershipOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
-            {membershipOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+          ))}
+        </select>
+      </div>
 
+      <div className="card" style={{ padding: 18 }}>
+        <h2 style={{ fontSize: "1.15rem" }}>SEPA-Lastschrift</h2>
+        <p>
+          Aus Gruenden der Verwaltungsvereinfachung werden die Mitgliedsbeitraege im
+          Lastschriftverfahren erhoben. Diese Angaben gehoeren daher direkt zur Anmeldung.
+        </p>
+        <div className="checkbox-group" style={{ marginBottom: 16 }}>
+          <label className="checkbox">
+            <input type="checkbox" name="acceptsSepa" />
+            <span>Ich stimme dem SEPA-Lastschriftverfahren zu.</span>
+          </label>
+        </div>
+        <div className="grid grid-2">
+          <div className="field">
+            <label htmlFor="accountHolder">Kontoinhaber</label>
+            <input id="accountHolder" name="accountHolder" />
+          </div>
+          <div className="field">
+            <label htmlFor="iban">IBAN</label>
+            <input
+              id="iban"
+              name="iban"
+              value={iban}
+              onChange={(event) => setIban(event.target.value)}
+              placeholder="DE..."
+            />
+          </div>
+        </div>
         <div className="field">
-          <label htmlFor="studentStatusUntil">Nachweis gueltig bis</label>
-          <input id="studentStatusUntil" name="studentStatusUntil" type="date" />
+          <label htmlFor="accountHolderAddress">Anschrift des Kontoinhabers</label>
+          <input id="accountHolderAddress" name="accountHolderAddress" />
         </div>
       </div>
 
@@ -236,27 +296,7 @@ export function ApplicationForm() {
             <input type="checkbox" name="acceptsWhatsapp" />
             <span>Ich moechte in vereinsbezogene WhatsApp-Gruppen aufgenommen werden.</span>
           </label>
-          <label className="checkbox">
-            <input type="checkbox" name="acceptsSepa" />
-            <span>Ich stimme dem SEPA-Lastschriftverfahren zu.</span>
-          </label>
         </div>
-      </div>
-
-      <div className="grid grid-2">
-        <div className="field">
-          <label htmlFor="accountHolder">Kontoinhaber</label>
-          <input id="accountHolder" name="accountHolder" />
-        </div>
-        <div className="field">
-          <label htmlFor="iban">IBAN</label>
-          <input id="iban" name="iban" />
-        </div>
-      </div>
-
-      <div className="field">
-        <label htmlFor="accountHolderAddress">Anschrift des Kontoinhabers</label>
-        <input id="accountHolderAddress" name="accountHolderAddress" />
       </div>
 
       <div className="cta-row">

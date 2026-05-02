@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getSupabaseInsertClient } from "@/lib/supabase-server";
+import { getSupabaseAdminClient } from "@/lib/supabase-server";
 
 const familyMemberSchema = z.object({
   firstName: z.string().trim().optional(),
@@ -20,7 +20,6 @@ const applicationSchema = z.object({
   postalCode: z.string().trim().optional(),
   city: z.string().trim().optional(),
   membershipKind: z.string().trim().optional(),
-  studentStatusUntil: z.string().trim().optional(),
   familyMembers: z.array(familyMemberSchema).optional(),
   acceptsStatutes: z.boolean(),
   acceptsPrivacy: z.boolean(),
@@ -48,7 +47,22 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data;
-  const supabase = getSupabaseInsertClient();
+  let supabase;
+
+  try {
+    supabase = getSupabaseAdminClient();
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message: "Der Antrag konnte serverseitig noch nicht gespeichert werden.",
+        details:
+          error instanceof Error
+            ? error.message
+            : "SUPABASE_SERVICE_ROLE_KEY fehlt."
+      },
+      { status: 500 }
+    );
+  }
 
   const { data, error } = await supabase
     .from("applications")
@@ -63,7 +77,6 @@ export async function POST(request: NextRequest) {
       postal_code: input.postalCode || null,
       city: input.city || null,
       membership_kind: input.membershipKind || null,
-      student_status_until: input.studentStatusUntil || null,
       family_members: input.familyMembers ?? [],
       accepts_statutes: input.acceptsStatutes,
       accepts_privacy: input.acceptsPrivacy,
