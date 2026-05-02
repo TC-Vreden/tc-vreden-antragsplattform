@@ -149,7 +149,11 @@ export function ApplicationsTable({ applications }: Props) {
                   onClick={() => handleMatch(application.id)}
                   style={{ minWidth: 180 }}
                 >
-                  {localState?.loading ? "Abgleich laeuft..." : "Mit eBuSy abgleichen"}
+                  {localState?.loading
+                    ? "Abgleich laeuft..."
+                    : application.ebusy_match_status === "pending"
+                      ? "Mit eBuSy abgleichen"
+                      : "Erneut abgleichen"}
                 </button>
               </td>
             </tr>

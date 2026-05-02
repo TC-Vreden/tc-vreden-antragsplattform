@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdminClient } from "@/lib/supabase-server";
+import { matchApplicationWithEbusy } from "@/lib/verwaltung";
 
 const familyMemberSchema = z.object({
   firstName: z.string().trim().optional(),
@@ -101,8 +102,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const matchSummary = await matchApplicationWithEbusy(data.id);
+
   return NextResponse.json({
     message: "Antrag gespeichert.",
-    application: data
+    application: data,
+    ebusyMatch: matchSummary
   });
 }
