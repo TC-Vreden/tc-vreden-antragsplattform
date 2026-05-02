@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getEbusyDiagnostics } from "@/lib/ebusy";
 import { LookupForm } from "@/app/verwaltung/lookup-form";
+import { ApplicationsTable } from "@/app/verwaltung/applications-table";
 import { TcVredenLogo } from "@/components/tc-vreden-logo";
 import { getApplicationsForManagement } from "@/lib/verwaltung";
 
@@ -64,15 +65,13 @@ export default async function VerwaltungPage() {
         <article className="hint-box" style={{ marginBottom: 20 }}>
           <strong>Aktueller Stand des Prototyps</strong>
           <p style={{ margin: "10px 0 0" }}>
-            Der Bereich sucht aktuell noch nicht in bereits eingegangenen Webformularen, sondern
-            direkt in euren vorhandenen eBuSy-Mitgliedsdaten. Du gibst also Name, E-Mail oder
-            Geburtsdatum ein und das System prueft serverseitig, ob dazu schon eine Person in
-            eBuSy existiert.
+            Das oeffentliche Formular speichert jetzt echte Antraege in der internen Liste. Die
+            freie Suche unten bleibt als separates Werkzeug erhalten, aber der wichtigere
+            Arbeitsablauf ist jetzt: Antrag anzeigen und pro Antrag direkt gegen eBuSy pruefen.
           </p>
           <p style={{ margin: "10px 0 0" }}>
-            Der naechste Ausbauschritt ist dann: erst Webformular speichern, danach den
-            gespeicherten Antrag automatisch gegen eBuSy abgleichen und als Vorgang in einer
-            internen Liste anzeigen.
+            Der naechste Ausbauschritt danach ist dann: bei fehlendem Treffer den Antrag direkt in
+            eBuSy anlegen und Familien- bzw. Kinderbeziehungen sauber zuordnen.
           </p>
         </article>
 
@@ -97,34 +96,7 @@ export default async function VerwaltungPage() {
           ) : applications.length === 0 ? (
             <p>Noch keine gespeicherten Antraege vorhanden.</p>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Eingang</th>
-                  <th>Name</th>
-                  <th>Mitgliedschaft</th>
-                  <th>Familienbezug</th>
-                  <th>eBuSy</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applications.map((application) => (
-                  <tr key={application.id}>
-                    <td>{new Date(application.created_at).toLocaleDateString("de-DE")}</td>
-                    <td>
-                      {application.first_name} {application.last_name}
-                    </td>
-                    <td>{application.membership_kind ?? "-"}</td>
-                    <td>
-                      {application.family_members?.length
-                        ? `${application.family_members.length} Person(en) zugeordnet`
-                        : "-"}
-                    </td>
-                    <td>{application.ebusy_match_status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ApplicationsTable applications={applications} />
           )}
         </article>
 

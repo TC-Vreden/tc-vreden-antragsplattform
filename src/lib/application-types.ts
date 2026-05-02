@@ -33,6 +33,13 @@ export type ApplicationRow = {
   ebusy_match_payload: unknown;
 };
 
+export type ApplicationMatchSummary = {
+  status: "match_found" | "no_match" | "multiple_matches" | "error";
+  message: string;
+  externalPersonId?: string | null;
+  candidateCount?: number;
+};
+
 export type ApplicationInput = {
   firstName: string;
   lastName: string;
