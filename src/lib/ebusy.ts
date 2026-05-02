@@ -104,6 +104,18 @@ export async function lookupEbusyPerson(input: {
     const normalizedBirthDate = (input.birthDate ?? "").trim();
     const membershipMap = new Map<string, string>();
     const seenPersonIds = new Set<string>();
+    const hasAnyCriteria = Boolean(
+      normalizedFirstName || normalizedLastName || normalizedEmail || normalizedBirthDate
+    );
+
+    if (!hasAnyCriteria) {
+      return {
+        status: "no_match",
+        source: "live",
+        message: "Bitte mindestens ein Suchfeld ausfuellen.",
+        candidates: []
+      };
+    }
 
     try {
       const membershipPage = await ebusyGet<{
@@ -142,7 +154,7 @@ export async function lookupEbusyPerson(input: {
       }
     }
 
-    if (candidates.length === 0 && (normalizedEmail || normalizedLastName)) {
+    if (candidates.length === 0 && hasAnyCriteria) {
       const pageSize = Number(process.env.EBUSY_PERSON_SCAN_PAGE_SIZE ?? "100");
       const maxPages = Number(process.env.EBUSY_PERSON_SCAN_MAX_PAGES ?? "10");
 
@@ -158,15 +170,14 @@ export async function lookupEbusyPerson(input: {
             return false;
           }
 
-          const firstNameMatches = normalizedFirstName
-            ? (person.firstname ?? "").trim().toLowerCase() === normalizedFirstName
-            : true;
-          const lastNameMatches = normalizedLastName
-            ? (person.lastname ?? "").trim().toLowerCase() === normalizedLastName
-            : true;
-          const birthDateMatches = normalizedBirthDate
-            ? (person.birthday ?? "").trim() === normalizedBirthDate
-            : true;
+          const firstNameMatches =
+            normalizedFirstName &&
+            (person.firstname ?? "").trim().toLowerCase() === normalizedFirstName;
+          const lastNameMatches =
+            normalizedLastName &&
+            (person.lastname ?? "").trim().toLowerCase() === normalizedLastName;
+          const birthDateMatches =
+            normalizedBirthDate && (person.birthday ?? "").trim() === normalizedBirthDate;
           const emailMatches = normalizedEmail
             ? [
                 person.contact?.email,
@@ -178,29 +189,14 @@ export async function lookupEbusyPerson(input: {
                 .some((value) => String(value).trim().toLowerCase() === normalizedEmail)
             : false;
 
-          if (normalizedEmail && emailMatches) {
-            return true;
-          }
-
-          if (normalizedFirstName && normalizedLastName) {
-            return firstNameMatches && lastNameMatches && birthDateMatches;
-          }
-
-          if (!normalizedFirstName && normalizedLastName && normalizedBirthDate) {
-            return lastNameMatches && birthDateMatches;
-          }
-
-          if (!normalizedFirstName && normalizedLastName && normalizedEmail) {
-            return lastNameMatches && emailMatches;
-          }
-
-          return false;
+          return Boolean(firstNameMatches || lastNameMatches || birthDateMatches || emailMatches);
         });
 
         for (const person of pageMatches) {
           seenPersonIds.add(String(person.id ?? ""));
+          const matchedFields: string[] = [];
 
-          const matchedViaEmail =
+          if (
             normalizedEmail &&
             [
               person.contact?.email,
@@ -209,18 +205,35 @@ export async function lookupEbusyPerson(input: {
               person.user?.name
             ]
               .filter(Boolean)
-              .some((value) => String(value).trim().toLowerCase() === normalizedEmail);
+              .some((value) => String(value).trim().toLowerCase() === normalizedEmail)
+          ) {
+            matchedFields.push("E-Mail");
+          }
+
+          if (
+            normalizedFirstName &&
+            (person.firstname ?? "").trim().toLowerCase() === normalizedFirstName
+          ) {
+            matchedFields.push("Vorname");
+          }
+
+          if (
+            normalizedLastName &&
+            (person.lastname ?? "").trim().toLowerCase() === normalizedLastName
+          ) {
+            matchedFields.push("Nachname");
+          }
+
+          if (normalizedBirthDate && (person.birthday ?? "").trim() === normalizedBirthDate) {
+            matchedFields.push("Geburtsdatum");
+          }
+
+          const matchScore = Math.min(99, 68 + matchedFields.length * 10);
 
           candidates.push({
             externalPersonId: String(person.id ?? ""),
-            matchScore: matchedViaEmail ? 97 : normalizedBirthDate ? 96 : 88,
-            matchReason: matchedViaEmail
-              ? "Treffer ueber hinterlegte E-Mail-Adresse"
-              : normalizedBirthDate && normalizedFirstName
-                ? "Treffer ueber Vorname, Nachname und Geburtsdatum"
-                : !normalizedFirstName && normalizedBirthDate
-                  ? "Treffer ueber Nachname und Geburtsdatum"
-                  : "Treffer ueber Vorname und Nachname",
+            matchScore,
+            matchReason: `Treffer ueber ${matchedFields.join(", ")}`,
             displayName: `${person.firstname ?? ""} ${person.lastname ?? ""}`.trim(),
             email:
               person.contact?.email ??
@@ -241,11 +254,13 @@ export async function lookupEbusyPerson(input: {
     }
 
     if (candidates.length > 0) {
+      candidates.sort((left, right) => right.matchScore - left.matchScore);
+
       return {
         status: "match_found",
         source: "live",
-        message: "Passende Datensaetze wurden intern in eBuSy gefunden.",
-        candidates
+        message: `${candidates.length} passende Datensaetze wurden intern in eBuSy gefunden.`,
+        candidates: candidates.slice(0, 25)
       };
     }
 

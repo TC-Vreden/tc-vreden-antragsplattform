@@ -17,26 +17,14 @@
 
 html {
   font-family: var(--font-body), "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background:
-    radial-gradient(circle at top right, rgba(255, 222, 0, 0.14), transparent 22%),
-    linear-gradient(180deg, #fcfbf7 0%, #f5f3eb 55%, #f1eee4 100%);
+  background: #ffffff;
   color: var(--text);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(30, 30, 28, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(30, 30, 28, 0.02) 1px, transparent 1px);
-  background-size: 24px 24px;
-  pointer-events: none;
+  background: #ffffff;
 }
 
 a {
