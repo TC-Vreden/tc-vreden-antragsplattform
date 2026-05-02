@@ -12,6 +12,7 @@ type EbusyPerson = {
   firstname?: string;
   lastname?: string;
   birthday?: string;
+  code?: string;
   customerId?: string;
   contact?: {
     email?: string;
