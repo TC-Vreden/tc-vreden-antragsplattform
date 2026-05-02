@@ -10,6 +10,9 @@ type Candidate = {
   email?: string;
   birthDate?: string;
   membershipNumber?: string;
+  personCode?: string;
+  customerId?: string;
+  membershipId?: string;
 };
 
 type LookupResult = {
@@ -148,9 +151,11 @@ export function LookupForm() {
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th>Personen-ID</th>
                   <th>E-Mail</th>
                   <th>Geburtsdatum</th>
                   <th>Mitgliedsnummer</th>
+                  <th>Weitere Kennung</th>
                   <th>Treffergrund</th>
                 </tr>
               </thead>
@@ -158,9 +163,11 @@ export function LookupForm() {
                 {result.candidates.map((candidate) => (
                   <tr key={`${candidate.externalPersonId}-${candidate.matchReason}`}>
                     <td>{candidate.displayName ?? candidate.externalPersonId}</td>
+                    <td>{candidate.externalPersonId}</td>
                     <td>{candidate.email ?? "-"}</td>
                     <td>{candidate.birthDate ?? "-"}</td>
                     <td>{candidate.membershipNumber ?? "-"}</td>
+                    <td>{candidate.customerId || candidate.personCode || candidate.membershipId || "-"}</td>
                     <td>{candidate.matchReason}</td>
                   </tr>
                 ))}

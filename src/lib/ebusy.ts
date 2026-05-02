@@ -102,7 +102,7 @@ export async function lookupEbusyPerson(input: {
     const normalizedFirstName = input.firstName.trim().toLowerCase();
     const normalizedLastName = input.lastName.trim().toLowerCase();
     const normalizedBirthDate = (input.birthDate ?? "").trim();
-    const membershipMap = new Map<string, string>();
+    const membershipMap = new Map<string, { membershipNumber: string; membershipId: string }>();
     const seenPersonIds = new Set<string>();
     const hasAnyCriteria = Boolean(
       normalizedFirstName || normalizedLastName || normalizedEmail || normalizedBirthDate
@@ -124,7 +124,10 @@ export async function lookupEbusyPerson(input: {
 
       for (const membership of membershipPage.response?.content ?? []) {
         if (membership.personId) {
-          membershipMap.set(String(membership.personId), membership.number ?? "");
+          membershipMap.set(String(membership.personId), {
+            membershipNumber: membership.number ?? "",
+            membershipId: membership.id ? String(membership.id) : ""
+          });
         }
       }
     } catch {
@@ -146,7 +149,10 @@ export async function lookupEbusyPerson(input: {
             displayName: `${person.firstname ?? ""} ${person.lastname ?? ""}`.trim(),
             email: person.contact?.email ?? person.user?.username ?? normalizedEmail,
             birthDate: person.birthday,
-            membershipNumber: membershipMap.get(String(person.id)) ?? ""
+            membershipNumber: membershipMap.get(String(person.id))?.membershipNumber ?? "",
+            membershipId: membershipMap.get(String(person.id))?.membershipId ?? "",
+            personCode: person.code ?? "",
+            customerId: person.customerId ?? ""
           });
         }
       } catch {
@@ -242,7 +248,10 @@ export async function lookupEbusyPerson(input: {
               person.user?.name ??
               "",
             birthDate: person.birthday,
-            membershipNumber: membershipMap.get(String(person.id ?? "")) ?? ""
+            membershipNumber: membershipMap.get(String(person.id ?? ""))?.membershipNumber ?? "",
+            membershipId: membershipMap.get(String(person.id ?? ""))?.membershipId ?? "",
+            personCode: person.code ?? "",
+            customerId: person.customerId ?? ""
           });
         }
 

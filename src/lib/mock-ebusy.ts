@@ -10,6 +10,9 @@ export type EbusyMatchResult = {
     email?: string;
     birthDate?: string;
     membershipNumber?: string;
+    personCode?: string;
+    customerId?: string;
+    membershipId?: string;
   }>;
 };
 

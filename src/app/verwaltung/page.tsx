@@ -2,24 +2,11 @@ import Link from "next/link";
 import { getEbusyDiagnostics } from "@/lib/ebusy";
 import { LookupForm } from "@/app/verwaltung/lookup-form";
 import { TcVredenLogo } from "@/components/tc-vreden-logo";
-
-const demoRows = [
-  {
-    name: "Anna Beispiel",
-    type: "Neuanmeldung",
-    status: "Neu",
-    match: "Bereit fuer echten Personenabgleich"
-  },
-  {
-    name: "Max Muster",
-    type: "Neuanmeldung",
-    status: "Geprueft",
-    match: "Noch ohne Datenbank-Anbindung"
-  }
-];
+import { getApplicationsForManagement } from "@/lib/verwaltung";
 
 export default async function VerwaltungPage() {
   const diagnostics = await getEbusyDiagnostics();
+  const { applications, error: applicationsError } = await getApplicationsForManagement();
   const isLiveMode = diagnostics.mode === "live";
 
   return (
@@ -92,6 +79,56 @@ export default async function VerwaltungPage() {
         <LookupForm />
 
         <article className="card" style={{ padding: 18, marginBottom: 20 }}>
+          <h2 style={{ fontSize: "1.2rem" }}>Eingegangene Antraege</h2>
+          <p>
+            Hier sollen die Daten aus dem oeffentlichen Formular zuerst landen. Der naechste
+            Ausbauschritt ist dann je Antrag ein Knopf fuer den eBuSy-Abgleich und danach
+            gegebenenfalls das Anlegen in eBuSy.
+          </p>
+
+          {applicationsError ? (
+            <div className="warning-box">
+              <strong>Antragsliste noch nicht verfuegbar</strong>
+              <p style={{ margin: "10px 0 0" }}>
+                {applicationsError}. Sehr wahrscheinlich fehlt noch der{" "}
+                <strong>SUPABASE_SERVICE_ROLE_KEY</strong> in Vercel.
+              </p>
+            </div>
+          ) : applications.length === 0 ? (
+            <p>Noch keine gespeicherten Antraege vorhanden.</p>
+          ) : (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Eingang</th>
+                  <th>Name</th>
+                  <th>Mitgliedschaft</th>
+                  <th>Familienbezug</th>
+                  <th>eBuSy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {applications.map((application) => (
+                  <tr key={application.id}>
+                    <td>{new Date(application.created_at).toLocaleDateString("de-DE")}</td>
+                    <td>
+                      {application.first_name} {application.last_name}
+                    </td>
+                    <td>{application.membership_kind ?? "-"}</td>
+                    <td>
+                      {application.family_members?.length
+                        ? `${application.family_members.length} Person(en) zugeordnet`
+                        : "-"}
+                    </td>
+                    <td>{application.ebusy_match_status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </article>
+
+        <article className="card" style={{ padding: 18, marginBottom: 20 }}>
           <h2 style={{ fontSize: "1.2rem" }}>API-Status</h2>
           <ul className="list">
             {diagnostics.checks.map((check) => (
@@ -102,26 +139,6 @@ export default async function VerwaltungPage() {
           </ul>
         </article>
 
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Vorgang</th>
-              <th>Art</th>
-              <th>Status</th>
-              <th>Hinweis</th>
-            </tr>
-          </thead>
-          <tbody>
-            {demoRows.map((row) => (
-              <tr key={row.name}>
-                <td>{row.name}</td>
-                <td>{row.type}</td>
-                <td>{row.status}</td>
-                <td>{row.match}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </section>
     </main>
   );

@@ -15,7 +15,8 @@ export function middleware(request: NextRequest) {
   const isProtectedPath =
     pathname.startsWith("/verwaltung") ||
     pathname.startsWith("/vorstand") ||
-    pathname.startsWith("/api/ebusy");
+    pathname.startsWith("/api/ebusy") ||
+    pathname.startsWith("/api/verwaltung");
 
   if (!isProtectedPath) {
     return NextResponse.next();
@@ -47,5 +48,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/verwaltung/:path*", "/vorstand/:path*", "/api/ebusy/:path*"]
+  matcher: ["/verwaltung/:path*", "/vorstand/:path*", "/api/ebusy/:path*", "/api/verwaltung/:path*"]
 };
