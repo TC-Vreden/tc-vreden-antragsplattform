@@ -30,7 +30,7 @@ export type ApplicationRow = {
   notes: string | null;
   ebusy_match_status: string;
   ebusy_person_id: string | null;
-  ebusy_match_payload: unknown;
+  ebusy_match_payload: ApplicationMatchPayload | null;
 };
 
 export type ApplicationMatchSummary = {
@@ -38,6 +38,26 @@ export type ApplicationMatchSummary = {
   message: string;
   externalPersonId?: string | null;
   candidateCount?: number;
+};
+
+export type ApplicationMatchCandidate = {
+  externalPersonId: string;
+  matchScore: number;
+  matchReason: string;
+  displayName?: string;
+  email?: string;
+  birthDate?: string;
+  membershipNumber?: string;
+  personCode?: string;
+  customerId?: string;
+  membershipId?: string;
+};
+
+export type ApplicationMatchPayload = {
+  status: "pending" | "match_found" | "no_match";
+  source?: "mock" | "live";
+  message?: string;
+  candidates: ApplicationMatchCandidate[];
 };
 
 export type ApplicationInput = {

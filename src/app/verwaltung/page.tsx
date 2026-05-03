@@ -65,13 +65,14 @@ export default async function VerwaltungPage() {
         <article className="hint-box" style={{ marginBottom: 20 }}>
           <strong>Aktueller Stand des Prototyps</strong>
           <p style={{ margin: "10px 0 0" }}>
-            Das oeffentliche Formular speichert jetzt echte Antraege in der internen Liste. Die
-            freie Suche unten bleibt als separates Werkzeug erhalten, aber der wichtigere
-            Arbeitsablauf ist jetzt: Antrag anzeigen und pro Antrag direkt gegen eBuSy pruefen.
+            Das oeffentliche Formular speichert jetzt echte Antraege in der internen Liste und
+            stoesst direkt beim Speichern automatisch den ersten eBuSy-Abgleich an. Die freie Suche
+            unten bleibt als separates Werkzeug erhalten.
           </p>
           <p style={{ margin: "10px 0 0" }}>
-            Der naechste Ausbauschritt danach ist dann: bei fehlendem Treffer den Antrag direkt in
-            eBuSy anlegen und Familien- bzw. Kinderbeziehungen sauber zuordnen.
+            Bei mehrdeutigen Treffern koennen wir als naechsten Schritt jetzt Kandidaten anzeigen
+            und einen Datensatz manuell verknuepfen. Danach folgt das direkte Anlegen in eBuSy und
+            die saubere Familien- bzw. Kinderzuordnung.
           </p>
         </article>
 
@@ -80,9 +81,9 @@ export default async function VerwaltungPage() {
         <article className="card" style={{ padding: 18, marginBottom: 20 }}>
           <h2 style={{ fontSize: "1.2rem" }}>Eingegangene Antraege</h2>
           <p>
-            Hier sollen die Daten aus dem oeffentlichen Formular zuerst landen. Der naechste
-            Ausbauschritt ist dann je Antrag ein Knopf fuer den eBuSy-Abgleich und danach
-            gegebenenfalls das Anlegen in eBuSy.
+            Hier landen die Daten aus dem oeffentlichen Formular. Nach dem Speichern erfolgt direkt
+            ein erster eBuSy-Abgleich. Bei Bedarf kann der Abgleich erneut gestartet, ein
+            Kandidat ausgewaehlt oder ein Testeintrag wieder geloescht werden.
           </p>
 
           {applicationsError ? (

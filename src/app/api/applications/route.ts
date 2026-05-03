@@ -10,28 +10,86 @@ const familyMemberSchema = z.object({
   email: z.string().trim().optional()
 });
 
-const applicationSchema = z.object({
-  firstName: z.string().trim().min(1, "Vorname fehlt."),
-  lastName: z.string().trim().min(1, "Nachname fehlt."),
-  birthDate: z.string().trim().optional(),
-  email: z.string().trim().email("Bitte eine gueltige E-Mail angeben."),
-  phone: z.string().trim().optional(),
-  mobile: z.string().trim().optional(),
-  street: z.string().trim().optional(),
-  postalCode: z.string().trim().optional(),
-  city: z.string().trim().optional(),
-  membershipKind: z.string().trim().optional(),
-  familyMembers: z.array(familyMemberSchema).optional(),
-  acceptsStatutes: z.boolean(),
-  acceptsPrivacy: z.boolean(),
-  acceptsPhotoVideo: z.boolean(),
-  acceptsWhatsapp: z.boolean(),
-  acceptsSepa: z.boolean(),
-  iban: z.string().trim().optional(),
-  accountHolder: z.string().trim().optional(),
-  accountHolderAddress: z.string().trim().optional(),
-  notes: z.string().trim().optional()
-});
+const applicationSchema = z
+  .object({
+    firstName: z.string().trim().min(1, "Vorname fehlt."),
+    lastName: z.string().trim().min(1, "Nachname fehlt."),
+    birthDate: z.string().trim().optional(),
+    email: z.string().trim().email("Bitte eine gueltige E-Mail angeben."),
+    phone: z.string().trim().optional(),
+    mobile: z.string().trim().optional(),
+    street: z.string().trim().optional(),
+    postalCode: z.string().trim().optional(),
+    city: z.string().trim().optional(),
+    membershipKind: z.string().trim().optional(),
+    familyMembers: z.array(familyMemberSchema).optional(),
+    acceptsStatutes: z.boolean(),
+    acceptsPrivacy: z.boolean(),
+    acceptsPhotoVideo: z.boolean(),
+    acceptsWhatsapp: z.boolean(),
+    acceptsSepa: z.boolean(),
+    iban: z.string().trim().optional(),
+    accountHolder: z.string().trim().optional(),
+    accountHolderAddress: z.string().trim().optional(),
+    notes: z.string().trim().optional()
+  })
+  .superRefine((value, context) => {
+    if (!value.membershipKind) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["membershipKind"],
+        message: "Art der Mitgliedschaft fehlt."
+      });
+    }
+
+    if (!value.acceptsStatutes) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["acceptsStatutes"],
+        message: "Satzung und Vereinsregeln muessen bestaetigt werden."
+      });
+    }
+
+    if (!value.acceptsPrivacy) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["acceptsPrivacy"],
+        message: "Die Datenschutzhinweise muessen bestaetigt werden."
+      });
+    }
+
+    if (!value.acceptsSepa) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["acceptsSepa"],
+        message: "Das SEPA-Lastschriftverfahren muss bestaetigt werden."
+      });
+    }
+
+    if (value.acceptsSepa && !value.iban) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["iban"],
+        message: "Die IBAN fehlt."
+      });
+    }
+
+    if (value.acceptsSepa && !value.accountHolder) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["accountHolder"],
+        message: "Der Kontoinhaber fehlt."
+      });
+    }
+
+    if (value.acceptsSepa && !value.accountHolderAddress) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["accountHolderAddress"],
+        message: "Die Anschrift des Kontoinhabers fehlt."
+      });
+    }
+  });
 
 export async function POST(request: NextRequest) {
   const body = await request.json();

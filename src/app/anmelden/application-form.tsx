@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type { ApplicationMatchSummary } from "@/lib/application-types";
 
 type SubmissionState =
   | { kind: "idle" }
   | { kind: "submitting" }
-  | { kind: "success"; id: string }
+  | { kind: "success"; id: string; match?: ApplicationMatchSummary }
   | { kind: "error"; message: string };
 
 function isValidIban(value: string) {
@@ -50,6 +51,7 @@ export function ApplicationForm() {
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const [familyMode, setFamilyMode] = useState(false);
   const [iban, setIban] = useState("");
+  const [acceptsSepa, setAcceptsSepa] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -118,6 +120,7 @@ export function ApplicationForm() {
       const data = (await response.json()) as {
         message?: string;
         application?: { id: string };
+        ebusyMatch?: ApplicationMatchSummary;
       };
 
       if (!response.ok || !data.application?.id) {
@@ -127,7 +130,8 @@ export function ApplicationForm() {
       form.reset();
       setFamilyMode(false);
       setIban("");
-      setState({ kind: "success", id: data.application.id });
+      setAcceptsSepa(false);
+      setState({ kind: "success", id: data.application.id, match: data.ebusyMatch });
     } catch (error) {
       setState({
         kind: "error",
@@ -140,11 +144,11 @@ export function ApplicationForm() {
     <form className="form" onSubmit={handleSubmit}>
       <div className="grid grid-2">
         <div className="field">
-          <label htmlFor="firstName">Vorname</label>
+          <label htmlFor="firstName">Vorname*</label>
           <input id="firstName" name="firstName" required />
         </div>
         <div className="field">
-          <label htmlFor="lastName">Nachname</label>
+          <label htmlFor="lastName">Nachname*</label>
           <input id="lastName" name="lastName" required />
         </div>
       </div>
@@ -155,7 +159,7 @@ export function ApplicationForm() {
           <input id="birthDate" name="birthDate" type="date" />
         </div>
         <div className="field">
-          <label htmlFor="email">E-Mail</label>
+          <label htmlFor="email">E-Mail*</label>
           <input id="email" name="email" type="email" required />
         </div>
       </div>
@@ -188,10 +192,11 @@ export function ApplicationForm() {
       </div>
 
       <div className="field">
-        <label htmlFor="membershipKind">Art der Mitgliedschaft</label>
+        <label htmlFor="membershipKind">Art der Mitgliedschaft*</label>
         <select
           id="membershipKind"
           name="membershipKind"
+          required
           defaultValue=""
           onChange={(event) =>
             setFamilyMode(["adult_child", "family"].includes(event.target.value))
@@ -214,31 +219,49 @@ export function ApplicationForm() {
           Aus Gruenden der Verwaltungsvereinfachung werden die Mitgliedsbeitraege im
           Lastschriftverfahren erhoben. Diese Angaben gehoeren daher direkt zur Anmeldung.
         </p>
+        <details style={{ marginBottom: 16 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            Text zum SEPA-Lastschriftmandat anzeigen
+          </summary>
+          <div style={{ marginTop: 10, color: "var(--muted)" }}>
+            Ich ermaechtige den Tennisclub Vreden e.V., Zahlungen fuer Mitgliedsbeitraege mittels
+            Lastschrift einzuziehen. Zugleich weise ich mein Kreditinstitut an, die vom
+            Tennisclub Vreden e.V. auf mein Konto gezogenen Lastschriften einzuloesen. Das Mandat
+            gilt fuer wiederkehrende Zahlungen im Rahmen der Vereinsmitgliedschaft.
+          </div>
+        </details>
         <div className="checkbox-group" style={{ marginBottom: 16 }}>
           <label className="checkbox">
-            <input type="checkbox" name="acceptsSepa" />
-            <span>Ich stimme dem SEPA-Lastschriftverfahren zu.</span>
+            <input
+              type="checkbox"
+              name="acceptsSepa"
+              checked={acceptsSepa}
+              required
+              onChange={(event) => setAcceptsSepa(event.target.checked)}
+            />
+            <span>Ich stimme dem SEPA-Lastschriftverfahren zu.*</span>
           </label>
         </div>
         <div className="grid grid-2">
           <div className="field">
-            <label htmlFor="accountHolder">Kontoinhaber</label>
-            <input id="accountHolder" name="accountHolder" />
+            <label htmlFor="accountHolder">Kontoinhaber*</label>
+            <input id="accountHolder" name="accountHolder" required={acceptsSepa} />
           </div>
           <div className="field">
-            <label htmlFor="iban">IBAN</label>
+            <label htmlFor="iban">IBAN*</label>
             <input
               id="iban"
               name="iban"
               value={iban}
               onChange={(event) => setIban(event.target.value)}
               placeholder="DE..."
+              required={acceptsSepa}
             />
           </div>
         </div>
         <div className="field">
-          <label htmlFor="accountHolderAddress">Anschrift des Kontoinhabers</label>
-          <input id="accountHolderAddress" name="accountHolderAddress" />
+          <label htmlFor="accountHolderAddress">Anschrift des Kontoinhabers*</label>
+          <input id="accountHolderAddress" name="accountHolderAddress" required={acceptsSepa} />
         </div>
       </div>
 
@@ -279,14 +302,55 @@ export function ApplicationForm() {
 
       <div className="card" style={{ padding: 18 }}>
         <h2 style={{ fontSize: "1.25rem" }}>Einwilligungen</h2>
+        <details style={{ marginBottom: 12 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            Satzung, Beitragsordnung und Vereinsregeln anzeigen
+          </summary>
+          <div style={{ marginTop: 10, color: "var(--muted)" }}>
+            Mit der Bestaetigung erklaerst du, dass du die Satzung, die Beitragsordnung und die
+            fuer den Spiel- und Vereinsbetrieb geltenden Regelungen des Tennisclub Vreden e.V. zur
+            Kenntnis genommen hast und anerkennst.
+          </div>
+        </details>
+        <details style={{ marginBottom: 12 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            Datenschutzhinweise anzeigen
+          </summary>
+          <div style={{ marginTop: 10, color: "var(--muted)" }}>
+            Deine Daten werden fuer die Begruendung und Verwaltung der Mitgliedschaft, fuer die
+            Beitragsabwicklung sowie fuer vereinsbezogene Kommunikation verarbeitet. Die
+            ausfuehrlichen Datenschutzinformationen des Vereins muessen vor dem Absenden zur
+            Kenntnis genommen werden.
+          </div>
+        </details>
+        <details style={{ marginBottom: 12 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            Hinweise zu Foto- und Videoaufnahmen anzeigen
+          </summary>
+          <div style={{ marginTop: 10, color: "var(--muted)" }}>
+            Die Einwilligung in Foto- und Videoaufnahmen ist freiwillig. Bilder oder Videos koennen
+            fuer Vereinskommunikation, Website, Social Media oder Pressearbeit genutzt werden. Ein
+            Widerruf fuer die Zukunft bleibt moeglich.
+          </div>
+        </details>
+        <details style={{ marginBottom: 12 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            Hinweise zur WhatsApp-Gruppe anzeigen
+          </summary>
+          <div style={{ marginTop: 10, color: "var(--muted)" }}>
+            Die Aufnahme in vereinsbezogene WhatsApp-Gruppen ist freiwillig, fuer die praktische
+            Kommunikation im Vereinsalltag aber oft sinnvoll. Bei WhatsApp gelten die
+            Datenschutzbedingungen des Anbieters. Ein Austritt oder Widerruf ist jederzeit moeglich.
+          </div>
+        </details>
         <div className="checkbox-group">
           <label className="checkbox">
             <input type="checkbox" name="acceptsStatutes" required />
-            <span>Ich habe Satzung, Beitragsordnung und Vereinsregeln zur Kenntnis genommen.</span>
+            <span>Ich habe Satzung, Beitragsordnung und Vereinsregeln zur Kenntnis genommen.*</span>
           </label>
           <label className="checkbox">
             <input type="checkbox" name="acceptsPrivacy" required />
-            <span>Ich habe die Datenschutzhinweise zur Kenntnis genommen.</span>
+            <span>Ich habe die Datenschutzhinweise zur Kenntnis genommen.*</span>
           </label>
           <label className="checkbox">
             <input type="checkbox" name="acceptsPhotoVideo" />
@@ -313,6 +377,12 @@ export function ApplicationForm() {
             Der Antrag wurde in der internen Verwaltung abgelegt. Interne Vorgangs-ID:{" "}
             <strong>{state.id}</strong>
           </p>
+          {state.match ? (
+            <p style={{ marginTop: 10 }}>
+              eBuSy-Status direkt nach dem Speichern: <strong>{state.match.status}</strong>.{" "}
+              {state.match.message}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

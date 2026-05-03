@@ -102,3 +102,59 @@ export async function matchApplicationWithEbusy(
     candidateCount
   };
 }
+
+export async function linkApplicationToEbusyPerson(
+  applicationId: string,
+  externalPersonId: string
+): Promise<ApplicationMatchSummary> {
+  const supabase = getSupabaseAdminClient();
+
+  const { data: application, error: applicationError } = await supabase
+    .from("applications")
+    .select("ebusy_match_payload")
+    .eq("id", applicationId)
+    .single();
+
+  if (applicationError || !application) {
+    return {
+      status: "error",
+      message: applicationError?.message ?? "Antrag wurde nicht gefunden."
+    };
+  }
+
+  const payload = application.ebusy_match_payload as
+    | {
+        candidates?: Array<{
+          externalPersonId?: string;
+          displayName?: string;
+        }>;
+      }
+    | null;
+
+  const selectedCandidate = payload?.candidates?.find(
+    (candidate) => candidate.externalPersonId === externalPersonId
+  );
+
+  const { error: updateError } = await supabase
+    .from("applications")
+    .update({
+      ebusy_match_status: "match_found",
+      ebusy_person_id: externalPersonId
+    })
+    .eq("id", applicationId);
+
+  if (updateError) {
+    return {
+      status: "error",
+      message: updateError.message
+    };
+  }
+
+  return {
+    status: "match_found",
+    message: selectedCandidate?.displayName
+      ? `Antrag wurde mit ${selectedCandidate.displayName} verknuepft.`
+      : `Antrag wurde mit eBuSy-ID ${externalPersonId} verknuepft.`,
+    externalPersonId
+  };
+}
