@@ -118,8 +118,8 @@ async function ebusyPost<T>(path: string, payload: unknown): Promise<EbusyApiRes
   }
 
   if (!response.ok || body?.error) {
-    const message = body?.message || `HTTP ${response.status}`;
-    throw new Error(`eBuSy-Request fehlgeschlagen: ${message}`);
+    const details = body?.message || text || response.statusText || "Keine Detailmeldung";
+    throw new Error(`eBuSy-Request ${path} fehlgeschlagen: HTTP ${response.status}. ${details}`);
   }
 
   return body ?? { error: null, message: null };
