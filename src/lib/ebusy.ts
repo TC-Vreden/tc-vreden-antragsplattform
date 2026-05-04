@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { mockEbusyLookup, type EbusyMatchResult } from "@/lib/mock-ebusy";
 import type { ApplicationRow } from "@/lib/application-types";
 
@@ -173,6 +174,27 @@ function pruneEmptyValues<T>(value: T): T {
   return value;
 }
 
+function toUsernamePart(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "");
+}
+
+function buildEbusyUsername(application: ApplicationRow) {
+  const firstName = toUsernamePart(application.first_name);
+  const lastName = toUsernamePart(application.last_name);
+  const suffix = application.id.replace(/-/g, "").slice(0, 8);
+
+  return [firstName, lastName, suffix].filter(Boolean).join(".");
+}
+
+function buildTemporaryPassword() {
+  return `TCV-${randomBytes(9).toString("base64url")}-2026`;
+}
+
 export async function createEbusyPersonFromApplication(application: ApplicationRow): Promise<{
   externalPersonId: string;
   displayName: string;
@@ -207,6 +229,12 @@ export async function createEbusyPersonFromApplication(application: ApplicationR
           phone: optionalText(application.phone)
         }
       : undefined,
+    user: {
+      name: buildEbusyUsername(application),
+      password: buildTemporaryPassword(),
+      enabled: true,
+      level: "USER"
+    },
     comment: buildApplicationComment(application)
   });
 
