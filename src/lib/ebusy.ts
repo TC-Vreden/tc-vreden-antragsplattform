@@ -148,10 +148,29 @@ function buildApplicationComment(application: ApplicationRow) {
     application.account_holder_address
       ? `Anschrift Kontoinhaber: ${application.account_holder_address}.`
       : undefined,
+    application.iban ? `IBAN aus Antrag: ${application.iban}.` : undefined,
     application.notes ? `Hinweise: ${application.notes}` : undefined
   ];
 
   return lines.filter(Boolean).join("\n");
+}
+
+function pruneEmptyValues<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => pruneEmptyValues(item))
+      .filter((item) => item !== undefined && item !== null) as T;
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value)
+      .map(([key, entryValue]) => [key, pruneEmptyValues(entryValue)] as const)
+      .filter(([, entryValue]) => entryValue !== undefined && entryValue !== null);
+
+    return Object.fromEntries(entries) as T;
+  }
+
+  return value;
 }
 
 export async function createEbusyPersonFromApplication(application: ApplicationRow): Promise<{
@@ -167,9 +186,8 @@ export async function createEbusyPersonFromApplication(application: ApplicationR
   const displayName = `${application.first_name} ${application.last_name}`.trim();
   const hasAddress = Boolean(application.street || application.postal_code || application.city);
   const hasContact = Boolean(application.email || application.mobile || application.phone);
-  const hasBankAccount = Boolean(application.accepts_sepa && application.iban);
 
-  const payload = {
+  const payload = pruneEmptyValues({
     firstname: application.first_name,
     lastname: application.last_name,
     birthday: optionalText(application.birth_date),
@@ -189,19 +207,8 @@ export async function createEbusyPersonFromApplication(application: ApplicationR
           phone: optionalText(application.phone)
         }
       : undefined,
-    bankAccount: hasBankAccount
-      ? {
-          holder: optionalText(application.account_holder) ?? displayName,
-          number: optionalText(application.iban)
-        }
-      : undefined,
-    sepaMandate: application.accepts_sepa
-      ? {
-          date: new Date().toISOString().slice(0, 10)
-        }
-      : undefined,
     comment: buildApplicationComment(application)
-  };
+  });
 
   const result = await ebusyPost<EbusyCreatedPerson>("/general/person", payload);
   const createdPerson = result.response ?? result.result;
