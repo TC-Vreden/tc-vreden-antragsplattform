@@ -6,6 +6,10 @@ import type {
 } from "@/lib/application-types";
 import { createEbusyPersonFromApplication, lookupEbusyPerson } from "@/lib/ebusy";
 
+function isStrongAutomaticMatch(candidate: { matchScore: number }) {
+  return candidate.matchScore >= 98;
+}
+
 export async function getApplicationsForManagement(): Promise<{
   applications: ApplicationRow[];
   error?: string;
@@ -72,23 +76,34 @@ export async function matchApplicationWithEbusy(
     ebusyMatchStatus = "no_match";
     summaryStatus = "no_match";
     summaryMessage = "Kein passender Datensatz in eBuSy gefunden.";
-  } else if (candidateCount === 1 && bestCandidate) {
+  } else if (candidateCount === 1 && bestCandidate && isStrongAutomaticMatch(bestCandidate)) {
     ebusyMatchStatus = "match_found";
     ebusyPersonId = bestCandidate.externalPersonId;
     summaryStatus = "match_found";
     summaryMessage = `1 passender eBuSy-Treffer gefunden: ${bestCandidate.displayName ?? bestCandidate.externalPersonId}`;
+  } else if (candidateCount === 1 && bestCandidate) {
+    ebusyMatchStatus = "needs_review";
+    summaryStatus = "needs_review";
+    summaryMessage =
+      "1 moeglicher eBuSy-Kandidat gefunden, aber kein sicherer Treffer. Bitte pruefen, verknuepfen oder als neue Person anlegen.";
   } else {
     ebusyMatchStatus = "multiple_matches";
     summaryStatus = "multiple_matches";
     summaryMessage = `${candidateCount} moegliche eBuSy-Treffer gefunden. Bitte manuell pruefen.`;
   }
 
+  const matchPayload: ApplicationMatchPayload = {
+    ...result,
+    status: ebusyMatchStatus as ApplicationMatchPayload["status"],
+    message: summaryMessage
+  };
+
   const { error: updateError } = await supabase
     .from("applications")
     .update({
       ebusy_match_status: ebusyMatchStatus,
       ebusy_person_id: ebusyPersonId,
-      ebusy_match_payload: result
+      ebusy_match_payload: matchPayload
     })
     .eq("id", applicationId);
 
@@ -191,13 +206,17 @@ export async function createApplicationPersonInEbusy(
     };
   }
 
-  if (row.ebusy_match_status !== "no_match") {
+  const canCreatePerson = ["no_match", "needs_review", "multiple_matches"].includes(
+    row.ebusy_match_status
+  );
+
+  if (!canCreatePerson) {
     return {
       status: "error",
       message:
         row.ebusy_match_status === "pending"
           ? "Bitte zuerst den eBuSy-Abgleich fuer diesen Antrag ausfuehren."
-          : "Eine Neuanlage ist nur fuer Antraege mit Status Kein Treffer vorgesehen."
+          : "Eine Neuanlage ist nur fuer Antraege ohne sichere eBuSy-Verknuepfung vorgesehen."
     };
   }
 

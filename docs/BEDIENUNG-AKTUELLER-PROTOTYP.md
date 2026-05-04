@@ -56,7 +56,8 @@ Direkt nach dem Speichern sollte der Antrag dort sichtbar sein.
 
 ### `Treffer`
 
-- genau ein passender eBuSy-Datensatz wurde gefunden
+- ein sicherer eBuSy-Datensatz wurde gefunden
+- sichere Treffer werden nur automatisch verknuepft, wenn die Trefferqualitaet hoch genug ist
 
 ### `Kein Treffer`
 
@@ -69,15 +70,21 @@ Direkt nach dem Speichern sollte der Antrag dort sichtbar sein.
 - mehrere moegliche eBuSy-Treffer wurden gefunden
 - der Benutzer kann die Kandidatenliste oeffnen und den passenden Treffer verknuepfen
 
+### `Pruefen`
+
+- genau ein moeglicher eBuSy-Kandidat wurde gefunden, aber nicht sicher genug
+- Beispiel: Treffer nur ueber Geburtsdatum
+- der Benutzer kann den Kandidaten verknuepfen oder stattdessen eine neue Person in eBuSy anlegen
+
 ## 6. Buttons in der Verwaltung
 
 ### `Erneut abgleichen`
 
 - fuehrt den eBuSy-Abgleich fuer genau diesen Antrag erneut aus
 
-### `Treffer ansehen (n)`
+### `Kandidaten ansehen (n)`
 
-- nur bei `Mehrdeutig`
+- bei `Mehrdeutig` oder `Pruefen`
 - klappt die Kandidatenliste fuer diesen Antrag auf
 
 ### `Diesen Treffer verknuepfen`
@@ -87,7 +94,7 @@ Direkt nach dem Speichern sollte der Antrag dort sichtbar sein.
 
 ### `In eBuSy anlegen`
 
-- erscheint bei `Kein Treffer`
+- erscheint bei `Kein Treffer`, `Pruefen` oder `Mehrdeutig`, solange keine sichere eBuSy-ID verknuepft ist
 - fragt vor dem Schreibzugriff noch einmal nach Bestaetigung
 - legt aus dem Antrag eine neue Person in eBuSy an
 - speichert die neue eBuSy-ID am Antrag
@@ -134,10 +141,10 @@ Aktuell erfolgreich getestet:
 - Formularspeicherung nach Supabase
 - Anzeige der Antraege in der Verwaltung
 - automatischer erster eBuSy-Abgleich nach dem Speichern
-- Status `Treffer`, `Kein Treffer`, `Mehrdeutig`
+- Status `Treffer`, `Kein Treffer`, `Mehrdeutig`, `Pruefen`
 - manueller Neuabgleich
-- Kandidatenanzeige bei mehrdeutigen Treffern
-- manuelle Personenanlage in eBuSy bei `Kein Treffer`
+- Kandidatenanzeige bei mehrdeutigen und unsicheren Treffern
+- manuelle Personenanlage in eBuSy bei `Kein Treffer`, `Pruefen` oder `Mehrdeutig`
 - Loeschen von Testeintraegen
 
 ## 10. Bekannte Luecken im Prototyp
@@ -164,7 +171,7 @@ Aktuell erfolgreich getestet:
 2. pruefen, ob Erfolgsmeldung erscheint
 3. Verwaltung oeffnen
 4. pruefen, ob der Antrag in `Eingegangene Antraege` auftaucht
-5. pruefen, ob sofort `Treffer`, `Kein Treffer` oder `Mehrdeutig` gesetzt wird
-6. bei `Mehrdeutig` Kandidatenliste oeffnen
-7. bei `Kein Treffer` optional `In eBuSy anlegen` mit einer echten Testperson testen
+5. pruefen, ob sofort `Treffer`, `Kein Treffer`, `Mehrdeutig` oder `Pruefen` gesetzt wird
+6. bei `Mehrdeutig` oder `Pruefen` Kandidatenliste oeffnen
+7. bei `Kein Treffer`, `Mehrdeutig` oder `Pruefen` optional `In eBuSy anlegen` mit einer echten Testperson testen
 8. Testeintrag wieder loeschen

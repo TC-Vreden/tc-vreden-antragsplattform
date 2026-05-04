@@ -38,6 +38,7 @@ export type ApplicationMatchSummary = {
     | "match_found"
     | "no_match"
     | "multiple_matches"
+    | "needs_review"
     | "person_created"
     | "created_in_ebusy"
     | "error";
@@ -65,6 +66,7 @@ export type ApplicationMatchPayload = {
     | "match_found"
     | "no_match"
     | "multiple_matches"
+    | "needs_review"
     | "person_created"
     | "created_in_ebusy"
     | "error";

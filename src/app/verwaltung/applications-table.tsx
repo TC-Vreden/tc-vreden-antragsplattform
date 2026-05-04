@@ -24,6 +24,8 @@ function getStatusLabel(status: string) {
       return "Treffer";
     case "multiple_matches":
       return "Mehrdeutig";
+    case "needs_review":
+      return "Pruefen";
     case "no_match":
       return "Kein Treffer";
     case "person_created":
@@ -34,6 +36,13 @@ function getStatusLabel(status: string) {
     default:
       return status;
   }
+}
+
+function canCreateEbusyPerson(application: ApplicationRow) {
+  return (
+    !application.ebusy_person_id &&
+    ["no_match", "needs_review", "multiple_matches"].includes(application.ebusy_match_status)
+  );
 }
 
 export function ApplicationsTable({ applications }: Props) {
@@ -74,7 +83,7 @@ export function ApplicationsTable({ applications }: Props) {
         [applicationId]: {
           loading: false,
           feedback: payload,
-          expanded: payload.status === "multiple_matches"
+          expanded: payload.status === "multiple_matches" || payload.status === "needs_review"
         }
       }));
 
@@ -85,7 +94,7 @@ export function ApplicationsTable({ applications }: Props) {
                 ...row,
                 ebusy_match_status:
                   payload.status === "multiple_matches" ? "multiple_matches" : payload.status,
-                ebusy_person_id: payload.externalPersonId ?? row.ebusy_person_id
+                ebusy_person_id: payload.externalPersonId ?? null
               }
             : row
         )
@@ -382,12 +391,12 @@ export function ApplicationsTable({ applications }: Props) {
                         style={{ minWidth: 180 }}
                       >
                         {showCandidates
-                          ? "Treffer ausblenden"
-                          : `Treffer ansehen (${candidates.length})`}
+                          ? "Kandidaten ausblenden"
+                          : `Kandidaten ansehen (${candidates.length})`}
                       </button>
                     ) : null}
 
-                    {application.ebusy_match_status === "no_match" ? (
+                    {canCreateEbusyPerson(application) ? (
                       <button
                         className="button secondary"
                         type="button"
