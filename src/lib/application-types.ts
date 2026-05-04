@@ -34,7 +34,13 @@ export type ApplicationRow = {
 };
 
 export type ApplicationMatchSummary = {
-  status: "match_found" | "no_match" | "multiple_matches" | "error";
+  status:
+    | "match_found"
+    | "no_match"
+    | "multiple_matches"
+    | "person_created"
+    | "created_in_ebusy"
+    | "error";
   message: string;
   externalPersonId?: string | null;
   candidateCount?: number;
@@ -54,10 +60,21 @@ export type ApplicationMatchCandidate = {
 };
 
 export type ApplicationMatchPayload = {
-  status: "pending" | "match_found" | "no_match";
+  status:
+    | "pending"
+    | "match_found"
+    | "no_match"
+    | "multiple_matches"
+    | "person_created"
+    | "created_in_ebusy"
+    | "error";
   source?: "mock" | "live";
   message?: string;
   candidates: ApplicationMatchCandidate[];
+  createdPerson?: {
+    externalPersonId: string;
+    displayName?: string;
+  };
 };
 
 export type ApplicationInput = {

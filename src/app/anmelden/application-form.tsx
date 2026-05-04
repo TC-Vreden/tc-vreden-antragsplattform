@@ -9,14 +9,18 @@ type SubmissionState =
   | { kind: "success"; id: string; match?: ApplicationMatchSummary }
   | { kind: "error"; message: string };
 
+function normalizeIban(value: string) {
+  return value.replace(/\s+/g, "").toUpperCase();
+}
+
 function isValidIban(value: string) {
-  const iban = value.replace(/\s+/g, "").toUpperCase();
+  const iban = normalizeIban(value);
 
   if (!iban) {
     return true;
   }
 
-  if (!/^DE\d{20}$/.test(iban)) {
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) {
     return false;
   }
 
@@ -52,6 +56,7 @@ export function ApplicationForm() {
   const [familyMode, setFamilyMode] = useState(false);
   const [iban, setIban] = useState("");
   const [acceptsSepa, setAcceptsSepa] = useState(false);
+  const [accountHolderDiffers, setAccountHolderDiffers] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,16 +82,22 @@ export function ApplicationForm() {
           ]
         : [];
 
+    const street = String(formData.get("street") || "").trim();
+    const postalCode = String(formData.get("postalCode") || "").trim();
+    const city = String(formData.get("city") || "").trim();
+    const accountHolderAddressInput = String(formData.get("accountHolderAddress") || "").trim();
+    const fallbackAddress = [street, postalCode, city].filter(Boolean).join(", ");
+
     const payload = {
-      firstName: String(formData.get("firstName") || ""),
-      lastName: String(formData.get("lastName") || ""),
+      firstName: String(formData.get("firstName") || "").trim(),
+      lastName: String(formData.get("lastName") || "").trim(),
       birthDate: String(formData.get("birthDate") || ""),
-      email: String(formData.get("email") || ""),
-      phone: String(formData.get("phone") || ""),
-      mobile: String(formData.get("mobile") || ""),
-      street: String(formData.get("street") || ""),
-      postalCode: String(formData.get("postalCode") || ""),
-      city: String(formData.get("city") || ""),
+      email: String(formData.get("email") || "").trim(),
+      phone: String(formData.get("phone") || "").trim(),
+      mobile: String(formData.get("mobile") || "").trim(),
+      street,
+      postalCode,
+      city,
       membershipKind: String(formData.get("membershipKind") || ""),
       familyMembers,
       acceptsStatutes: Boolean(formData.get("acceptsStatutes")),
@@ -94,10 +105,13 @@ export function ApplicationForm() {
       acceptsPhotoVideo: Boolean(formData.get("acceptsPhotoVideo")),
       acceptsWhatsapp: Boolean(formData.get("acceptsWhatsapp")),
       acceptsSepa: Boolean(formData.get("acceptsSepa")),
-      iban: String(formData.get("iban") || ""),
-      accountHolder: String(formData.get("accountHolder") || ""),
-      accountHolderAddress: String(formData.get("accountHolderAddress") || ""),
-      notes: String(formData.get("notes") || "")
+      iban: normalizeIban(String(formData.get("iban") || "")),
+      accountHolder: String(formData.get("accountHolder") || "").trim(),
+      accountHolderAddress:
+        accountHolderDiffers && accountHolderAddressInput
+          ? accountHolderAddressInput
+          : fallbackAddress,
+      notes: String(formData.get("notes") || "").trim()
     };
 
     if (!isValidIban(payload.iban)) {
@@ -131,6 +145,7 @@ export function ApplicationForm() {
       setFamilyMode(false);
       setIban("");
       setAcceptsSepa(false);
+      setAccountHolderDiffers(false);
       setState({ kind: "success", id: data.application.id, match: data.ebusyMatch });
     } catch (error) {
       setState({
@@ -170,25 +185,25 @@ export function ApplicationForm() {
           <input id="phone" name="phone" />
         </div>
         <div className="field">
-          <label htmlFor="mobile">Mobil</label>
-          <input id="mobile" name="mobile" />
+          <label htmlFor="mobile">Mobil*</label>
+          <input id="mobile" name="mobile" required />
         </div>
       </div>
 
       <div className="grid grid-2">
         <div className="field">
-          <label htmlFor="street">Strasse</label>
-          <input id="street" name="street" />
+          <label htmlFor="street">Strasse*</label>
+          <input id="street" name="street" required />
         </div>
         <div className="field">
-          <label htmlFor="postalCode">PLZ</label>
-          <input id="postalCode" name="postalCode" />
+          <label htmlFor="postalCode">PLZ*</label>
+          <input id="postalCode" name="postalCode" required />
         </div>
       </div>
 
       <div className="field">
-        <label htmlFor="city">Ort</label>
-        <input id="city" name="city" />
+        <label htmlFor="city">Ort*</label>
+        <input id="city" name="city" required />
       </div>
 
       <div className="field">
@@ -224,10 +239,17 @@ export function ApplicationForm() {
             Text zum SEPA-Lastschriftmandat anzeigen
           </summary>
           <div style={{ marginTop: 10, color: "var(--muted)" }}>
-            Ich ermaechtige den Tennisclub Vreden e.V., Zahlungen fuer Mitgliedsbeitraege mittels
-            Lastschrift einzuziehen. Zugleich weise ich mein Kreditinstitut an, die vom
-            Tennisclub Vreden e.V. auf mein Konto gezogenen Lastschriften einzuloesen. Das Mandat
-            gilt fuer wiederkehrende Zahlungen im Rahmen der Vereinsmitgliedschaft.
+            <p>
+              Ich ermaechtige den Tennisclub Vreden e.V., Zahlungen von meinem Konto mittels SEPA
+              Basis Lastschrift einzuziehen. Zugleich weise ich mein Kreditinstitut an, die vom
+              Tennisclub Vreden e.V. auf mein Konto gezogenen SEPA Basis Lastschriften
+              einzuloesen.
+            </p>
+            <p>
+              Das Mandat gilt fuer wiederkehrende Zahlungen im Rahmen der Mitgliedschaft. Die
+              Mandatsreferenz wird spaeter vom Verein vergeben. Die Glaeubiger-ID des Vereins
+              lautet <strong>DE34ZZZ000024060600</strong>.
+            </p>
           </div>
         </details>
         <div className="checkbox-group" style={{ marginBottom: 16 }}>
@@ -254,15 +276,36 @@ export function ApplicationForm() {
               name="iban"
               value={iban}
               onChange={(event) => setIban(event.target.value)}
-              placeholder="DE..."
+              inputMode="text"
               required={acceptsSepa}
             />
           </div>
         </div>
-        <div className="field">
-          <label htmlFor="accountHolderAddress">Anschrift des Kontoinhabers*</label>
-          <input id="accountHolderAddress" name="accountHolderAddress" required={acceptsSepa} />
+        <div className="checkbox-group" style={{ marginTop: 12 }}>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={accountHolderDiffers}
+              onChange={(event) => setAccountHolderDiffers(event.target.checked)}
+            />
+            <span>Der Kontoinhaber hat eine andere Anschrift als der Antragsteller.</span>
+          </label>
         </div>
+        {accountHolderDiffers ? (
+          <div className="field">
+            <label htmlFor="accountHolderAddress">Anschrift des Kontoinhabers*</label>
+            <input
+              id="accountHolderAddress"
+              name="accountHolderAddress"
+              required={acceptsSepa && accountHolderDiffers}
+            />
+          </div>
+        ) : (
+          <p style={{ marginTop: 12, color: "var(--muted)" }}>
+            Wenn hier nichts abweicht, verwendet das System fuer den Kontoinhaber die oben
+            angegebene Anschrift des Antragstellers.
+          </p>
+        )}
       </div>
 
       {familyMode ? (
@@ -302,64 +345,115 @@ export function ApplicationForm() {
 
       <div className="card" style={{ padding: 18 }}>
         <h2 style={{ fontSize: "1.25rem" }}>Einwilligungen</h2>
-        <details style={{ marginBottom: 12 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-            Satzung, Beitragsordnung und Vereinsregeln anzeigen
-          </summary>
-          <div style={{ marginTop: 10, color: "var(--muted)" }}>
-            Mit der Bestaetigung erklaerst du, dass du die Satzung, die Beitragsordnung und die
-            fuer den Spiel- und Vereinsbetrieb geltenden Regelungen des Tennisclub Vreden e.V. zur
-            Kenntnis genommen hast und anerkennst.
-          </div>
-        </details>
-        <details style={{ marginBottom: 12 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-            Datenschutzhinweise anzeigen
-          </summary>
-          <div style={{ marginTop: 10, color: "var(--muted)" }}>
-            Deine Daten werden fuer die Begruendung und Verwaltung der Mitgliedschaft, fuer die
-            Beitragsabwicklung sowie fuer vereinsbezogene Kommunikation verarbeitet. Die
-            ausfuehrlichen Datenschutzinformationen des Vereins muessen vor dem Absenden zur
-            Kenntnis genommen werden.
-          </div>
-        </details>
-        <details style={{ marginBottom: 12 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-            Hinweise zu Foto- und Videoaufnahmen anzeigen
-          </summary>
-          <div style={{ marginTop: 10, color: "var(--muted)" }}>
-            Die Einwilligung in Foto- und Videoaufnahmen ist freiwillig. Bilder oder Videos koennen
-            fuer Vereinskommunikation, Website, Social Media oder Pressearbeit genutzt werden. Ein
-            Widerruf fuer die Zukunft bleibt moeglich.
-          </div>
-        </details>
-        <details style={{ marginBottom: 12 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-            Hinweise zur WhatsApp-Gruppe anzeigen
-          </summary>
-          <div style={{ marginTop: 10, color: "var(--muted)" }}>
-            Die Aufnahme in vereinsbezogene WhatsApp-Gruppen ist freiwillig, fuer die praktische
-            Kommunikation im Vereinsalltag aber oft sinnvoll. Bei WhatsApp gelten die
-            Datenschutzbedingungen des Anbieters. Ein Austritt oder Widerruf ist jederzeit moeglich.
-          </div>
-        </details>
         <div className="checkbox-group">
           <label className="checkbox">
             <input type="checkbox" name="acceptsStatutes" required />
             <span>Ich habe Satzung, Beitragsordnung und Vereinsregeln zur Kenntnis genommen.*</span>
           </label>
+          <details style={{ margin: "-4px 0 8px 34px" }}>
+            <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+              Satzung, Beitragsordnung und Vereinsregeln anzeigen
+            </summary>
+            <div style={{ marginTop: 10, color: "var(--muted)" }}>
+              <p>
+                Mit der Bestaetigung erkennst du Satzung, Beitragsordnung,
+                Platzpflegeordnung und die Datenschutzbestimmungen des Tennisclub Vreden e.V. als
+                verbindlich an.
+              </p>
+              <p>
+                Der Antrag weist ausserdem auf folgende Regeln hin: Eintritt im ersten
+                Kalenderhalbjahr = voller Jahresbeitrag, Eintritt im zweiten Kalenderhalbjahr =
+                anteilige Berechnung. Reduzierte Beitraege fuer Schueler, Studierende und Azubis
+                setzen einen jaehrlich vorzulegenden gueltigen Nachweis voraus.
+              </p>
+              <p>
+                Der Austritt kann gemaess Satzung nur zum Jahresende erfolgen und muss spaetestens
+                drei Monate vorher schriftlich erklaert werden. Mitgliedsbeitraege werden
+                grundsaetzlich per Lastschrift eingezogen.
+              </p>
+            </div>
+          </details>
           <label className="checkbox">
             <input type="checkbox" name="acceptsPrivacy" required />
             <span>Ich habe die Datenschutzhinweise zur Kenntnis genommen.*</span>
           </label>
+          <details style={{ margin: "-4px 0 8px 34px" }}>
+            <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+              Datenschutzhinweise anzeigen
+            </summary>
+            <div style={{ marginTop: 10, color: "var(--muted)" }}>
+              <p>
+                Verantwortlich fuer die Datenverarbeitung ist der Vorstand des Tennisclub Vreden
+                e.V. Die Daten werden ausschliesslich fuer Begruendung, Durchfuehrung und
+                Beendigung der Mitgliedschaft, gesetzliche Pflichten und berechtigte
+                Vereinsinteressen verarbeitet.
+              </p>
+              <p>
+                Verarbeitet werden insbesondere Name, Anschrift, Kontaktdaten, Bankverbindung,
+                Geburtsdatum, Familienangaben, Statusangaben, Eintritts- und Austrittsdatum sowie
+                Vereinsfunktionen. Daten koennen bei Bedarf an Verbaende, Behoerden, Steuerberater
+                oder Vereinsdienstleister weitergegeben werden.
+              </p>
+              <p>
+                Nach Ende der Mitgliedschaft werden Daten unter Beachtung gesetzlicher
+                Aufbewahrungsfristen geloescht. Du hast Rechte auf Auskunft, Berichtigung,
+                Loeschung, Einschraenkung, Widerspruch und Beschwerde. Einwilligungen koennen fuer
+                die Zukunft widerrufen werden.
+              </p>
+            </div>
+          </details>
           <label className="checkbox">
             <input type="checkbox" name="acceptsPhotoVideo" />
             <span>Ich willige in Foto- und Videoaufnahmen ein.</span>
           </label>
+          <details style={{ margin: "-4px 0 8px 34px" }}>
+            <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+              Hinweise zu Foto- und Videoaufnahmen anzeigen
+            </summary>
+            <div style={{ marginTop: 10, color: "var(--muted)" }}>
+              <p>
+                Der Verein darf im Rahmen von Vereinsveranstaltungen, Trainingseinheiten,
+                Wettkaempfen und sonstigen Vereinsaktivitaeten Foto- und Videoaufnahmen anfertigen
+                und fuer Website, soziale Netzwerke, Vereinshefte, Aushaenge, Presseberichte oder
+                Anzeigen verwenden.
+              </p>
+              <p>
+                Dir ist bekannt, dass Aufnahmen im Internet weltweit abrufbar sind und von Dritten
+                gespeichert oder weiterverwendet werden koennen. Eine vollstaendige Loeschung im
+                Internet kann nicht garantiert werden.
+              </p>
+              <p>
+                Die Einwilligung ist freiwillig, zeitlich unbefristet und kann jederzeit fuer die
+                Zukunft widerrufen werden. Bei Minderjaehrigen erklaeren die Erziehungsberechtigten
+                die Einwilligung fuer das Kind.
+              </p>
+            </div>
+          </details>
           <label className="checkbox">
             <input type="checkbox" name="acceptsWhatsapp" />
             <span>Ich moechte in vereinsbezogene WhatsApp-Gruppen aufgenommen werden.</span>
           </label>
+          <details style={{ margin: "-4px 0 0 34px" }}>
+            <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+              Hinweise zur WhatsApp-Gruppe anzeigen
+            </summary>
+            <div style={{ marginTop: 10, color: "var(--muted)" }}>
+              <p>
+                Die WhatsApp-Gruppen dienen der internen Kommunikation, insbesondere fuer
+                Spielbetrieb, Trainingsorganisation, Vereinsinformationen und kurzfristige
+                organisatorische Hinweise.
+              </p>
+              <p>
+                Wenn du zustimmst, ist deine Mobilfunknummer fuer andere Gruppenmitglieder
+                sichtbar. WhatsApp ist ein Dienst eines Drittanbieters; personenbezogene Daten
+                koennen auch ausserhalb der EU verarbeitet werden.
+              </p>
+              <p>
+                Die Einwilligung ist freiwillig, fuer die Mitgliedschaft nicht erforderlich und
+                kann jederzeit fuer die Zukunft widerrufen werden.
+              </p>
+            </div>
+          </details>
         </div>
       </div>
 

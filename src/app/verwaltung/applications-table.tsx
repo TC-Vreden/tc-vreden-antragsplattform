@@ -26,6 +26,9 @@ function getStatusLabel(status: string) {
       return "Mehrdeutig";
     case "no_match":
       return "Kein Treffer";
+    case "person_created":
+    case "created_in_ebusy":
+      return "In eBuSy angelegt";
     case "pending":
       return "Noch offen";
     default:
@@ -81,9 +84,7 @@ export function ApplicationsTable({ applications }: Props) {
             ? {
                 ...row,
                 ebusy_match_status:
-                  payload.status === "multiple_matches"
-                    ? "multiple_matches"
-                    : payload.status,
+                  payload.status === "multiple_matches" ? "multiple_matches" : payload.status,
                 ebusy_person_id: payload.externalPersonId ?? row.ebusy_person_id
               }
             : row
@@ -116,15 +117,18 @@ export function ApplicationsTable({ applications }: Props) {
     }));
 
     try {
-      const response = await fetch(`/api/verwaltung/applications/${applicationId}/select-candidate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          externalPersonId: candidate.externalPersonId
-        })
-      });
+      const response = await fetch(
+        `/api/verwaltung/applications/${applicationId}/select-candidate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            externalPersonId: candidate.externalPersonId
+          })
+        }
+      );
 
       const payload = (await response.json()) as ApplicationMatchSummary;
 
@@ -164,6 +168,89 @@ export function ApplicationsTable({ applications }: Props) {
               error instanceof Error
                 ? error.message
                 : "Die Verknuepfung konnte nicht gespeichert werden."
+          }
+        }
+      }));
+    }
+  }
+
+  async function handleCreateEbusy(applicationId: string) {
+    const application = rows.find((row) => row.id === applicationId);
+    const displayName = application
+      ? `${application.first_name} ${application.last_name}`.trim()
+      : "diesen Antrag";
+
+    if (
+      !window.confirm(
+        `Soll fuer ${displayName} jetzt wirklich eine neue Person in eBuSy angelegt werden?`
+      )
+    ) {
+      return;
+    }
+
+    setStates((current) => ({
+      ...current,
+      [applicationId]: {
+        ...current[applicationId],
+        loading: true
+      }
+    }));
+
+    try {
+      const response = await fetch(`/api/verwaltung/applications/${applicationId}/create-ebusy`, {
+        method: "POST"
+      });
+
+      const payload = (await response.json()) as ApplicationMatchSummary;
+
+      if (!response.ok) {
+        throw new Error(payload.message || `HTTP ${response.status}`);
+      }
+
+      setStates((current) => ({
+        ...current,
+        [applicationId]: {
+          loading: false,
+          feedback: payload,
+          expanded: false
+        }
+      }));
+
+      setRows((current) =>
+        current.map((row) =>
+          row.id === applicationId
+            ? {
+                ...row,
+                ebusy_match_status: payload.status,
+                ebusy_person_id: payload.externalPersonId ?? row.ebusy_person_id,
+                ebusy_match_payload: {
+                  status: payload.status,
+                  source: "live",
+                  message: payload.message,
+                  candidates: row.ebusy_match_payload?.candidates ?? [],
+                  createdPerson: payload.externalPersonId
+                    ? {
+                        externalPersonId: payload.externalPersonId,
+                        displayName
+                      }
+                    : undefined
+                }
+              }
+            : row
+        )
+      );
+    } catch (error) {
+      setStates((current) => ({
+        ...current,
+        [applicationId]: {
+          ...current[applicationId],
+          loading: false,
+          feedback: {
+            status: "error",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Die Person konnte nicht in eBuSy angelegt werden."
           }
         }
       }));
@@ -243,7 +330,7 @@ export function ApplicationsTable({ applications }: Props) {
 
           return (
             <Fragment key={application.id}>
-              <tr key={application.id}>
+              <tr>
                 <td>{new Date(application.created_at).toLocaleDateString("de-DE")}</td>
                 <td>
                   <strong>
@@ -251,7 +338,7 @@ export function ApplicationsTable({ applications }: Props) {
                   </strong>
                   <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
                     Vorgang: {application.id}
-                    {application.ebusy_person_id ? ` · eBuSy-ID: ${application.ebusy_person_id}` : ""}
+                    {application.ebusy_person_id ? ` - eBuSy-ID: ${application.ebusy_person_id}` : ""}
                   </div>
                 </td>
                 <td>{application.membership_kind ?? "-"}</td>
@@ -294,7 +381,22 @@ export function ApplicationsTable({ applications }: Props) {
                         onClick={() => toggleExpanded(application.id)}
                         style={{ minWidth: 180 }}
                       >
-                        {showCandidates ? "Treffer ausblenden" : `Treffer ansehen (${candidates.length})`}
+                        {showCandidates
+                          ? "Treffer ausblenden"
+                          : `Treffer ansehen (${candidates.length})`}
+                      </button>
+                    ) : null}
+
+                    {application.ebusy_match_status === "no_match" ? (
+                      <button
+                        className="button secondary"
+                        type="button"
+                        disabled={Boolean(localState?.loading)}
+                        title="Legt aus diesem Antrag eine neue Person in eBuSy an."
+                        onClick={() => handleCreateEbusy(application.id)}
+                        style={{ minWidth: 180 }}
+                      >
+                        {localState?.loading ? "Anlage laeuft..." : "In eBuSy anlegen"}
                       </button>
                     ) : null}
 
@@ -343,7 +445,9 @@ export function ApplicationsTable({ applications }: Props) {
                                   className="button"
                                   type="button"
                                   disabled={Boolean(localState?.loading)}
-                                  onClick={() => handleSelectCandidate(application.id, candidate)}
+                                  onClick={() =>
+                                    handleSelectCandidate(application.id, candidate)
+                                  }
                                 >
                                   Diesen Treffer verknuepfen
                                 </button>

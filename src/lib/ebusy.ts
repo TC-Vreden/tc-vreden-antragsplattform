@@ -1,4 +1,5 @@
 import { mockEbusyLookup, type EbusyMatchResult } from "@/lib/mock-ebusy";
+import type { ApplicationRow } from "@/lib/application-types";
 
 type EbusyApiResponse<T> = {
   error: string | null;
@@ -37,6 +38,11 @@ type EbusyMembership = {
   personId?: number;
   number?: string;
   status?: string;
+};
+
+type EbusyCreatedPerson = {
+  id?: number;
+  name?: string;
 };
 
 function getAuthHeaders() {
@@ -83,6 +89,131 @@ async function ebusyGet<T>(path: string): Promise<EbusyApiResponse<T>> {
   }
 
   return body ?? { error: null, message: null };
+}
+
+async function ebusyPost<T>(path: string, payload: unknown): Promise<EbusyApiResponse<T>> {
+  const baseUrl = process.env.EBUSY_API_BASE_URL;
+
+  if (!baseUrl) {
+    throw new Error("EBUSY_API_BASE_URL fehlt.");
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store"
+  });
+
+  const text = await response.text();
+  let body: EbusyApiResponse<T> | null = null;
+
+  try {
+    body = text ? (JSON.parse(text) as EbusyApiResponse<T>) : null;
+  } catch {
+    body = null;
+  }
+
+  if (!response.ok || body?.error) {
+    const message = body?.message || `HTTP ${response.status}`;
+    throw new Error(`eBuSy-Request fehlgeschlagen: ${message}`);
+  }
+
+  return body ?? { error: null, message: null };
+}
+
+function optionalText(value: string | null | undefined) {
+  const trimmed = (value ?? "").trim();
+  return trimmed || undefined;
+}
+
+function buildApplicationComment(application: ApplicationRow) {
+  const applicantName = `${application.first_name} ${application.last_name}`.trim();
+  const lines = [
+    `Digitaler Mitgliedsantrag ${application.id}.`,
+    application.membership_kind
+      ? `Gewuenschte Mitgliedschaft: ${application.membership_kind}.`
+      : undefined,
+    application.accepts_sepa ? "SEPA-Lastschrift wurde bestaetigt." : undefined,
+    application.accepts_photo_video
+      ? "Foto-/Videoeinwilligung: ja."
+      : "Foto-/Videoeinwilligung: nein.",
+    application.accepts_whatsapp ? "WhatsApp-Einwilligung: ja." : "WhatsApp-Einwilligung: nein.",
+    application.account_holder && application.account_holder !== applicantName
+      ? `Kontoinhaber: ${application.account_holder}.`
+      : undefined,
+    application.account_holder_address
+      ? `Anschrift Kontoinhaber: ${application.account_holder_address}.`
+      : undefined,
+    application.notes ? `Hinweise: ${application.notes}` : undefined
+  ];
+
+  return lines.filter(Boolean).join("\n");
+}
+
+export async function createEbusyPersonFromApplication(application: ApplicationRow): Promise<{
+  externalPersonId: string;
+  displayName: string;
+}> {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+
+  if (mode !== "live") {
+    throw new Error("Personenanlage in eBuSy ist nur im Live-Modus erlaubt.");
+  }
+
+  const displayName = `${application.first_name} ${application.last_name}`.trim();
+  const hasAddress = Boolean(application.street || application.postal_code || application.city);
+  const hasContact = Boolean(application.email || application.mobile || application.phone);
+  const hasBankAccount = Boolean(application.accepts_sepa && application.iban);
+
+  const payload = {
+    firstname: application.first_name,
+    lastname: application.last_name,
+    birthday: optionalText(application.birth_date),
+    address: hasAddress
+      ? {
+          street: optionalText(application.street),
+          postcode: optionalText(application.postal_code),
+          city: optionalText(application.city),
+          country: "Deutschland",
+          countryCode: "DE"
+        }
+      : undefined,
+    contact: hasContact
+      ? {
+          email: optionalText(application.email),
+          mobile: optionalText(application.mobile),
+          phone: optionalText(application.phone)
+        }
+      : undefined,
+    bankAccount: hasBankAccount
+      ? {
+          holder: optionalText(application.account_holder) ?? displayName,
+          number: optionalText(application.iban)
+        }
+      : undefined,
+    sepaMandate: application.accepts_sepa
+      ? {
+          date: new Date().toISOString().slice(0, 10)
+        }
+      : undefined,
+    comment: buildApplicationComment(application)
+  };
+
+  const result = await ebusyPost<EbusyCreatedPerson>("/general/person", payload);
+  const createdPerson = result.response ?? result.result;
+
+  if (!createdPerson?.id) {
+    throw new Error("eBuSy hat keine Personen-ID fuer den neuen Datensatz zurueckgegeben.");
+  }
+
+  return {
+    externalPersonId: String(createdPerson.id),
+    displayName: createdPerson.name ?? displayName
+  };
 }
 
 export async function lookupEbusyPerson(input: {

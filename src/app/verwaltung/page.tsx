@@ -70,9 +70,10 @@ export default async function VerwaltungPage() {
             unten bleibt als separates Werkzeug erhalten.
           </p>
           <p style={{ margin: "10px 0 0" }}>
-            Bei mehrdeutigen Treffern koennen wir als naechsten Schritt jetzt Kandidaten anzeigen
-            und einen Datensatz manuell verknuepfen. Danach folgt das direkte Anlegen in eBuSy und
-            die saubere Familien- bzw. Kinderzuordnung.
+            Bei mehrdeutigen Treffern kann jetzt bereits eine Kandidatenliste aufgeklappt und ein
+            passender Datensatz manuell verknuepft werden. Bei `Kein Treffer` kann eine neue Person
+            in eBuSy angelegt werden. Danach folgen Mitgliedschaftsanlage und die saubere Familien-
+            bzw. Kinderzuordnung.
           </p>
         </article>
 
@@ -83,7 +84,8 @@ export default async function VerwaltungPage() {
           <p>
             Hier landen die Daten aus dem oeffentlichen Formular. Nach dem Speichern erfolgt direkt
             ein erster eBuSy-Abgleich. Bei Bedarf kann der Abgleich erneut gestartet, ein
-            Kandidat ausgewaehlt oder ein Testeintrag wieder geloescht werden.
+            Kandidat ausgewaehlt, eine neue eBuSy-Person angelegt oder ein Testeintrag wieder
+            geloescht werden.
           </p>
 
           {applicationsError ? (

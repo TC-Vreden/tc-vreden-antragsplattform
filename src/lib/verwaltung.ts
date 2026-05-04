@@ -1,6 +1,10 @@
 import { getSupabaseAdminClient } from "@/lib/supabase-server";
-import type { ApplicationMatchSummary, ApplicationRow } from "@/lib/application-types";
-import { lookupEbusyPerson } from "@/lib/ebusy";
+import type {
+  ApplicationMatchPayload,
+  ApplicationMatchSummary,
+  ApplicationRow
+} from "@/lib/application-types";
+import { createEbusyPersonFromApplication, lookupEbusyPerson } from "@/lib/ebusy";
 
 export async function getApplicationsForManagement(): Promise<{
   applications: ApplicationRow[];
@@ -156,5 +160,78 @@ export async function linkApplicationToEbusyPerson(
       ? `Antrag wurde mit ${selectedCandidate.displayName} verknuepft.`
       : `Antrag wurde mit eBuSy-ID ${externalPersonId} verknuepft.`,
     externalPersonId
+  };
+}
+
+export async function createApplicationPersonInEbusy(
+  applicationId: string
+): Promise<ApplicationMatchSummary> {
+  const supabase = getSupabaseAdminClient();
+
+  const { data: application, error: applicationError } = await supabase
+    .from("applications")
+    .select("*")
+    .eq("id", applicationId)
+    .single();
+
+  if (applicationError || !application) {
+    return {
+      status: "error",
+      message: applicationError?.message ?? "Antrag wurde nicht gefunden."
+    };
+  }
+
+  const row = application as ApplicationRow;
+
+  if (row.ebusy_person_id) {
+    return {
+      status: "match_found",
+      message: `Antrag ist bereits mit eBuSy-ID ${row.ebusy_person_id} verknuepft.`,
+      externalPersonId: row.ebusy_person_id
+    };
+  }
+
+  if (row.ebusy_match_status !== "no_match") {
+    return {
+      status: "error",
+      message:
+        row.ebusy_match_status === "pending"
+          ? "Bitte zuerst den eBuSy-Abgleich fuer diesen Antrag ausfuehren."
+          : "Eine Neuanlage ist nur fuer Antraege mit Status Kein Treffer vorgesehen."
+    };
+  }
+
+  const createdPerson = await createEbusyPersonFromApplication(row);
+  const existingPayload = row.ebusy_match_payload as ApplicationMatchPayload | null;
+  const message = `Person wurde in eBuSy angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`;
+  const nextPayload: ApplicationMatchPayload = {
+    status: "person_created",
+    source: "live",
+    message,
+    candidates: existingPayload?.candidates ?? [],
+    createdPerson
+  };
+
+  const { error: updateError } = await supabase
+    .from("applications")
+    .update({
+      ebusy_match_status: "person_created",
+      ebusy_person_id: createdPerson.externalPersonId,
+      ebusy_match_payload: nextPayload
+    })
+    .eq("id", applicationId);
+
+  if (updateError) {
+    return {
+      status: "person_created",
+      message: `${message} Achtung: Die lokale Verknuepfung konnte nicht gespeichert werden: ${updateError.message}`,
+      externalPersonId: createdPerson.externalPersonId
+    };
+  }
+
+  return {
+    status: "person_created",
+    message,
+    externalPersonId: createdPerson.externalPersonId
   };
 }

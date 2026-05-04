@@ -3,6 +3,34 @@ import { z } from "zod";
 import { getSupabaseAdminClient } from "@/lib/supabase-server";
 import { matchApplicationWithEbusy } from "@/lib/verwaltung";
 
+function normalizeIban(value: string) {
+  return value.replace(/\s+/g, "").toUpperCase();
+}
+
+function isValidIban(value: string) {
+  const iban = normalizeIban(value);
+
+  if (!iban) {
+    return true;
+  }
+
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) {
+    return false;
+  }
+
+  const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`;
+  const numeric = rearranged.replace(/[A-Z]/g, (character) =>
+    String(character.charCodeAt(0) - 55)
+  );
+
+  let remainder = 0;
+  for (const digit of numeric) {
+    remainder = (remainder * 10 + Number(digit)) % 97;
+  }
+
+  return remainder === 1;
+}
+
 const familyMemberSchema = z.object({
   firstName: z.string().trim().optional(),
   lastName: z.string().trim().optional(),
@@ -42,6 +70,38 @@ const applicationSchema = z
       });
     }
 
+    if (!value.mobile) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["mobile"],
+        message: "Die Mobilnummer fehlt."
+      });
+    }
+
+    if (!value.street) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["street"],
+        message: "Die Strasse fehlt."
+      });
+    }
+
+    if (!value.postalCode) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["postalCode"],
+        message: "Die PLZ fehlt."
+      });
+    }
+
+    if (!value.city) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["city"],
+        message: "Der Ort fehlt."
+      });
+    }
+
     if (!value.acceptsStatutes) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -74,19 +134,19 @@ const applicationSchema = z
       });
     }
 
+    if (value.iban && !isValidIban(value.iban)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["iban"],
+        message: "Die IBAN ist formal ungueltig."
+      });
+    }
+
     if (value.acceptsSepa && !value.accountHolder) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["accountHolder"],
         message: "Der Kontoinhaber fehlt."
-      });
-    }
-
-    if (value.acceptsSepa && !value.accountHolderAddress) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["accountHolderAddress"],
-        message: "Die Anschrift des Kontoinhabers fehlt."
       });
     }
   });
@@ -106,6 +166,10 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data;
+  const normalizedIban = normalizeIban(input.iban ?? "");
+  const derivedAccountHolderAddress =
+    input.accountHolderAddress ||
+    [input.street, input.postalCode, input.city].filter(Boolean).join(", ");
   let supabase;
 
   try {
@@ -142,9 +206,9 @@ export async function POST(request: NextRequest) {
       accepts_photo_video: input.acceptsPhotoVideo,
       accepts_whatsapp: input.acceptsWhatsapp,
       accepts_sepa: input.acceptsSepa,
-      iban: input.iban || null,
+      iban: normalizedIban || null,
       account_holder: input.accountHolder || null,
-      account_holder_address: input.accountHolderAddress || null,
+      account_holder_address: derivedAccountHolderAddress || null,
       notes: input.notes || null
     })
     .select("id, created_at")
