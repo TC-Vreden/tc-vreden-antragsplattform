@@ -31,7 +31,7 @@ export async function mockEbusyLookup(input: {
         {
           externalPersonId: "12345",
           matchScore: 92,
-          matchReason: "Mock-Treffer ueber Name/E-Mail"
+          matchReason: "Mock-Treffer über Name/E-Mail"
         }
       ]
     };

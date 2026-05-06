@@ -32,30 +32,65 @@ function isValidIban(value: string) {
 }
 
 const familyMemberSchema = z.object({
+  relation: z.enum(["partner", "child", "family_member"]).optional(),
   firstName: z.string().trim().optional(),
   lastName: z.string().trim().optional(),
   birthDate: z.string().trim().optional(),
-  email: z.string().trim().optional()
+  email: z.string().trim().optional(),
+  mobile: z.string().trim().optional(),
+  street: z.string().trim().optional(),
+  postalCode: z.string().trim().optional(),
+  city: z.string().trim().optional()
 });
+
+function getAdditionalMemberRequirement(membershipKind: string | undefined) {
+  if (membershipKind === "partner_active" || membershipKind === "partner_passive") {
+    return { minMembers: 1, maxMembers: 1 };
+  }
+
+  if (membershipKind === "adult_child") {
+    return { minMembers: 1, maxMembers: 1 };
+  }
+
+  if (membershipKind === "family") {
+    return { minMembers: 1, maxMembers: Number.POSITIVE_INFINITY };
+  }
+
+  return null;
+}
+
+function isMinorMainApplicantMembership(membershipKind: string | undefined) {
+  return (
+    membershipKind === "child" ||
+    membershipKind === "youth_active" ||
+    membershipKind === "youth_passive"
+  );
+}
 
 const applicationSchema = z
   .object({
     firstName: z.string().trim().min(1, "Vorname fehlt."),
     lastName: z.string().trim().min(1, "Nachname fehlt."),
     birthDate: z.string().trim().optional(),
-    email: z.string().trim().email("Bitte eine gueltige E-Mail angeben."),
+    email: z.string().trim().email("Bitte eine gültige E-Mail angeben."),
     phone: z.string().trim().optional(),
     mobile: z.string().trim().optional(),
     street: z.string().trim().optional(),
     postalCode: z.string().trim().optional(),
     city: z.string().trim().optional(),
     membershipKind: z.string().trim().optional(),
+    studentStatusUntil: z.string().trim().optional(),
     familyMembers: z.array(familyMemberSchema).optional(),
     acceptsStatutes: z.boolean(),
     acceptsPrivacy: z.boolean(),
     acceptsPhotoVideo: z.boolean(),
     acceptsWhatsapp: z.boolean(),
     acceptsSepa: z.boolean(),
+    isMinorApplicant: z.boolean().optional(),
+    guardianName: z.string().trim().optional(),
+    guardianEmail: z.string().trim().optional(),
+    guardianPhone: z.string().trim().optional(),
+    guardianConsent: z.boolean().optional(),
     iban: z.string().trim().optional(),
     accountHolder: z.string().trim().optional(),
     accountHolderAddress: z.string().trim().optional(),
@@ -67,6 +102,14 @@ const applicationSchema = z
         code: z.ZodIssueCode.custom,
         path: ["membershipKind"],
         message: "Art der Mitgliedschaft fehlt."
+      });
+    }
+
+    if (!value.birthDate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["birthDate"],
+        message: "Das Geburtsdatum fehlt."
       });
     }
 
@@ -106,7 +149,7 @@ const applicationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["acceptsStatutes"],
-        message: "Satzung und Vereinsregeln muessen bestaetigt werden."
+        message: "Satzung und Vereinsregeln müssen bestätigt werden."
       });
     }
 
@@ -114,7 +157,7 @@ const applicationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["acceptsPrivacy"],
-        message: "Die Datenschutzhinweise muessen bestaetigt werden."
+        message: "Die Datenschutzhinweise müssen bestätigt werden."
       });
     }
 
@@ -122,7 +165,7 @@ const applicationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["acceptsSepa"],
-        message: "Das SEPA-Lastschriftverfahren muss bestaetigt werden."
+        message: "Das SEPA-Lastschriftverfahren muss bestätigt werden."
       });
     }
 
@@ -138,7 +181,7 @@ const applicationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["iban"],
-        message: "Die IBAN ist formal ungueltig."
+        message: "Die IBAN ist formal ungültig."
       });
     }
 
@@ -149,6 +192,76 @@ const applicationSchema = z
         message: "Der Kontoinhaber fehlt."
       });
     }
+
+    const members = value.familyMembers ?? [];
+    const requirement = getAdditionalMemberRequirement(value.membershipKind);
+    const mainApplicantIsMinor = isMinorMainApplicantMembership(value.membershipKind);
+
+    if (mainApplicantIsMinor && !value.guardianName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["guardianName"],
+        message: "Der gesetzliche Vertreter fehlt."
+      });
+    }
+
+    if (mainApplicantIsMinor && !value.guardianConsent) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["guardianConsent"],
+        message: "Die Zustimmung des gesetzlichen Vertreters fehlt."
+      });
+    }
+
+    if (requirement && members.length < requirement.minMembers) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["familyMembers"],
+        message: "Bitte die erforderliche Zusatzperson erfassen."
+      });
+    }
+
+    if (requirement && members.length > requirement.maxMembers) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["familyMembers"],
+        message: "Für diese Mitgliedschaft sind zu viele Zusatzpersonen erfasst."
+      });
+    }
+
+    members.forEach((member, index) => {
+      const hasAnyValue = Object.values(member).some((value) =>
+        typeof value === "string" ? value.trim() : Boolean(value)
+      );
+
+      if (!hasAnyValue) {
+        return;
+      }
+
+      if (!member.firstName) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["familyMembers", index, "firstName"],
+          message: "Vorname der Zusatzperson fehlt."
+        });
+      }
+
+      if (!member.lastName) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["familyMembers", index, "lastName"],
+          message: "Nachname der Zusatzperson fehlt."
+        });
+      }
+
+      if (!member.birthDate) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["familyMembers", index, "birthDate"],
+          message: "Geburtsdatum der Zusatzperson fehlt."
+        });
+      }
+    });
   });
 
 export async function POST(request: NextRequest) {
@@ -158,7 +271,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       {
-        message: "Die Formulardaten sind unvollstaendig oder ungueltig.",
+        message: "Die Formulardaten sind unvollständig oder ungültig.",
         issues: parsed.error.flatten()
       },
       { status: 400 }
@@ -167,9 +280,38 @@ export async function POST(request: NextRequest) {
 
   const input = parsed.data;
   const normalizedIban = normalizeIban(input.iban ?? "");
+  const mainApplicantIsMinor = isMinorMainApplicantMembership(input.membershipKind);
   const derivedAccountHolderAddress =
     input.accountHolderAddress ||
     [input.street, input.postalCode, input.city].filter(Boolean).join(", ");
+  const minorNotes = mainApplicantIsMinor
+    ? [
+        "Minderjährigen-Zusatz Hauptperson:",
+        input.guardianName ? `Gesetzlicher Vertreter: ${input.guardianName}` : undefined,
+        input.guardianEmail
+          ? `E-Mail des gesetzlichen Vertreters: ${input.guardianEmail}`
+          : undefined,
+        input.guardianPhone
+          ? `Telefon des gesetzlichen Vertreters: ${input.guardianPhone}`
+          : undefined,
+        input.guardianConsent
+          ? "Zustimmung des gesetzlichen Vertreters wurde digital bestätigt."
+          : undefined
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : "";
+  const familyMembers = (input.familyMembers ?? []).map((member) => ({
+    relation: member.relation ?? "family_member",
+    firstName: member.firstName ?? "",
+    lastName: member.lastName ?? "",
+    birthDate: member.birthDate ?? "",
+    email: member.email ?? "",
+    mobile: member.mobile ?? "",
+    street: member.street ?? "",
+    postalCode: member.postalCode ?? "",
+    city: member.city ?? ""
+  }));
   let supabase;
 
   try {
@@ -200,7 +342,8 @@ export async function POST(request: NextRequest) {
       postal_code: input.postalCode || null,
       city: input.city || null,
       membership_kind: input.membershipKind || null,
-      family_members: input.familyMembers ?? [],
+      student_status_until: input.studentStatusUntil || null,
+      family_members: familyMembers,
       accepts_statutes: input.acceptsStatutes,
       accepts_privacy: input.acceptsPrivacy,
       accepts_photo_video: input.acceptsPhotoVideo,
@@ -209,7 +352,7 @@ export async function POST(request: NextRequest) {
       iban: normalizedIban || null,
       account_holder: input.accountHolder || null,
       account_holder_address: derivedAccountHolderAddress || null,
-      notes: input.notes || null
+      notes: [input.notes, minorNotes].filter(Boolean).join("\n\n") || null
     })
     .select("id, created_at")
     .single();

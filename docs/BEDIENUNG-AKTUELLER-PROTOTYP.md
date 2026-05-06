@@ -1,6 +1,6 @@
 # Bedienung aktueller Prototyp
 
-Stand: 04.05.2026
+Stand: 06.05.2026
 
 Zweck dieser Datei:
 
@@ -32,10 +32,13 @@ Diese Werte liegen in Vercel bzw. lokal in den Projekt-Umgebungen vor.
 ### Oeffentliches Formular
 
 1. Formular oeffnen
-2. Mitgliedsdaten eingeben
-3. Mitgliedschaft auswaehlen
-4. SEPA- und Einwilligungsbereiche ausfuellen
-5. `Antrag absenden`
+2. Mitgliedschaft auswaehlen
+3. Mitgliedsdaten der Hauptperson eingeben
+4. je nach Mitgliedschaft Ehepartner/Lebenspartner, Kind oder weitere Familienmitglieder erfassen
+5. bei Schueler/Azubi/Student ggf. Nachweisdatum erfassen
+6. SEPA- und Einwilligungsbereiche ausfuellen
+7. bei Kinder-/Jugendmitgliedschaft der Hauptperson zusaetzlich den Bereich fuer gesetzliche Vertreter ausfuellen
+8. `Antrag absenden`
 
 Aktuelles erwartetes Ergebnis:
 
@@ -43,6 +46,16 @@ Aktuelles erwartetes Ergebnis:
 - interne Vorgangs-ID wird angezeigt
 
 Wenn das klappt, ist der Antrag bereits in Supabase gespeichert.
+
+Zusatzpersonen werden aktuell strukturiert im vorhandenen JSON-Feld `family_members`
+gespeichert. Dieses Feld dient im Prototyp als Uebergangsstruktur fuer Ehepartner,
+Kinder und weitere Haushalts-/Familienmitglieder.
+
+Der grosse Minderjaehrigen-/Vertreterblock erscheint nur, wenn die Hauptperson
+selbst als Kind oder Jugendliche:r angemeldet wird (`child`, `youth_active`,
+`youth_passive`). Bei Familie oder `Erwachsene + 1 Kind` wird dieser Block nicht
+global fuer die Hauptperson angezeigt; minderjaehrige Zusatzpersonen werden dort
+zunaechst ueber den Zusatzpersonenbereich erfasst.
 
 ### Interne Verwaltung
 
@@ -99,6 +112,7 @@ Direkt nach dem Speichern sollte der Antrag dort sichtbar sein.
 - legt aus dem Antrag eine neue Person in eBuSy an
 - speichert die neue eBuSy-ID am Antrag
 - legt noch keine Mitgliedschaft in eBuSy an
+- erzeugt aktuell ein technisches temporaeres Benutzerkonto-Passwort fuer eBuSy; vor Produktivbetrieb muss der Verein festlegen, ob Mitglieder ihr Passwort selbst setzen, ein Reset-Link genutzt wird oder ein Passwort manuell vergeben wird
 
 ### `Testeintrag loeschen`
 
@@ -151,11 +165,43 @@ Aktuell erfolgreich getestet:
 
 - automatische Mitgliedschaftsanlage in eBuSy fehlt noch
 - finale Zuordnung der Mitgliedschaftsarten / Beitragsarten in eBuSy fehlt noch
-- Einwilligungstexte sind naeher an den PDF-Inhalten, sollten aber vor Live-Freigabe noch final fachlich gegengeprueft werden
+- Einwilligungs- und DSGVO-Texte sind deutlich naeher an den PDF-Inhalten, sollten aber vor Live-Freigabe final fachlich/rechtlich gegengeprueft werden
+- Platzpflegeordnung ist im Formular noch nicht verlinkt, weil im aktuellen Material keine oeffentliche URL hinterlegt ist
 - E-Mail-Versand fehlt
 - PDF-Zusammenfassung fehlt
 - digitale Unterschrift fehlt
 - WordPress-Einbindung fehlt
+
+## 10a. PDF und E-Mail
+
+Im aktuellen Prototyp wird beim oeffentlichen Absenden noch kein PDF erzeugt und keine Bestaetigungsmail verschickt.
+
+Geplanter spaeterer Ablauf:
+
+1. Antrag wird oeffentlich ausgefuellt und intern gespeichert
+2. Verwaltung prueft den Antrag
+3. Verwaltung uebernimmt bzw. gibt den Antrag frei
+4. erst danach werden PDF-Zusammenfassung und Bestaetigungs-E-Mail erzeugt
+
+Das Konzept liegt in `docs/pdf-email-konzept.md`.
+
+## 10b. Spaetere Inhaltsverwaltung
+
+Langfristig sollen Mitgliedschaftsarten, Preise, sichtbare Labels,
+Akkordeontexte, DSGVO-/Einwilligungstexte sowie PDF-/E-Mail-Texte nicht mehr fest
+im Code stehen. Das Konzept fuer eine spaetere Supabase-gestuetzte
+Inhaltsverwaltung liegt in `docs/admin-content-konzept.md`.
+
+## 10c. Mehrpersonen-Antraege und eBuSy
+
+Bei Partner-, Erwachsenen-plus-Kind- und Familienantraegen enthaelt ein Antrag
+mehrere Personen. Die spaetere eBuSy-Uebernahme muss deshalb als mehrstufiger
+Workflow gebaut werden: Hauptperson suchen/anlegen, Zusatzpersonen einzeln
+suchen/anlegen, danach Mitgliedschaften, Attribute und ggf. Familien- oder
+Zahlerbezug setzen.
+
+Das Konzept einschliesslich Statusfeldern, Supabase-Struktur, offenen eBuSy-
+Klaerungen und Testfaellen liegt in `docs/mehrpersonen-ebusy-konzept.md`.
 
 ## 11. Naechste fachliche Punkte
 

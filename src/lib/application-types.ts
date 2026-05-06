@@ -13,12 +13,7 @@ export type ApplicationRow = {
   city: string | null;
   membership_kind: string | null;
   student_status_until: string | null;
-  family_members: Array<{
-    firstName?: string;
-    lastName?: string;
-    birthDate?: string;
-    email?: string;
-  }>;
+  family_members: ApplicationAdditionalMember[];
   accepts_statutes: boolean;
   accepts_privacy: boolean;
   accepts_photo_video: boolean;
@@ -91,12 +86,7 @@ export type ApplicationInput = {
   city?: string;
   membershipKind?: string;
   studentStatusUntil?: string;
-  familyMembers?: Array<{
-    firstName?: string;
-    lastName?: string;
-    birthDate?: string;
-    email?: string;
-  }>;
+  familyMembers?: ApplicationAdditionalMember[];
   acceptsStatutes: boolean;
   acceptsPrivacy: boolean;
   acceptsPhotoVideo: boolean;
@@ -106,4 +96,16 @@ export type ApplicationInput = {
   accountHolder?: string;
   accountHolderAddress?: string;
   notes?: string;
+};
+
+export type ApplicationAdditionalMember = {
+  relation?: "partner" | "child" | "family_member";
+  firstName?: string;
+  lastName?: string;
+  birthDate?: string;
+  email?: string;
+  mobile?: string;
+  street?: string;
+  postalCode?: string;
+  city?: string;
 };

@@ -25,7 +25,7 @@ export async function GET() {
         message:
           error instanceof Error
             ? error.message
-            : "Antraege konnten nicht geladen werden."
+            : "Anträge konnten nicht geladen werden."
       },
       { status: 500 }
     );

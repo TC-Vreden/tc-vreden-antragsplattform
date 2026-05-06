@@ -2,12 +2,39 @@
 
 import { FormEvent, useState } from "react";
 import type { ApplicationMatchSummary } from "@/lib/application-types";
+import {
+  CONTRIBUTION_NOTES,
+  CONTRIBUTION_ROWS,
+  JUNIOR_TRAINING_NOTES,
+  MINOR_CONSENT_TEXT,
+  PHOTO_VIDEO_CONSENT_TEXT,
+  PRIVACY_SECTIONS,
+  SEPA_MANDATE_TEXT,
+  STATUTES_CONFIRMATION_TEXT,
+  STATUTES_URL,
+  WHATSAPP_CONSENT_TEXT
+} from "@/lib/application-legal-content";
 
 type SubmissionState =
   | { kind: "idle" }
   | { kind: "submitting" }
   | { kind: "success"; id: string; match?: ApplicationMatchSummary }
   | { kind: "error"; message: string };
+
+type AdditionalMemberRelation = "partner" | "child" | "family_member";
+
+type AdditionalMember = {
+  id: string;
+  relation: AdditionalMemberRelation;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  email: string;
+  mobile: string;
+  street: string;
+  postalCode: string;
+  city: string;
+};
 
 function normalizeIban(value: string) {
   return value.replace(/\s+/g, "").toUpperCase();
@@ -38,25 +65,148 @@ function isValidIban(value: string) {
 }
 
 const membershipOptions = [
-  { value: "adult_active", label: "Erwachsene aktiv" },
-  { value: "adult_passive", label: "Erwachsene passiv" },
-  { value: "adult_child", label: "Erwachsene + 1 Kind" },
-  { value: "partner_active", label: "Ehepartner aktiv" },
-  { value: "partner_passive", label: "Ehepartner passiv" },
-  { value: "family", label: "Familie" },
-  { value: "child", label: "Kind bis 14" },
-  { value: "youth_active", label: "Jugendliche aktiv" },
-  { value: "youth_passive", label: "Jugendliche passiv" },
-  { value: "student_active", label: "Schueler/Azubi/Student aktiv" },
-  { value: "student_passive", label: "Schueler/Azubi/Student passiv" }
+  { value: "adult_active", label: "Erwachsene aktiv - 180 EUR/Jahr" },
+  { value: "adult_passive", label: "Erwachsene passiv - 60 EUR/Jahr" },
+  { value: "adult_child", label: "Erwachsene + 1 Kind - 230 EUR/Jahr" },
+  {
+    value: "partner_active",
+    label: "Ehepartner / eingetragene Lebenspartner aktiv - 250 EUR/Jahr"
+  },
+  {
+    value: "partner_passive",
+    label: "Ehepartner / eingetragene Lebenspartner passiv - 120 EUR/Jahr"
+  },
+  { value: "family", label: "Familie - 290 EUR/Jahr" },
+  { value: "child", label: "Kinder bis 14 Jahre - 50 EUR/Jahr" },
+  { value: "youth_active", label: "Jugendliche bis 18 Jahre aktiv - 80 EUR/Jahr" },
+  { value: "youth_passive", label: "Jugendliche bis 18 Jahre passiv - 40 EUR/Jahr" },
+  {
+    value: "student_active",
+    label: "Schüler:innen / Azubis / Student:innen bis 27 Jahre aktiv - 100 EUR/Jahr"
+  },
+  {
+    value: "student_passive",
+    label: "Schüler:innen / Azubis / Student:innen bis 27 Jahre passiv - 60 EUR/Jahr"
+  }
 ];
+
+function isReducedContributionMembership(value: string) {
+  return value === "student_active" || value === "student_passive";
+}
+
+function isLikelyMinorMembership(value: string) {
+  return value === "child" || value === "youth_active" || value === "youth_passive";
+}
+
+function createAdditionalMember(relation: AdditionalMemberRelation): AdditionalMember {
+  return {
+    id:
+      globalThis.crypto?.randomUUID?.() ??
+      `member-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    relation,
+    firstName: "",
+    lastName: "",
+    birthDate: "",
+    email: "",
+    mobile: "",
+    street: "",
+    postalCode: "",
+    city: ""
+  };
+}
+
+function getAdditionalMemberConfig(membershipKind: string) {
+  if (membershipKind === "partner_active" || membershipKind === "partner_passive") {
+    return {
+      title: "Ehepartner / eingetragene Lebenspartner",
+      intro:
+        "Für diese Mitgliedschaft wird neben der Hauptperson eine zweite erwachsene Person erfasst. Die Adresse kann gleich bleiben und ist daher optional.",
+      addButtonLabel: "+ Ehepartner / eingetragenen Lebenspartner hinzufügen",
+      relation: "partner" as const,
+      minMembers: 1,
+      maxMembers: 1
+    };
+  }
+
+  if (membershipKind === "adult_child") {
+    return {
+      title: "Zugeordnetes Kind",
+      intro:
+        "Für die Mitgliedschaft Erwachsene + 1 Kind wird zusätzlich ein Kind erfasst. Kontakt- und Adressdaten sind optional.",
+      addButtonLabel: "+ Kind hinzufügen",
+      relation: "child" as const,
+      minMembers: 1,
+      maxMembers: 1
+    };
+  }
+
+  if (membershipKind === "family") {
+    return {
+      title: "Weitere Familienmitglieder",
+      intro:
+        "Für den Familienbeitrag können mehrere weitere Personen nacheinander erfasst und bei Bedarf wieder entfernt werden.",
+      addButtonLabel: "+ Familienmitglied hinzufügen",
+      relation: "family_member" as const,
+      minMembers: 1,
+      maxMembers: Number.POSITIVE_INFINITY
+    };
+  }
+
+  return null;
+}
 
 export function ApplicationForm() {
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
-  const [familyMode, setFamilyMode] = useState(false);
+  const [membershipKind, setMembershipKind] = useState("");
+  const [additionalMembers, setAdditionalMembers] = useState<AdditionalMember[]>([]);
+  const [reducedContributionMode, setReducedContributionMode] = useState(false);
   const [iban, setIban] = useState("");
   const [acceptsSepa, setAcceptsSepa] = useState(false);
   const [accountHolderDiffers, setAccountHolderDiffers] = useState(false);
+
+  const additionalMemberConfig = getAdditionalMemberConfig(membershipKind);
+  const mainApplicantIsMinor = isLikelyMinorMembership(membershipKind);
+
+  function handleMembershipChange(nextValue: string) {
+    setMembershipKind(nextValue);
+    setAdditionalMembers([]);
+    setReducedContributionMode(isReducedContributionMembership(nextValue));
+  }
+
+  function addAdditionalMember() {
+    if (!additionalMemberConfig) {
+      return;
+    }
+
+    setAdditionalMembers((current) => {
+      if (current.length >= additionalMemberConfig.maxMembers) {
+        return current;
+      }
+
+      return [...current, createAdditionalMember(additionalMemberConfig.relation)];
+    });
+  }
+
+  function removeAdditionalMember(memberId: string) {
+    setAdditionalMembers((current) => current.filter((member) => member.id !== memberId));
+  }
+
+  function updateAdditionalMember(
+    memberId: string,
+    field: keyof AdditionalMember,
+    value: string
+  ) {
+    setAdditionalMembers((current) =>
+      current.map((member) =>
+        member.id === memberId
+          ? {
+              ...member,
+              [field]: value
+            }
+          : member
+      )
+    );
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,29 +214,42 @@ export function ApplicationForm() {
 
     const form = event.currentTarget;
     const formData = new FormData(form);
+    const selectedMembershipKind = String(formData.get("membershipKind") || "");
+    const activeAdditionalMemberConfig = getAdditionalMemberConfig(selectedMembershipKind);
 
-    const childFirstName = String(formData.get("childFirstName") || "").trim();
-    const childLastName = String(formData.get("childLastName") || "").trim();
-    const childBirthDate = String(formData.get("childBirthDate") || "").trim();
-    const childEmail = String(formData.get("childEmail") || "").trim();
+    if (
+      activeAdditionalMemberConfig &&
+      additionalMembers.length < activeAdditionalMemberConfig.minMembers
+    ) {
+      setState({
+        kind: "error",
+        message: `Bitte mindestens ${activeAdditionalMemberConfig.minMembers} Zusatzperson erfassen.`
+      });
+      return;
+    }
 
-    const familyMembers =
-      childFirstName || childLastName || childBirthDate || childEmail
-        ? [
-            {
-              firstName: childFirstName,
-              lastName: childLastName,
-              birthDate: childBirthDate,
-              email: childEmail
-            }
-          ]
-        : [];
+    const familyMembers = additionalMembers.map((member) => ({
+      relation: member.relation,
+      firstName: member.firstName.trim(),
+      lastName: member.lastName.trim(),
+      birthDate: member.birthDate,
+      email: member.email.trim(),
+      mobile: member.mobile.trim(),
+      street: member.street.trim(),
+      postalCode: member.postalCode.trim(),
+      city: member.city.trim()
+    }));
 
     const street = String(formData.get("street") || "").trim();
     const postalCode = String(formData.get("postalCode") || "").trim();
     const city = String(formData.get("city") || "").trim();
     const accountHolderAddressInput = String(formData.get("accountHolderAddress") || "").trim();
     const fallbackAddress = [street, postalCode, city].filter(Boolean).join(", ");
+    const notesInput = String(formData.get("notes") || "").trim();
+    const selectedMainApplicantIsMinor = isLikelyMinorMembership(selectedMembershipKind);
+    const guardianName = String(formData.get("guardianName") || "").trim();
+    const guardianEmail = String(formData.get("guardianEmail") || "").trim();
+    const guardianPhone = String(formData.get("guardianPhone") || "").trim();
 
     const payload = {
       firstName: String(formData.get("firstName") || "").trim(),
@@ -98,26 +261,34 @@ export function ApplicationForm() {
       street,
       postalCode,
       city,
-      membershipKind: String(formData.get("membershipKind") || ""),
+      membershipKind: selectedMembershipKind,
+      studentStatusUntil: String(formData.get("studentStatusUntil") || "").trim(),
       familyMembers,
       acceptsStatutes: Boolean(formData.get("acceptsStatutes")),
       acceptsPrivacy: Boolean(formData.get("acceptsPrivacy")),
       acceptsPhotoVideo: Boolean(formData.get("acceptsPhotoVideo")),
       acceptsWhatsapp: Boolean(formData.get("acceptsWhatsapp")),
       acceptsSepa: Boolean(formData.get("acceptsSepa")),
+      isMinorApplicant: selectedMainApplicantIsMinor,
+      guardianName: selectedMainApplicantIsMinor ? guardianName : "",
+      guardianEmail: selectedMainApplicantIsMinor ? guardianEmail : "",
+      guardianPhone: selectedMainApplicantIsMinor ? guardianPhone : "",
+      guardianConsent: selectedMainApplicantIsMinor
+        ? Boolean(formData.get("guardianConsent"))
+        : false,
       iban: normalizeIban(String(formData.get("iban") || "")),
       accountHolder: String(formData.get("accountHolder") || "").trim(),
       accountHolderAddress:
         accountHolderDiffers && accountHolderAddressInput
           ? accountHolderAddressInput
           : fallbackAddress,
-      notes: String(formData.get("notes") || "").trim()
+      notes: notesInput
     };
 
     if (!isValidIban(payload.iban)) {
       setState({
         kind: "error",
-        message: "Die IBAN ist formal ungueltig. Bitte pruefe die Eingabe."
+        message: "Die IBAN ist formal ungültig. Bitte prüfe die Eingabe."
       });
       return;
     }
@@ -142,7 +313,9 @@ export function ApplicationForm() {
       }
 
       form.reset();
-      setFamilyMode(false);
+      setMembershipKind("");
+      setAdditionalMembers([]);
+      setReducedContributionMode(false);
       setIban("");
       setAcceptsSepa(false);
       setAccountHolderDiffers(false);
@@ -157,6 +330,79 @@ export function ApplicationForm() {
 
   return (
     <form className="form" onSubmit={handleSubmit}>
+      <div className="field">
+        <label htmlFor="membershipKind">Art der Mitgliedschaft*</label>
+        <select
+          id="membershipKind"
+          name="membershipKind"
+          required
+          value={membershipKind}
+          onChange={(event) => handleMembershipChange(event.target.value)}
+        >
+          <option value="" disabled>
+            Bitte auswählen
+          </option>
+          {membershipOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {reducedContributionMode ? (
+        <div className="field">
+          <label htmlFor="studentStatusUntil">
+            Nachweis für Schüler:innen / Azubis / Student:innen gültig bis
+          </label>
+          <input id="studentStatusUntil" name="studentStatusUntil" type="date" />
+        </div>
+      ) : null}
+
+      <details style={{ margin: "0 0 18px" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+          Mitgliedsbeiträge und wichtige Beitragsregeln 2026 anzeigen
+        </summary>
+        <div style={{ marginTop: 10 }}>
+          <table className="table" style={{ marginBottom: 14 }}>
+            <thead>
+              <tr>
+                <th>Art der Mitgliedschaft</th>
+                <th>Status</th>
+                <th>Jahresbeitrag</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CONTRIBUTION_ROWS.map((row) => (
+                <tr key={`${row.membership}-${row.status}-${row.fee}`}>
+                  <td>{row.membership}</td>
+                  <td>{row.status || "-"}</td>
+                  <td>{row.fee}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ color: "var(--muted)" }}>
+            {CONTRIBUTION_NOTES.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
+        </div>
+      </details>
+
+      <details style={{ margin: "0 0 18px" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+          Hinweis zum Jugendtraining anzeigen
+        </summary>
+        <div style={{ marginTop: 10, color: "var(--muted)" }}>
+          {JUNIOR_TRAINING_NOTES.map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
+        </div>
+      </details>
+
+      <h2 style={{ fontSize: "1.15rem" }}>Hauptperson</h2>
+
       <div className="grid grid-2">
         <div className="field">
           <label htmlFor="firstName">Vorname*</label>
@@ -170,8 +416,8 @@ export function ApplicationForm() {
 
       <div className="grid grid-2">
         <div className="field">
-          <label htmlFor="birthDate">Geburtsdatum</label>
-          <input id="birthDate" name="birthDate" type="date" />
+          <label htmlFor="birthDate">Geburtsdatum*</label>
+          <input id="birthDate" name="birthDate" type="date" required />
         </div>
         <div className="field">
           <label htmlFor="email">E-Mail*</label>
@@ -206,50 +452,20 @@ export function ApplicationForm() {
         <input id="city" name="city" required />
       </div>
 
-      <div className="field">
-        <label htmlFor="membershipKind">Art der Mitgliedschaft*</label>
-        <select
-          id="membershipKind"
-          name="membershipKind"
-          required
-          defaultValue=""
-          onChange={(event) =>
-            setFamilyMode(["adult_child", "family"].includes(event.target.value))
-          }
-        >
-          <option value="" disabled>
-            Bitte auswaehlen
-          </option>
-          {membershipOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
       <div className="card" style={{ padding: 18 }}>
         <h2 style={{ fontSize: "1.15rem" }}>SEPA-Lastschrift</h2>
         <p>
-          Aus Gruenden der Verwaltungsvereinfachung werden die Mitgliedsbeitraege im
-          Lastschriftverfahren erhoben. Diese Angaben gehoeren daher direkt zur Anmeldung.
+          Aus Gründen der Verwaltungsvereinfachung werden die Mitgliedsbeiträge im
+          Lastschriftverfahren erhoben. Diese Angaben gehören daher direkt zur Anmeldung.
         </p>
         <details style={{ marginBottom: 16 }}>
           <summary style={{ cursor: "pointer", fontWeight: 700 }}>
             Text zum SEPA-Lastschriftmandat anzeigen
           </summary>
           <div style={{ marginTop: 10, color: "var(--muted)" }}>
-            <p>
-              Ich ermaechtige den Tennisclub Vreden e.V., Zahlungen von meinem Konto mittels SEPA
-              Basis Lastschrift einzuziehen. Zugleich weise ich mein Kreditinstitut an, die vom
-              Tennisclub Vreden e.V. auf mein Konto gezogenen SEPA Basis Lastschriften
-              einzuloesen.
-            </p>
-            <p>
-              Das Mandat gilt fuer wiederkehrende Zahlungen im Rahmen der Mitgliedschaft. Die
-              Mandatsreferenz wird spaeter vom Verein vergeben. Die Glaeubiger-ID des Vereins
-              lautet <strong>DE34ZZZ000024060600</strong>.
-            </p>
+            {SEPA_MANDATE_TEXT.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
           </div>
         </details>
         <div className="checkbox-group" style={{ marginBottom: 16 }}>
@@ -302,44 +518,198 @@ export function ApplicationForm() {
           </div>
         ) : (
           <p style={{ marginTop: 12, color: "var(--muted)" }}>
-            Wenn hier nichts abweicht, verwendet das System fuer den Kontoinhaber die oben
+            Wenn hier nichts abweicht, verwendet das System für den Kontoinhaber die oben
             angegebene Anschrift des Antragstellers.
           </p>
         )}
       </div>
 
-      {familyMode ? (
+      {additionalMemberConfig ? (
         <div className="card" style={{ padding: 18 }}>
-          <h2 style={{ fontSize: "1.15rem" }}>Zugeordnetes Kind / Familienbezug</h2>
-          <p>
-            Dieser Abschnitt ist wichtig fuer spaetere Familien- und Kinderlogik. So koennen wir
-            spaeter in eBuSy sauber zwischen Hauptzahler, Kind und Familienmodell unterscheiden.
+          <h2 style={{ fontSize: "1.15rem" }}>{additionalMemberConfig.title}</h2>
+          <p>{additionalMemberConfig.intro}</p>
+          <p style={{ color: "var(--muted)" }}>
+            Pflichtfelder für Zusatzpersonen: Vorname, Nachname und Geburtsdatum. E-Mail, Mobil
+            und Adresse sind optional.
           </p>
+
+          {additionalMembers.map((member, index) => (
+            <div
+              key={member.id}
+              style={{
+                borderTop: "1px solid var(--border)",
+                marginTop: 16,
+                paddingTop: 16
+              }}
+            >
+              <div
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  gap: 12,
+                  justifyContent: "space-between",
+                  marginBottom: 12
+                }}
+              >
+                <strong>Zusatzperson {index + 1}</strong>
+                <button
+                  className="button secondary"
+                  type="button"
+                  onClick={() => removeAdditionalMember(member.id)}
+                  style={{ minWidth: 140 }}
+                >
+                  Entfernen
+                </button>
+              </div>
+              <div className="grid grid-2">
+                <div className="field">
+                  <label htmlFor={`${member.id}-firstName`}>Vorname*</label>
+                  <input
+                    id={`${member.id}-firstName`}
+                    required
+                    value={member.firstName}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "firstName", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`${member.id}-lastName`}>Nachname*</label>
+                  <input
+                    id={`${member.id}-lastName`}
+                    required
+                    value={member.lastName}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "lastName", event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-2">
+                <div className="field">
+                  <label htmlFor={`${member.id}-birthDate`}>Geburtsdatum*</label>
+                  <input
+                    id={`${member.id}-birthDate`}
+                    required
+                    type="date"
+                    value={member.birthDate}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "birthDate", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`${member.id}-email`}>E-Mail</label>
+                  <input
+                    id={`${member.id}-email`}
+                    type="email"
+                    value={member.email}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "email", event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-2">
+                <div className="field">
+                  <label htmlFor={`${member.id}-mobile`}>Mobil</label>
+                  <input
+                    id={`${member.id}-mobile`}
+                    value={member.mobile}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "mobile", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`${member.id}-street`}>Strasse</label>
+                  <input
+                    id={`${member.id}-street`}
+                    value={member.street}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "street", event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-2">
+                <div className="field">
+                  <label htmlFor={`${member.id}-postalCode`}>PLZ</label>
+                  <input
+                    id={`${member.id}-postalCode`}
+                    value={member.postalCode}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "postalCode", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`${member.id}-city`}>Ort</label>
+                  <input
+                    id={`${member.id}-city`}
+                    value={member.city}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "city", event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {additionalMembers.length < additionalMemberConfig.maxMembers ? (
+            <button className="button secondary" type="button" onClick={addAdditionalMember}>
+              {additionalMemberConfig.addButtonLabel}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {mainApplicantIsMinor ? (
+        <div className="card" style={{ padding: 18 }}>
+          <h2 style={{ fontSize: "1.15rem" }}>Minderjährige / gesetzliche Vertreter</h2>
+          <p>
+            Bei einer Anmeldung als Kind oder Jugendliche:r muss die Zustimmung des
+            gesetzlichen Vertreters dokumentiert werden.
+          </p>
+          <details style={{ marginBottom: 16 }}>
+            <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+              Text zur Zusatzerklärung bei Minderjährigen anzeigen
+            </summary>
+            <div style={{ marginTop: 10, color: "var(--muted)" }}>
+              {MINOR_CONSENT_TEXT.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+          </details>
           <div className="grid grid-2">
             <div className="field">
-              <label htmlFor="childFirstName">Vorname Kind</label>
-              <input id="childFirstName" name="childFirstName" />
+              <label htmlFor="guardianName">Name des gesetzlichen Vertreters*</label>
+              <input id="guardianName" name="guardianName" required />
             </div>
             <div className="field">
-              <label htmlFor="childLastName">Nachname Kind</label>
-              <input id="childLastName" name="childLastName" />
+              <label htmlFor="guardianEmail">E-Mail des gesetzlichen Vertreters</label>
+              <input id="guardianEmail" name="guardianEmail" type="email" />
             </div>
           </div>
-          <div className="grid grid-2">
-            <div className="field">
-              <label htmlFor="childBirthDate">Geburtsdatum Kind</label>
-              <input id="childBirthDate" name="childBirthDate" type="date" />
-            </div>
-            <div className="field">
-              <label htmlFor="childEmail">E-Mail Kind</label>
-              <input id="childEmail" name="childEmail" type="email" />
-            </div>
+          <div className="field">
+            <label htmlFor="guardianPhone">Telefon des gesetzlichen Vertreters</label>
+            <input id="guardianPhone" name="guardianPhone" />
+          </div>
+          <div className="checkbox-group">
+            <label className="checkbox">
+              <input type="checkbox" name="guardianConsent" required />
+              <span>
+                Ich bestätige als gesetzlicher Vertreter den Eintritt des minderjährigen
+                Mitglieds und die damit verbundenen Verpflichtungen.*
+              </span>
+            </label>
           </div>
         </div>
       ) : null}
 
       <div className="field">
-        <label htmlFor="notes">Hinweise fuer die Vereinsverwaltung</label>
+        <label htmlFor="notes">Hinweise für die Vereinsverwaltung</label>
         <textarea id="notes" name="notes" rows={4} />
       </div>
 
@@ -348,28 +718,24 @@ export function ApplicationForm() {
         <div className="checkbox-group">
           <label className="checkbox">
             <input type="checkbox" name="acceptsStatutes" required />
-            <span>Ich habe Satzung, Beitragsordnung und Vereinsregeln zur Kenntnis genommen.*</span>
+            <span>
+              Ich habe Satzung, Beitragsinformationen 2026 und Datenschutzbestimmungen zur
+              Kenntnis genommen und erkenne diese als verbindlich an.*
+            </span>
           </label>
           <details style={{ margin: "-4px 0 8px 34px" }}>
             <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-              Satzung, Beitragsordnung und Vereinsregeln anzeigen
+              Satzung, Beiträge und Vereinsregeln anzeigen
             </summary>
             <div style={{ marginTop: 10, color: "var(--muted)" }}>
+              {STATUTES_CONFIRMATION_TEXT.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
               <p>
-                Mit der Bestaetigung erkennst du Satzung, Beitragsordnung,
-                Platzpflegeordnung und die Datenschutzbestimmungen des Tennisclub Vreden e.V. als
-                verbindlich an.
-              </p>
-              <p>
-                Der Antrag weist ausserdem auf folgende Regeln hin: Eintritt im ersten
-                Kalenderhalbjahr = voller Jahresbeitrag, Eintritt im zweiten Kalenderhalbjahr =
-                anteilige Berechnung. Reduzierte Beitraege fuer Schueler, Studierende und Azubis
-                setzen einen jaehrlich vorzulegenden gueltigen Nachweis voraus.
-              </p>
-              <p>
-                Der Austritt kann gemaess Satzung nur zum Jahresende erfolgen und muss spaetestens
-                drei Monate vorher schriftlich erklaert werden. Mitgliedsbeitraege werden
-                grundsaetzlich per Lastschrift eingezogen.
+                Satzung:{" "}
+                <a href={STATUTES_URL} rel="noreferrer" target="_blank">
+                  PDF der Vereinssatzung öffnen
+                </a>
               </p>
             </div>
           </details>
@@ -382,24 +748,14 @@ export function ApplicationForm() {
               Datenschutzhinweise anzeigen
             </summary>
             <div style={{ marginTop: 10, color: "var(--muted)" }}>
-              <p>
-                Verantwortlich fuer die Datenverarbeitung ist der Vorstand des Tennisclub Vreden
-                e.V. Die Daten werden ausschliesslich fuer Begruendung, Durchfuehrung und
-                Beendigung der Mitgliedschaft, gesetzliche Pflichten und berechtigte
-                Vereinsinteressen verarbeitet.
-              </p>
-              <p>
-                Verarbeitet werden insbesondere Name, Anschrift, Kontaktdaten, Bankverbindung,
-                Geburtsdatum, Familienangaben, Statusangaben, Eintritts- und Austrittsdatum sowie
-                Vereinsfunktionen. Daten koennen bei Bedarf an Verbaende, Behoerden, Steuerberater
-                oder Vereinsdienstleister weitergegeben werden.
-              </p>
-              <p>
-                Nach Ende der Mitgliedschaft werden Daten unter Beachtung gesetzlicher
-                Aufbewahrungsfristen geloescht. Du hast Rechte auf Auskunft, Berichtigung,
-                Loeschung, Einschraenkung, Widerspruch und Beschwerde. Einwilligungen koennen fuer
-                die Zukunft widerrufen werden.
-              </p>
+              {PRIVACY_SECTIONS.map((section) => (
+                <section key={section.title} style={{ marginBottom: 12 }}>
+                  <h3 style={{ fontSize: "1rem", marginBottom: 6 }}>{section.title}</h3>
+                  {section.paragraphs.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </section>
+              ))}
             </div>
           </details>
           <label className="checkbox">
@@ -411,47 +767,23 @@ export function ApplicationForm() {
               Hinweise zu Foto- und Videoaufnahmen anzeigen
             </summary>
             <div style={{ marginTop: 10, color: "var(--muted)" }}>
-              <p>
-                Der Verein darf im Rahmen von Vereinsveranstaltungen, Trainingseinheiten,
-                Wettkaempfen und sonstigen Vereinsaktivitaeten Foto- und Videoaufnahmen anfertigen
-                und fuer Website, soziale Netzwerke, Vereinshefte, Aushaenge, Presseberichte oder
-                Anzeigen verwenden.
-              </p>
-              <p>
-                Dir ist bekannt, dass Aufnahmen im Internet weltweit abrufbar sind und von Dritten
-                gespeichert oder weiterverwendet werden koennen. Eine vollstaendige Loeschung im
-                Internet kann nicht garantiert werden.
-              </p>
-              <p>
-                Die Einwilligung ist freiwillig, zeitlich unbefristet und kann jederzeit fuer die
-                Zukunft widerrufen werden. Bei Minderjaehrigen erklaeren die Erziehungsberechtigten
-                die Einwilligung fuer das Kind.
-              </p>
+              {PHOTO_VIDEO_CONSENT_TEXT.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
             </div>
           </details>
           <label className="checkbox">
             <input type="checkbox" name="acceptsWhatsapp" />
-            <span>Ich moechte in vereinsbezogene WhatsApp-Gruppen aufgenommen werden.</span>
+            <span>Ich möchte in vereinsbezogene WhatsApp-Gruppen aufgenommen werden.</span>
           </label>
           <details style={{ margin: "-4px 0 0 34px" }}>
             <summary style={{ cursor: "pointer", fontWeight: 700 }}>
               Hinweise zur WhatsApp-Gruppe anzeigen
             </summary>
             <div style={{ marginTop: 10, color: "var(--muted)" }}>
-              <p>
-                Die WhatsApp-Gruppen dienen der internen Kommunikation, insbesondere fuer
-                Spielbetrieb, Trainingsorganisation, Vereinsinformationen und kurzfristige
-                organisatorische Hinweise.
-              </p>
-              <p>
-                Wenn du zustimmst, ist deine Mobilfunknummer fuer andere Gruppenmitglieder
-                sichtbar. WhatsApp ist ein Dienst eines Drittanbieters; personenbezogene Daten
-                koennen auch ausserhalb der EU verarbeitet werden.
-              </p>
-              <p>
-                Die Einwilligung ist freiwillig, fuer die Mitgliedschaft nicht erforderlich und
-                kann jederzeit fuer die Zukunft widerrufen werden.
-              </p>
+              {WHATSAPP_CONSENT_TEXT.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
             </div>
           </details>
         </div>
@@ -461,7 +793,7 @@ export function ApplicationForm() {
         <button className="button" type="submit" disabled={state.kind === "submitting"}>
           {state.kind === "submitting" ? "Antrag wird gespeichert..." : "Antrag absenden"}
         </button>
-        {state.kind === "submitting" ? <span className="pill">Speicherung laeuft...</span> : null}
+        {state.kind === "submitting" ? <span className="pill">Speicherung läuft...</span> : null}
       </div>
 
       {state.kind === "success" ? (

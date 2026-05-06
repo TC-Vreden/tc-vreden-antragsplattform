@@ -21,5 +21,5 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ message: "Antrag geloescht." });
+  return NextResponse.json({ message: "Antrag gelöscht." });
 }

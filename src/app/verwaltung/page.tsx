@@ -17,13 +17,13 @@ export default async function VerwaltungPage() {
         <span className="eyebrow">Interner Bereich</span>
         <h1 style={{ maxWidth: "unset", fontSize: "2.5rem" }}>Verwaltungsbereich</h1>
         <p>
-          Diese Ansicht ist fuer die interne Bearbeitung gedacht. Sensible eBuSy-Daten werden
+          Diese Ansicht ist für die interne Bearbeitung gedacht. Sensible eBuSy-Daten werden
           serverseitig abgefragt und nur in stark reduzierter Form angezeigt.
         </p>
 
         <div className="cta-row" style={{ marginBottom: 20 }}>
           <Link className="button secondary" href="/anmelden">
-            Oeffentliches Formular ansehen
+            Öffentliches Formular ansehen
           </Link>
         </div>
 
@@ -32,8 +32,8 @@ export default async function VerwaltungPage() {
             <h2 style={{ fontSize: "1.2rem" }}>Arbeitsweise</h2>
             <ul className="list">
               <li>Im Moment ist dies eine direkte interne Suche in eBuSy</li>
-              <li>Der Personenabgleich erfolgt serverseitig ueber die API</li>
-              <li>Sensible Finanzdaten werden nicht in der Oberflaeche gezeigt</li>
+              <li>Der Personenabgleich erfolgt serverseitig über die API</li>
+              <li>Sensible Finanzdaten werden nicht in der Oberfläche gezeigt</li>
             </ul>
           </article>
 
@@ -54,7 +54,7 @@ export default async function VerwaltungPage() {
           <article className="warning-box" style={{ marginBottom: 20 }}>
             <strong>Hinweis zur Suche</strong>
             <p style={{ margin: "10px 0 0" }}>
-              Die aktuelle Ansicht laeuft noch im Testmodus. Darum sucht der Bereich im Moment
+              Die aktuelle Ansicht läuft noch im Testmodus. Darum sucht der Bereich im Moment
               noch nicht live in eBuSy, sondern verwendet nur den internen Testpfad. Erst nach
               einem erfolgreichen Live-Deploy mit den richtigen Vercel-Umgebungsvariablen springt
               der Modus hier auf <strong>live</strong>.
@@ -65,13 +65,13 @@ export default async function VerwaltungPage() {
         <article className="hint-box" style={{ marginBottom: 20 }}>
           <strong>Aktueller Stand des Prototyps</strong>
           <p style={{ margin: "10px 0 0" }}>
-            Das oeffentliche Formular speichert jetzt echte Antraege in der internen Liste und
-            stoesst direkt beim Speichern automatisch den ersten eBuSy-Abgleich an. Die freie Suche
+            Das öffentliche Formular speichert jetzt echte Anträge in der internen Liste und
+            stößt direkt beim Speichern automatisch den ersten eBuSy-Abgleich an. Die freie Suche
             unten bleibt als separates Werkzeug erhalten.
           </p>
           <p style={{ margin: "10px 0 0" }}>
             Bei mehrdeutigen Treffern kann jetzt bereits eine Kandidatenliste aufgeklappt und ein
-            passender Datensatz manuell verknuepft werden. Bei `Kein Treffer` kann eine neue Person
+            passender Datensatz manuell verknüpft werden. Bei `Kein Treffer` kann eine neue Person
             in eBuSy angelegt werden. Danach folgen Mitgliedschaftsanlage und die saubere Familien-
             bzw. Kinderzuordnung.
           </p>
@@ -80,24 +80,24 @@ export default async function VerwaltungPage() {
         <LookupForm />
 
         <article className="card" style={{ padding: 18, marginBottom: 20 }}>
-          <h2 style={{ fontSize: "1.2rem" }}>Eingegangene Antraege</h2>
+          <h2 style={{ fontSize: "1.2rem" }}>Eingegangene Anträge</h2>
           <p>
-            Hier landen die Daten aus dem oeffentlichen Formular. Nach dem Speichern erfolgt direkt
+            Hier landen die Daten aus dem öffentlichen Formular. Nach dem Speichern erfolgt direkt
             ein erster eBuSy-Abgleich. Bei Bedarf kann der Abgleich erneut gestartet, ein
-            Kandidat ausgewaehlt, eine neue eBuSy-Person angelegt oder ein Testeintrag wieder
-            geloescht werden.
+            Kandidat ausgewählt, eine neue eBuSy-Person angelegt oder ein Testeintrag wieder
+            gelöscht werden.
           </p>
 
           {applicationsError ? (
             <div className="warning-box">
-              <strong>Antragsliste noch nicht verfuegbar</strong>
+              <strong>Antragsliste noch nicht verfügbar</strong>
               <p style={{ margin: "10px 0 0" }}>
                 {applicationsError}. Sehr wahrscheinlich fehlt noch der{" "}
                 <strong>SUPABASE_SERVICE_ROLE_KEY</strong> in Vercel.
               </p>
             </div>
           ) : applications.length === 0 ? (
-            <p>Noch keine gespeicherten Antraege vorhanden.</p>
+            <p>Noch keine gespeicherten Anträge vorhanden.</p>
           ) : (
             <ApplicationsTable applications={applications} />
           )}

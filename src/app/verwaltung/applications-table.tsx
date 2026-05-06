@@ -25,7 +25,7 @@ function getStatusLabel(status: string) {
     case "multiple_matches":
       return "Mehrdeutig";
     case "needs_review":
-      return "Pruefen";
+      return "Prüfen";
     case "no_match":
       return "Kein Treffer";
     case "person_created":
@@ -176,7 +176,7 @@ export function ApplicationsTable({ applications }: Props) {
             message:
               error instanceof Error
                 ? error.message
-                : "Die Verknuepfung konnte nicht gespeichert werden."
+                : "Die Verknüpfung konnte nicht gespeichert werden."
           }
         }
       }));
@@ -191,7 +191,7 @@ export function ApplicationsTable({ applications }: Props) {
 
     if (
       !window.confirm(
-        `Soll fuer ${displayName} jetzt wirklich eine neue Person in eBuSy angelegt werden?`
+        `Soll für ${displayName} jetzt wirklich eine neue Person in eBuSy angelegt werden?`
       )
     ) {
       return;
@@ -301,7 +301,7 @@ export function ApplicationsTable({ applications }: Props) {
           feedback: {
             status: "error",
             message:
-              error instanceof Error ? error.message : "Der Antrag konnte nicht geloescht werden."
+              error instanceof Error ? error.message : "Der Antrag konnte nicht gelöscht werden."
           }
         }
       }));
@@ -376,7 +376,7 @@ export function ApplicationsTable({ applications }: Props) {
                       style={{ minWidth: 180 }}
                     >
                       {localState?.loading
-                        ? "Abgleich laeuft..."
+                        ? "Abgleich läuft..."
                         : application.ebusy_match_status === "pending"
                           ? "Mit eBuSy abgleichen"
                           : "Erneut abgleichen"}
@@ -405,7 +405,7 @@ export function ApplicationsTable({ applications }: Props) {
                         onClick={() => handleCreateEbusy(application.id)}
                         style={{ minWidth: 180 }}
                       >
-                        {localState?.loading ? "Anlage laeuft..." : "In eBuSy anlegen"}
+                        {localState?.loading ? "Anlage läuft..." : "In eBuSy anlegen"}
                       </button>
                     ) : null}
 
@@ -416,7 +416,7 @@ export function ApplicationsTable({ applications }: Props) {
                       onClick={() => handleDelete(application.id)}
                       style={{ minWidth: 180 }}
                     >
-                      Testeintrag loeschen
+                      Testeintrag löschen
                     </button>
                   </div>
                 </td>
@@ -425,7 +425,7 @@ export function ApplicationsTable({ applications }: Props) {
                 <tr>
                   <td colSpan={6} style={{ background: "#fffdf6" }}>
                     <div style={{ padding: "8px 0" }}>
-                      <strong>Moegliche eBuSy-Treffer</strong>
+                      <strong>Mögliche eBuSy-Treffer</strong>
                       <table className="table" style={{ marginTop: 10 }}>
                         <thead>
                           <tr>
@@ -458,7 +458,7 @@ export function ApplicationsTable({ applications }: Props) {
                                     handleSelectCandidate(application.id, candidate)
                                   }
                                 >
-                                  Diesen Treffer verknuepfen
+                                  Diesen Treffer verknüpfen
                                 </button>
                               </td>
                             </tr>

@@ -17,7 +17,7 @@ const bodyFont = PT_Sans({
 
 export const metadata: Metadata = {
   title: "TC Vreden Antragsplattform",
-  description: "Digitaler Prototyp fuer Mitgliedsantraege und interne Vereinsverwaltung."
+  description: "Digitaler Prototyp für Mitgliedsanträge und interne Vereinsverwaltung."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

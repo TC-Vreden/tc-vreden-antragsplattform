@@ -33,7 +33,7 @@ export async function getApplicationsForManagement(): Promise<{
     return {
       applications: [],
       error:
-        error instanceof Error ? error.message : "Antraege konnten nicht geladen werden."
+        error instanceof Error ? error.message : "Anträge konnten nicht geladen werden."
     };
   }
 }
@@ -85,11 +85,11 @@ export async function matchApplicationWithEbusy(
     ebusyMatchStatus = "needs_review";
     summaryStatus = "needs_review";
     summaryMessage =
-      "1 moeglicher eBuSy-Kandidat gefunden, aber kein sicherer Treffer. Bitte pruefen, verknuepfen oder als neue Person anlegen.";
+      "1 möglicher eBuSy-Kandidat gefunden, aber kein sicherer Treffer. Bitte prüfen, verknüpfen oder als neue Person anlegen.";
   } else {
     ebusyMatchStatus = "multiple_matches";
     summaryStatus = "multiple_matches";
-    summaryMessage = `${candidateCount} moegliche eBuSy-Treffer gefunden. Bitte manuell pruefen.`;
+    summaryMessage = `${candidateCount} mögliche eBuSy-Treffer gefunden. Bitte manuell prüfen.`;
   }
 
   const matchPayload: ApplicationMatchPayload = {
@@ -172,8 +172,8 @@ export async function linkApplicationToEbusyPerson(
   return {
     status: "match_found",
     message: selectedCandidate?.displayName
-      ? `Antrag wurde mit ${selectedCandidate.displayName} verknuepft.`
-      : `Antrag wurde mit eBuSy-ID ${externalPersonId} verknuepft.`,
+      ? `Antrag wurde mit ${selectedCandidate.displayName} verknüpft.`
+      : `Antrag wurde mit eBuSy-ID ${externalPersonId} verknüpft.`,
     externalPersonId
   };
 }
@@ -201,7 +201,7 @@ export async function createApplicationPersonInEbusy(
   if (row.ebusy_person_id) {
     return {
       status: "match_found",
-      message: `Antrag ist bereits mit eBuSy-ID ${row.ebusy_person_id} verknuepft.`,
+      message: `Antrag ist bereits mit eBuSy-ID ${row.ebusy_person_id} verknüpft.`,
       externalPersonId: row.ebusy_person_id
     };
   }
@@ -215,8 +215,8 @@ export async function createApplicationPersonInEbusy(
       status: "error",
       message:
         row.ebusy_match_status === "pending"
-          ? "Bitte zuerst den eBuSy-Abgleich fuer diesen Antrag ausfuehren."
-          : "Eine Neuanlage ist nur fuer Antraege ohne sichere eBuSy-Verknuepfung vorgesehen."
+          ? "Bitte zuerst den eBuSy-Abgleich für diesen Antrag ausführen."
+          : "Eine Neuanlage ist nur für Anträge ohne sichere eBuSy-Verknüpfung vorgesehen."
     };
   }
 
@@ -243,7 +243,7 @@ export async function createApplicationPersonInEbusy(
   if (updateError) {
     return {
       status: "person_created",
-      message: `${message} Achtung: Die lokale Verknuepfung konnte nicht gespeichert werden: ${updateError.message}`,
+      message: `${message} Achtung: Die lokale Verknüpfung konnte nicht gespeichert werden: ${updateError.message}`,
       externalPersonId: createdPerson.externalPersonId
     };
   }

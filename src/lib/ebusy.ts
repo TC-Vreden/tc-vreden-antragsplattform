@@ -136,9 +136,9 @@ function buildApplicationComment(application: ApplicationRow) {
   const lines = [
     `Digitaler Mitgliedsantrag ${application.id}.`,
     application.membership_kind
-      ? `Gewuenschte Mitgliedschaft: ${application.membership_kind}.`
+      ? `Gewünschte Mitgliedschaft: ${application.membership_kind}.`
       : undefined,
-    application.accepts_sepa ? "SEPA-Lastschrift wurde bestaetigt." : undefined,
+    application.accepts_sepa ? "SEPA-Lastschrift wurde bestätigt." : undefined,
     application.accepts_photo_video
       ? "Foto-/Videoeinwilligung: ja."
       : "Foto-/Videoeinwilligung: nein.",
@@ -242,7 +242,7 @@ export async function createEbusyPersonFromApplication(application: ApplicationR
   const createdPerson = result.response ?? result.result;
 
   if (!createdPerson?.id) {
-    throw new Error("eBuSy hat keine Personen-ID fuer den neuen Datensatz zurueckgegeben.");
+    throw new Error("eBuSy hat keine Personen-ID für den neuen Datensatz zurückgegeben.");
   }
 
   return {
@@ -279,7 +279,7 @@ export async function lookupEbusyPerson(input: {
       return {
         status: "no_match",
         source: "live",
-        message: "Bitte mindestens ein Suchfeld ausfuellen.",
+        message: "Bitte mindestens ein Suchfeld ausfüllen.",
         candidates: []
       };
     }
@@ -312,7 +312,7 @@ export async function lookupEbusyPerson(input: {
           candidates.push({
             externalPersonId: String(person.id),
             matchScore: 98,
-            matchReason: "Treffer ueber E-Mail / Benutzerkennung",
+            matchReason: "Treffer über E-Mail / Benutzerkennung",
             displayName: `${person.firstname ?? ""} ${person.lastname ?? ""}`.trim(),
             email: person.contact?.email ?? person.user?.username ?? normalizedEmail,
             birthDate: person.birthday,
@@ -406,7 +406,7 @@ export async function lookupEbusyPerson(input: {
           candidates.push({
             externalPersonId: String(person.id ?? ""),
             matchScore,
-            matchReason: `Treffer ueber ${matchedFields.join(", ")}`,
+            matchReason: `Treffer über ${matchedFields.join(", ")}`,
             displayName: `${person.firstname ?? ""} ${person.lastname ?? ""}`.trim(),
             email:
               person.contact?.email ??
@@ -435,7 +435,7 @@ export async function lookupEbusyPerson(input: {
       return {
         status: "match_found",
         source: "live",
-        message: `${candidates.length} passende Datensaetze wurden intern in eBuSy gefunden.`,
+        message: `${candidates.length} passende Datensätze wurden intern in eBuSy gefunden.`,
         candidates: candidates.slice(0, 25)
       };
     }
@@ -444,7 +444,7 @@ export async function lookupEbusyPerson(input: {
       status: "no_match",
       source: "live",
       message:
-        "Kein passender eBuSy-Treffer ueber E-Mail oder die aktuelle Kombination aus Suchfeldern gefunden.",
+        "Kein passender eBuSy-Treffer über E-Mail oder die aktuelle Kombination aus Suchfeldern gefunden.",
       candidates: []
     };
   } catch (error) {
@@ -455,8 +455,8 @@ export async function lookupEbusyPerson(input: {
       source: "live",
       message:
         error instanceof Error
-          ? `${error.message} Der Prototyp faellt deshalb auf einen internen Testabgleich zurueck.`
-          : "Der Live-Abgleich ist fehlgeschlagen. Der Prototyp faellt deshalb auf einen internen Testabgleich zurueck."
+          ? `${error.message} Der Prototyp fällt deshalb auf einen internen Testabgleich zurück.`
+          : "Der Live-Abgleich ist fehlgeschlagen. Der Prototyp fällt deshalb auf einen internen Testabgleich zurück."
     };
   }
 }

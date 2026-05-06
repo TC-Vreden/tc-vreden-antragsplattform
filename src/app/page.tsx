@@ -9,8 +9,8 @@ export default function HomePage() {
         <span className="eyebrow">TC Vreden Prototyp</span>
         <h1>Digitale Vereinsprozesse statt Papierstapel.</h1>
         <p>
-          Dieser erste Prototyp sammelt Mitgliedsanfragen ausserhalb von eBuSy, speichert sie
-          strukturiert und bereitet sie fuer die interne Bearbeitung vor.
+          Dieser erste Prototyp sammelt Mitgliedsanfragen außerhalb von eBuSy, speichert sie
+          strukturiert und bereitet sie für die interne Bearbeitung vor.
         </p>
         <div className="cta-row">
           <Link className="button" href="/anmelden">
@@ -26,7 +26,7 @@ export default function HomePage() {
         <article className="card">
           <h2>Version 1</h2>
           <ul className="list">
-            <li>Neuanmeldung ueber eigenes Vereinsformular</li>
+            <li>Neuanmeldung über eigenes Vereinsformular</li>
             <li>Zwischenspeicherung in Supabase</li>
             <li>interne Bearbeitung mit Personenabgleich</li>
             <li>gesicherter eBuSy-Abgleich im internen Bereich</li>
@@ -39,7 +39,7 @@ export default function HomePage() {
             <li>automatische Zuordnung zu Bestandsmitgliedern</li>
             <li>PDF-Zusammenfassung per E-Mail</li>
             <li>Bestandsmitglieder und Padel-Umstellung</li>
-            <li>spaetere SEPA- und Einwilligungsstrecken</li>
+            <li>spätere SEPA- und Einwilligungsstrecken</li>
           </ul>
         </article>
       </section>

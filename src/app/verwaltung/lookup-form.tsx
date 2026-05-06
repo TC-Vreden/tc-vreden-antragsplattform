@@ -63,7 +63,7 @@ export function LookupForm() {
       setError(
         submissionError instanceof Error
           ? submissionError.message
-          : "Der Abgleich konnte nicht ausgefuehrt werden."
+          : "Der Abgleich konnte nicht ausgeführt werden."
       );
       setResult(null);
     } finally {
@@ -79,8 +79,8 @@ export function LookupForm() {
         sensiblen Finanz- oder SEPA-Daten.
       </p>
       <p>
-        Aktuell ist das eine direkte Suche in eBuSy. Es wird also noch kein vorher ueber das
-        Formular gespeicherter Antrag benoetigt.
+        Aktuell ist das eine direkte Suche in eBuSy. Es wird also noch kein vorher über das
+        Formular gespeicherter Antrag benötigt.
       </p>
 
       <form className="form" onSubmit={handleSubmit}>
@@ -130,9 +130,9 @@ export function LookupForm() {
 
         <div className="cta-row">
           <button className="button" type="submit" disabled={loading}>
-            {loading ? "Suche laeuft..." : "In eBuSy suchen"}
+            {loading ? "Suche läuft..." : "In eBuSy suchen"}
           </button>
-          {loading ? <span className="pill">Suche wird ausgefuehrt...</span> : null}
+          {loading ? <span className="pill">Suche wird ausgeführt...</span> : null}
         </div>
       </form>
 
