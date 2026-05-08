@@ -114,7 +114,7 @@ weiter nachvollziehbar angezeigt.
 
 - klappt die Detailansicht zum Antrag auf
 - zeigt Hauptperson, Mitgliedschaft, Zusatzpersonen, Vertreterdaten, SEPA, Einwilligungen und eBuSy-Status
-- IBAN wird nur maskiert angezeigt
+- IBAN wird in der geschützten Verwaltungsansicht vollständig angezeigt
 
 ### `In eBuSy anlegen`
 

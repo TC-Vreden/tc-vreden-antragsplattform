@@ -65,14 +65,26 @@ function formatAddress(application: ApplicationRow) {
     .join(", ") || "-";
 }
 
-function maskIban(value: string | null | undefined) {
+function formatIbanForInternalDisplay(value: string | null | undefined) {
   const normalized = (value ?? "").replace(/\s+/g, "");
 
   if (!normalized) {
     return "-";
   }
 
-  return `•••• ${normalized.slice(-4)}`;
+  return normalized.replace(/(.{4})/g, "$1 ").trim();
+}
+
+function getLegacySalutationFromNotes(notes: string | null | undefined) {
+  const match = notes?.match(/^Anrede:\s*(FEMALE|MALE|NONE)\s*$/m);
+
+  return match?.[1] ?? null;
+}
+
+function getApplicationSalutationLabel(application: ApplicationRow) {
+  return getSalutationLabel(
+    application.salutation ?? getLegacySalutationFromNotes(application.notes)
+  );
 }
 
 function yesNo(value: boolean) {
@@ -625,7 +637,7 @@ export function ApplicationsTable({ applications }: Props) {
             ) : null}
 
             <DetailSection title="Hauptperson">
-              <DetailItem label="Anrede" value={getSalutationLabel(application.salutation)} />
+              <DetailItem label="Anrede" value={getApplicationSalutationLabel(application)} />
               <DetailItem label="Vorname" value={application.first_name} />
               <DetailItem label="Nachname" value={application.last_name} />
               <DetailItem label="Geburtsdatum" value={formatDate(application.birth_date)} />
@@ -701,7 +713,7 @@ export function ApplicationsTable({ applications }: Props) {
 
             <DetailSection title="SEPA / Zahlung">
               <DetailItem label="Kontoinhaber" value={displayValue(application.account_holder)} />
-              <DetailItem label="IBAN" value={maskIban(application.iban)} />
+              <DetailItem label="IBAN" value={formatIbanForInternalDisplay(application.iban)} />
               <DetailItem label="Kreditinstitut" value="Nicht im Formular erfasst" />
               <DetailItem
                 label="Anschrift Kontoinhaber"
