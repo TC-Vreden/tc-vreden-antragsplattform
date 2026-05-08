@@ -1,6 +1,6 @@
 # Bedienung aktueller Prototyp
 
-Stand: 06.05.2026
+Stand: 08.05.2026
 
 Zweck dieser Datei:
 
@@ -32,8 +32,8 @@ Diese Werte liegen in Vercel bzw. lokal in den Projekt-Umgebungen vor.
 ### Oeffentliches Formular
 
 1. Formular oeffnen
-2. Mitgliedschaft auswaehlen
-3. Mitgliedsdaten der Hauptperson eingeben
+2. Mitgliedschaft auswählen
+3. Anrede und Mitgliedsdaten der Hauptperson eingeben
 4. je nach Mitgliedschaft Ehepartner/Lebenspartner, Kind oder weitere Familienmitglieder erfassen
 5. bei Schueler/Azubi/Student ggf. Nachweisdatum erfassen
 6. SEPA- und Einwilligungsbereiche ausfuellen
@@ -60,10 +60,15 @@ zunaechst ueber den Zusatzpersonenbereich erfasst.
 ### Interne Verwaltung
 
 1. Verwaltungsseite oeffnen
-2. nach unten zu `Eingegangene Antraege` scrollen
-3. neuen Antrag in der Liste suchen
+2. nach unten zu `Anträge verwalten` scrollen
+3. Antrag in `Offene Anträge` oder `Bereits übertragene Anträge` suchen
 
 Direkt nach dem Speichern sollte der Antrag dort sichtbar sein.
+
+Die Verwaltung trennt offene und bereits nach eBuSy übertragene Anträge. Nach einer
+erfolgreichen Einzelpersonen-Anlage in eBuSy wird der Antrag als übertragen markiert,
+aus der offenen Liste ausgeblendet und im Bereich `Bereits übertragene Anträge`
+weiter nachvollziehbar angezeigt.
 
 ## 5. Bedeutungen in `Eingegangene Antraege`
 
@@ -105,14 +110,28 @@ Direkt nach dem Speichern sollte der Antrag dort sichtbar sein.
 - erscheint in der aufgeklappten Kandidatenliste
 - verknuepft den Antrag mit der gewaehlten eBuSy-Person
 
+### `Details anzeigen`
+
+- klappt die Detailansicht zum Antrag auf
+- zeigt Hauptperson, Mitgliedschaft, Zusatzpersonen, Vertreterdaten, SEPA, Einwilligungen und eBuSy-Status
+- IBAN wird nur maskiert angezeigt
+
 ### `In eBuSy anlegen`
 
 - erscheint bei `Kein Treffer`, `Pruefen` oder `Mehrdeutig`, solange keine sichere eBuSy-ID verknuepft ist
+- erscheint nur bei Einzelpersonen-Antraegen
 - fragt vor dem Schreibzugriff noch einmal nach Bestaetigung
 - legt aus dem Antrag eine neue Person in eBuSy an
 - speichert die neue eBuSy-ID am Antrag
+- markiert den Antrag als nach eBuSy uebertragen
 - legt noch keine Mitgliedschaft in eBuSy an
 - erzeugt aktuell ein technisches temporaeres Benutzerkonto-Passwort fuer eBuSy; vor Produktivbetrieb muss der Verein festlegen, ob Mitglieder ihr Passwort selbst setzen, ein Reset-Link genutzt wird oder ein Passwort manuell vergeben wird
+
+### `Mehrpersonen-Anlage vorbereiten`
+
+- erscheint bei Familie, Ehepartner/Lebenspartner und `Erwachsene + 1 Kind`
+- ist aktuell bewusst gesperrt
+- verhindert, dass nur die Hauptperson angelegt wird, obwohl der Antrag mehrere Personen enthaelt
 
 ### `Testeintrag loeschen`
 
@@ -160,6 +179,10 @@ Aktuell erfolgreich getestet:
 - Kandidatenanzeige bei mehrdeutigen und unsicheren Treffern
 - manuelle Personenanlage in eBuSy bei `Kein Treffer`, `Pruefen` oder `Mehrdeutig`
 - Loeschen von Testeintraegen
+- strukturierte Detailansicht in der Verwaltung
+- Trennung offener und bereits uebertragener Antraege
+- Anrede-Erfassung und Uebergabe an eBuSy fuer Einzelpersonen
+- Sperre der blinden eBuSy-Anlage bei Mehrpersonen-Antraegen
 
 ## 10. Bekannte Luecken im Prototyp
 
@@ -202,6 +225,8 @@ Zahlerbezug setzen.
 
 Das Konzept einschliesslich Statusfeldern, Supabase-Struktur, offenen eBuSy-
 Klaerungen und Testfaellen liegt in `docs/mehrpersonen-ebusy-konzept.md`.
+Die konkrete Pruefung zu eBuSy-Anrede, E-Mail-Unique-Frage und aktueller
+Mehrpersonen-Sperre liegt in `docs/ebusy-anrede-email-mehrpersonen.md`.
 
 ## 11. Naechste fachliche Punkte
 

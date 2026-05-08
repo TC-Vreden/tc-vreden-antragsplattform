@@ -5,9 +5,14 @@ import type {
   ApplicationRow
 } from "@/lib/application-types";
 import { createEbusyPersonFromApplication, lookupEbusyPerson } from "@/lib/ebusy";
+import { isMultiPersonMembership } from "@/lib/application-options";
 
 function isStrongAutomaticMatch(candidate: { matchScore: number }) {
   return candidate.matchScore >= 98;
+}
+
+function isMissingColumnError(error: { message?: string } | null) {
+  return Boolean(error?.message?.toLowerCase().includes("column"));
 }
 
 export async function getApplicationsForManagement(): Promise<{
@@ -198,6 +203,14 @@ export async function createApplicationPersonInEbusy(
 
   const row = application as ApplicationRow;
 
+  if (isMultiPersonMembership(row.membership_kind)) {
+    return {
+      status: "error",
+      message:
+        "Mehrpersonen-Anträge können noch nicht automatisch als einzelne eBuSy-Person angelegt werden. Bitte später die Mehrpersonen-Anlage verwenden."
+    };
+  }
+
   if (row.ebusy_person_id) {
     return {
       status: "match_found",
@@ -231,14 +244,30 @@ export async function createApplicationPersonInEbusy(
     createdPerson
   };
 
-  const { error: updateError } = await supabase
+  let { error: updateError } = await supabase
     .from("applications")
     .update({
+      status: "transferred_to_ebusy",
+      transferred_at: new Date().toISOString(),
       ebusy_match_status: "person_created",
       ebusy_person_id: createdPerson.externalPersonId,
       ebusy_match_payload: nextPayload
     })
     .eq("id", applicationId);
+
+  if (updateError && isMissingColumnError(updateError)) {
+    const retry = await supabase
+      .from("applications")
+      .update({
+        status: "transferred_to_ebusy",
+        ebusy_match_status: "person_created",
+        ebusy_person_id: createdPerson.externalPersonId,
+        ebusy_match_payload: nextPayload
+      })
+      .eq("id", applicationId);
+
+    updateError = retry.error;
+  }
 
   if (updateError) {
     return {

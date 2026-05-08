@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { mockEbusyLookup, type EbusyMatchResult } from "@/lib/mock-ebusy";
 import type { ApplicationRow } from "@/lib/application-types";
+import { getMembershipLabel } from "@/lib/application-options";
 
 type EbusyApiResponse<T> = {
   error: string | null;
@@ -16,6 +17,7 @@ type EbusyPerson = {
   birthday?: string;
   code?: string;
   customerId?: string;
+  salutation?: "FEMALE" | "MALE" | "NONE";
   contact?: {
     email?: string;
   };
@@ -136,7 +138,10 @@ function buildApplicationComment(application: ApplicationRow) {
   const lines = [
     `Digitaler Mitgliedsantrag ${application.id}.`,
     application.membership_kind
-      ? `Gewünschte Mitgliedschaft: ${application.membership_kind}.`
+      ? `Gewünschte Mitgliedschaft: ${getMembershipLabel(application.membership_kind)}.`
+      : undefined,
+    application.family_members?.length
+      ? `Mehrpersonen-Antrag mit ${application.family_members.length} Zusatzperson(en).`
       : undefined,
     application.accepts_sepa ? "SEPA-Lastschrift wurde bestätigt." : undefined,
     application.accepts_photo_video
@@ -150,6 +155,18 @@ function buildApplicationComment(application: ApplicationRow) {
       ? `Anschrift Kontoinhaber: ${application.account_holder_address}.`
       : undefined,
     application.iban ? `IBAN aus Antrag: ${application.iban}.` : undefined,
+    application.guardian_name
+      ? `Gesetzlicher Vertreter: ${application.guardian_name}.`
+      : undefined,
+    application.guardian_email
+      ? `E-Mail gesetzlicher Vertreter: ${application.guardian_email}.`
+      : undefined,
+    application.guardian_phone
+      ? `Telefon gesetzlicher Vertreter: ${application.guardian_phone}.`
+      : undefined,
+    application.guardian_consent
+      ? "Zustimmung gesetzlicher Vertreter wurde digital bestätigt."
+      : undefined,
     application.notes ? `Hinweise: ${application.notes}` : undefined
   ];
 
@@ -212,6 +229,7 @@ export async function createEbusyPersonFromApplication(application: ApplicationR
   const payload = pruneEmptyValues({
     firstname: application.first_name,
     lastname: application.last_name,
+    salutation: optionalText(application.salutation),
     birthday: optionalText(application.birth_date),
     address: hasAddress
       ? {

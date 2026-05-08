@@ -63,29 +63,28 @@ export default async function VerwaltungPage() {
         ) : null}
 
         <article className="hint-box" style={{ marginBottom: 20 }}>
-          <strong>Aktueller Stand des Prototyps</strong>
+          <strong>Aktueller Arbeitsstand</strong>
           <p style={{ margin: "10px 0 0" }}>
-            Das öffentliche Formular speichert jetzt echte Anträge in der internen Liste und
-            stößt direkt beim Speichern automatisch den ersten eBuSy-Abgleich an. Die freie Suche
-            unten bleibt als separates Werkzeug erhalten.
+            Neue Mitgliedsanträge erscheinen zuerst als offene Vorgänge. Die Liste zeigt, welche
+            Anträge neu sind, welche einen unklaren eBuSy-Treffer haben und welche bereits als
+            Person nach eBuSy übertragen wurden.
           </p>
           <p style={{ margin: "10px 0 0" }}>
-            Bei mehrdeutigen Treffern kann jetzt bereits eine Kandidatenliste aufgeklappt und ein
-            passender Datensatz manuell verknüpft werden. Bei `Kein Treffer` kann eine neue Person
-            in eBuSy angelegt werden. Danach folgen Mitgliedschaftsanlage und die saubere Familien-
-            bzw. Kinderzuordnung.
+            Einzelpersonen können weiterhin nach eBuSy übertragen werden. Mehrpersonen-Anträge
+            werden bewusst gekennzeichnet und noch nicht automatisch angelegt, bis die sichere
+            Familien- und Beitragslogik geklärt ist.
           </p>
         </article>
 
         <LookupForm />
 
         <article className="card" style={{ padding: 18, marginBottom: 20 }}>
-          <h2 style={{ fontSize: "1.2rem" }}>Eingegangene Anträge</h2>
+          <h2 style={{ fontSize: "1.2rem" }}>Anträge verwalten</h2>
           <p>
-            Hier landen die Daten aus dem öffentlichen Formular. Nach dem Speichern erfolgt direkt
-            ein erster eBuSy-Abgleich. Bei Bedarf kann der Abgleich erneut gestartet, ein
-            Kandidat ausgewählt, eine neue eBuSy-Person angelegt oder ein Testeintrag wieder
-            gelöscht werden.
+            Bearbeite neue Anträge Schritt für Schritt: Details prüfen, eBuSy-Abgleich ansehen,
+            bei Einzelpersonen eine neue eBuSy-Person anlegen oder unklare Treffer manuell
+            entscheiden. Erfolgreich übertragene Anträge verschwinden aus der offenen Liste und
+            bleiben unten nachvollziehbar erhalten.
           </p>
 
           {applicationsError ? (

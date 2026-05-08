@@ -1,7 +1,10 @@
 export type ApplicationRow = {
   id: string;
   created_at: string;
+  updated_at: string;
   status: string;
+  transferred_at: string | null;
+  salutation: string | null;
   first_name: string;
   last_name: string;
   birth_date: string | null;
@@ -22,6 +25,10 @@ export type ApplicationRow = {
   iban: string | null;
   account_holder: string | null;
   account_holder_address: string | null;
+  guardian_name: string | null;
+  guardian_email: string | null;
+  guardian_phone: string | null;
+  guardian_consent: boolean;
   notes: string | null;
   ebusy_match_status: string;
   ebusy_person_id: string | null;
@@ -75,6 +82,7 @@ export type ApplicationMatchPayload = {
 };
 
 export type ApplicationInput = {
+  salutation?: string;
   firstName: string;
   lastName: string;
   birthDate?: string;
@@ -100,6 +108,7 @@ export type ApplicationInput = {
 
 export type ApplicationAdditionalMember = {
   relation?: "partner" | "child" | "family_member";
+  salutation?: string;
   firstName?: string;
   lastName?: string;
   birthDate?: string;

@@ -33,6 +33,7 @@ function isValidIban(value: string) {
 
 const familyMemberSchema = z.object({
   relation: z.enum(["partner", "child", "family_member"]).optional(),
+  salutation: z.enum(["FEMALE", "MALE", "NONE"]).or(z.literal("")).optional(),
   firstName: z.string().trim().optional(),
   lastName: z.string().trim().optional(),
   birthDate: z.string().trim().optional(),
@@ -67,8 +68,13 @@ function isMinorMainApplicantMembership(membershipKind: string | undefined) {
   );
 }
 
+function isMissingColumnError(error: { message?: string } | null) {
+  return Boolean(error?.message?.toLowerCase().includes("column"));
+}
+
 const applicationSchema = z
   .object({
+    salutation: z.enum(["FEMALE", "MALE", "NONE"]).or(z.literal("")).optional(),
     firstName: z.string().trim().min(1, "Vorname fehlt."),
     lastName: z.string().trim().min(1, "Nachname fehlt."),
     birthDate: z.string().trim().optional(),
@@ -301,8 +307,16 @@ export async function POST(request: NextRequest) {
         .filter(Boolean)
         .join("\n")
     : "";
+  const legacyNotes = [
+    input.salutation ? `Anrede: ${input.salutation}` : undefined,
+    input.notes,
+    minorNotes
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const familyMembers = (input.familyMembers ?? []).map((member) => ({
     relation: member.relation ?? "family_member",
+    salutation: member.salutation ?? "",
     firstName: member.firstName ?? "",
     lastName: member.lastName ?? "",
     birthDate: member.birthDate ?? "",
@@ -329,39 +343,73 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { data, error } = await supabase
+  const baseInsertPayload = {
+    first_name: input.firstName,
+    last_name: input.lastName,
+    birth_date: input.birthDate || null,
+    email: input.email,
+    phone: input.phone || null,
+    mobile: input.mobile || null,
+    street: input.street || null,
+    postal_code: input.postalCode || null,
+    city: input.city || null,
+    membership_kind: input.membershipKind || null,
+    student_status_until: input.studentStatusUntil || null,
+    family_members: familyMembers,
+    accepts_statutes: input.acceptsStatutes,
+    accepts_privacy: input.acceptsPrivacy,
+    accepts_photo_video: input.acceptsPhotoVideo,
+    accepts_whatsapp: input.acceptsWhatsapp,
+    accepts_sepa: input.acceptsSepa,
+    iban: normalizedIban || null,
+    account_holder: input.accountHolder || null,
+    account_holder_address: derivedAccountHolderAddress || null,
+    notes: input.notes || null
+  };
+  const insertPayload = {
+    ...baseInsertPayload,
+    salutation: input.salutation || null,
+    guardian_name: mainApplicantIsMinor ? input.guardianName || null : null,
+    guardian_email: mainApplicantIsMinor ? input.guardianEmail || null : null,
+    guardian_phone: mainApplicantIsMinor ? input.guardianPhone || null : null,
+    guardian_consent: mainApplicantIsMinor ? Boolean(input.guardianConsent) : false
+  };
+
+  let { data, error } = await supabase
     .from("applications")
-    .insert({
-      first_name: input.firstName,
-      last_name: input.lastName,
-      birth_date: input.birthDate || null,
-      email: input.email,
-      phone: input.phone || null,
-      mobile: input.mobile || null,
-      street: input.street || null,
-      postal_code: input.postalCode || null,
-      city: input.city || null,
-      membership_kind: input.membershipKind || null,
-      student_status_until: input.studentStatusUntil || null,
-      family_members: familyMembers,
-      accepts_statutes: input.acceptsStatutes,
-      accepts_privacy: input.acceptsPrivacy,
-      accepts_photo_video: input.acceptsPhotoVideo,
-      accepts_whatsapp: input.acceptsWhatsapp,
-      accepts_sepa: input.acceptsSepa,
-      iban: normalizedIban || null,
-      account_holder: input.accountHolder || null,
-      account_holder_address: derivedAccountHolderAddress || null,
-      notes: [input.notes, minorNotes].filter(Boolean).join("\n\n") || null
-    })
+    .insert(insertPayload)
     .select("id, created_at")
     .single();
+
+  if (error && isMissingColumnError(error)) {
+    const retry = await supabase
+      .from("applications")
+      .insert({
+        ...baseInsertPayload,
+        notes: legacyNotes || null
+      })
+      .select("id, created_at")
+      .single();
+
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     return NextResponse.json(
       {
         message: "Der Antrag konnte nicht gespeichert werden.",
         details: error.message
+      },
+      { status: 500 }
+    );
+  }
+
+  if (!data) {
+    return NextResponse.json(
+      {
+        message: "Der Antrag konnte nicht gespeichert werden.",
+        details: "Supabase hat keinen gespeicherten Datensatz zurückgegeben."
       },
       { status: 500 }
     );

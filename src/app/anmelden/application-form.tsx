@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import type { ApplicationMatchSummary } from "@/lib/application-types";
+import { membershipOptions, salutationOptions } from "@/lib/application-options";
 import {
   CONTRIBUTION_NOTES,
   CONTRIBUTION_ROWS,
@@ -26,6 +27,7 @@ type AdditionalMemberRelation = "partner" | "child" | "family_member";
 type AdditionalMember = {
   id: string;
   relation: AdditionalMemberRelation;
+  salutation: string;
   firstName: string;
   lastName: string;
   birthDate: string;
@@ -64,32 +66,6 @@ function isValidIban(value: string) {
   return remainder === 1;
 }
 
-const membershipOptions = [
-  { value: "adult_active", label: "Erwachsene aktiv - 180 EUR/Jahr" },
-  { value: "adult_passive", label: "Erwachsene passiv - 60 EUR/Jahr" },
-  { value: "adult_child", label: "Erwachsene + 1 Kind - 230 EUR/Jahr" },
-  {
-    value: "partner_active",
-    label: "Ehepartner / eingetragene Lebenspartner aktiv - 250 EUR/Jahr"
-  },
-  {
-    value: "partner_passive",
-    label: "Ehepartner / eingetragene Lebenspartner passiv - 120 EUR/Jahr"
-  },
-  { value: "family", label: "Familie - 290 EUR/Jahr" },
-  { value: "child", label: "Kinder bis 14 Jahre - 50 EUR/Jahr" },
-  { value: "youth_active", label: "Jugendliche bis 18 Jahre aktiv - 80 EUR/Jahr" },
-  { value: "youth_passive", label: "Jugendliche bis 18 Jahre passiv - 40 EUR/Jahr" },
-  {
-    value: "student_active",
-    label: "Schüler:innen / Azubis / Student:innen bis 27 Jahre aktiv - 100 EUR/Jahr"
-  },
-  {
-    value: "student_passive",
-    label: "Schüler:innen / Azubis / Student:innen bis 27 Jahre passiv - 60 EUR/Jahr"
-  }
-];
-
 function isReducedContributionMembership(value: string) {
   return value === "student_active" || value === "student_passive";
 }
@@ -104,6 +80,7 @@ function createAdditionalMember(relation: AdditionalMemberRelation): AdditionalM
       globalThis.crypto?.randomUUID?.() ??
       `member-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     relation,
+    salutation: "",
     firstName: "",
     lastName: "",
     birthDate: "",
@@ -230,6 +207,7 @@ export function ApplicationForm() {
 
     const familyMembers = additionalMembers.map((member) => ({
       relation: member.relation,
+      salutation: member.salutation,
       firstName: member.firstName.trim(),
       lastName: member.lastName.trim(),
       birthDate: member.birthDate,
@@ -252,6 +230,7 @@ export function ApplicationForm() {
     const guardianPhone = String(formData.get("guardianPhone") || "").trim();
 
     const payload = {
+      salutation: String(formData.get("salutation") || "").trim(),
       firstName: String(formData.get("firstName") || "").trim(),
       lastName: String(formData.get("lastName") || "").trim(),
       birthDate: String(formData.get("birthDate") || ""),
@@ -402,6 +381,17 @@ export function ApplicationForm() {
       </details>
 
       <h2 style={{ fontSize: "1.15rem" }}>Hauptperson</h2>
+
+      <div className="field">
+        <label htmlFor="salutation">Anrede</label>
+        <select id="salutation" name="salutation">
+          {salutationOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="grid grid-2">
         <div className="field">
@@ -560,6 +550,22 @@ export function ApplicationForm() {
                 >
                   Entfernen
                 </button>
+              </div>
+              <div className="field">
+                <label htmlFor={`${member.id}-salutation`}>Anrede</label>
+                <select
+                  id={`${member.id}-salutation`}
+                  value={member.salutation}
+                  onChange={(event) =>
+                    updateAdditionalMember(member.id, "salutation", event.target.value)
+                  }
+                >
+                  {salutationOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="grid grid-2">
                 <div className="field">
