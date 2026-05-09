@@ -1,19 +1,23 @@
 import type { ApplicationRow } from "@/lib/application-types";
 import { getMembershipLabel } from "@/lib/application-options";
 import {
+  buildEbusyAttributePayload,
   buildEbusyPersonPayloadFromApplication,
   createEbusyPersonFromApplication,
   getEbusyPersonById,
+  setEbusyPersonAttributes,
+  type EbusyAttributeAssignment,
   type EbusyPerson
 } from "@/lib/ebusy";
 
-export type EbusyTestAction = "dry_run" | "create_person";
+export type EbusyTestAction = "dry_run" | "create_person" | "create_person_with_attributes";
 
 export type EbusyTestScenario = {
   id: string;
   title: string;
   description: string;
   application: ApplicationRow;
+  attributeAssignments?: EbusyAttributeAssignment[];
 };
 
 export type EbusyTestCheck = {
@@ -34,6 +38,7 @@ export type EbusyTestLabResult = {
   };
   message: string;
   payload: unknown;
+  attributeAssignments?: EbusyAttributeAssignment[];
   createdPerson?: {
     externalPersonId: string;
     displayName: string;
@@ -91,8 +96,28 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "adult_active_person",
     title: "Erwachsene Einzelperson",
     description:
-      "Prueft die reine Personen-/Benutzeranlage fuer ein aktives Erwachsenenmitglied. Mitgliedschaft, Attribute und Beitragslogik werden noch nicht geschrieben.",
-    application: createBaseApplication({})
+      "Prüft die Personen-/Benutzeranlage für ein aktives Erwachsenenmitglied. Optional kann danach ein kontrollierter Attribut-Test ausgeführt werden; Mitgliedschaft und Beitragslogik werden noch nicht geschrieben.",
+    application: createBaseApplication({}),
+    attributeAssignments: [
+      {
+        attributeId: 4,
+        attributeName: "Status Quo - Beitragsarten TENNIS RW",
+        valueId: 8,
+        valueName: "1 Beitrag 1. Erwachsene/r"
+      },
+      {
+        attributeId: 6,
+        attributeName: "Mitgliedsbeiträge NEU",
+        valueId: 16,
+        valueName: "Erwachsene Aktiv"
+      },
+      {
+        attributeId: 7,
+        attributeName: "Status Quo TCH",
+        valueId: 30,
+        valueName: "Erwachsene"
+      }
+    ]
   }
 ];
 
@@ -144,7 +169,9 @@ function sanitizePayload(value: unknown): unknown {
   return Object.fromEntries(
     Object.entries(value).map(([key, entryValue]) => [
       key,
-      key.toLowerCase().includes("password") ? "<wird automatisch generiert>" : sanitizePayload(entryValue)
+      key.toLowerCase().includes("password")
+        ? "<wird automatisch generiert>"
+        : sanitizePayload(entryValue)
     ])
   );
 }
@@ -173,6 +200,28 @@ function addCheck(
     actual,
     status
   });
+}
+
+function formatAttributeAssignment(assignment: EbusyAttributeAssignment) {
+  return `${assignment.attributeId} -> ${assignment.valueId} (${assignment.valueName})`;
+}
+
+function formatPersonAttribute(attribute: NonNullable<EbusyPerson["attributes"]>[number] | undefined) {
+  if (!attribute) {
+    return undefined;
+  }
+
+  if (attribute.value?.id || attribute.value?.name) {
+    return `${attribute.id ?? "-"} -> ${attribute.value.id ?? "-"} (${attribute.value.name ?? "-"})`;
+  }
+
+  if (attribute.values?.length) {
+    return attribute.values
+      .map((value) => `${attribute.id ?? "-"} -> ${value.id ?? "-"} (${value.name ?? "-"})`)
+      .join(", ");
+  }
+
+  return `${attribute.id ?? "-"} (${attribute.name ?? "-"})`;
 }
 
 function comparePayloadWithPerson(payload: unknown, person: EbusyPerson) {
@@ -216,6 +265,26 @@ function comparePayloadWithPerson(payload: unknown, person: EbusyPerson) {
   return checks;
 }
 
+function compareAttributeAssignmentsWithPerson(
+  assignments: EbusyAttributeAssignment[],
+  person: EbusyPerson
+) {
+  const checks: EbusyTestCheck[] = [];
+
+  for (const assignment of assignments) {
+    const attribute = person.attributes?.find((candidate) => candidate.id === assignment.attributeId);
+
+    addCheck(
+      checks,
+      `Attribut: ${assignment.attributeName}`,
+      formatAttributeAssignment(assignment),
+      formatPersonAttribute(attribute)
+    );
+  }
+
+  return checks;
+}
+
 export function getEbusyTestScenario(scenarioId: string) {
   return ebusyTestScenarios.find((scenario) => scenario.id === scenarioId);
 }
@@ -232,7 +301,10 @@ export async function runEbusyTestLabAction(input: {
 
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
   const writeEnabled = process.env.EBUSY_TEST_LAB_WRITE_ENABLED === "true";
-  const payload = buildEbusyPersonPayloadFromApplication(scenario.application);
+  const personPayload = buildEbusyPersonPayloadFromApplication(scenario.application);
+  const attributePayload = scenario.attributeAssignments?.length
+    ? buildEbusyAttributePayload(scenario.attributeAssignments)
+    : undefined;
   const baseResult = {
     action: input.action,
     mode,
@@ -242,14 +314,18 @@ export async function runEbusyTestLabAction(input: {
       title: scenario.title,
       membershipLabel: getMembershipLabel(scenario.application.membership_kind)
     },
-    payload: sanitizePayload(payload)
+    payload: sanitizePayload({
+      person: personPayload,
+      attributes: attributePayload
+    }),
+    attributeAssignments: scenario.attributeAssignments
   };
 
   if (input.action === "dry_run") {
     return {
       ...baseResult,
       message:
-        "Payload wurde vorbereitet. Es wurde keine Person in eBuSy angelegt und kein Live-Schreibzugriff verwendet.",
+        "Datenpaket wurde vorbereitet. Es wurde keine Person in eBuSy angelegt und kein Live-Schreibzugriff verwendet.",
       checks: []
     };
   }
@@ -261,14 +337,41 @@ export async function runEbusyTestLabAction(input: {
   }
 
   const createdPerson = await createEbusyPersonFromApplication(scenario.application);
-  const readBack = await getEbusyPersonById(createdPerson.externalPersonId);
+  let readBack = await getEbusyPersonById(createdPerson.externalPersonId);
+  let checks = comparePayloadWithPerson(personPayload, readBack);
+  let message =
+    "Testperson wurde in eBuSy angelegt und direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
+
+  if (input.action === "create_person_with_attributes") {
+    if (!scenario.attributeAssignments?.length) {
+      throw new Error("Für dieses Testszenario sind keine Attributwerte hinterlegt.");
+    }
+
+    try {
+      await setEbusyPersonAttributes(createdPerson.externalPersonId, scenario.attributeAssignments);
+    } catch (attributeError) {
+      const reason =
+        attributeError instanceof Error ? attributeError.message : "Unbekannter Attributfehler";
+
+      throw new Error(
+        `Testperson ${createdPerson.displayName} (${createdPerson.externalPersonId}) wurde angelegt, aber die Attribute konnten nicht gesetzt werden: ${reason} Bitte diese Testperson manuell in eBuSy löschen.`
+      );
+    }
+
+    readBack = await getEbusyPersonById(createdPerson.externalPersonId);
+    checks = [
+      ...checks,
+      ...compareAttributeAssignmentsWithPerson(scenario.attributeAssignments, readBack)
+    ];
+    message =
+      "Testperson wurde in eBuSy angelegt, die Test-Attribute wurden gesetzt und der Datensatz wurde direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
+  }
 
   return {
     ...baseResult,
-    message:
-      "Testperson wurde in eBuSy angelegt und direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.",
+    message,
     createdPerson,
-    checks: comparePayloadWithPerson(payload, readBack),
+    checks,
     cleanupHint: `Bitte eBuSy-Testperson ${createdPerson.displayName} (${createdPerson.externalPersonId}) nach der Prüfung manuell löschen.`
   };
 }

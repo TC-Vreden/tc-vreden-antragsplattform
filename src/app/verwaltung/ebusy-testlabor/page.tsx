@@ -27,7 +27,7 @@ export default function EbusyTestlaborPage() {
         <article className="hint-box" style={{ marginBottom: 20 }}>
           <strong>Arbeitsweise</strong>
           <p style={{ margin: "10px 0 0" }}>
-            Der Payload-Test zeigt nur, was gesendet würde. Der Live-Test legt eine klar markierte
+            Der Datenpaket-Test zeigt nur, was gesendet würde. Der Live-Test legt eine klar markierte
             Testperson in eBuSy an, liest sie direkt wieder aus und vergleicht die Felder. Solange
             kein sicherer API-Löschweg bestätigt ist, muss die Testperson anschließend manuell in
             eBuSy gelöscht werden.

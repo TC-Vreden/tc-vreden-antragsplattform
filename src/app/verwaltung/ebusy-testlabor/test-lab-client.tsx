@@ -26,6 +26,18 @@ function getStatusLabel(status: EbusyTestCheck["status"]) {
   }
 }
 
+function getActionLabel(action: EbusyTestAction, isLoading: boolean) {
+  if (action === "dry_run") {
+    return isLoading ? "Datenpaket wird geprüft..." : "Datenpaket prüfen";
+  }
+
+  if (action === "create_person_with_attributes") {
+    return isLoading ? "Live-Test mit Attributen läuft..." : "Live-Testperson + Attribute anlegen";
+  }
+
+  return isLoading ? "Live-Test läuft..." : "Live-Testperson anlegen";
+}
+
 export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
   const [selectedScenarioId, setSelectedScenarioId] = useState(scenarios[0]?.id ?? "");
   const [loadingAction, setLoadingAction] = useState<EbusyTestAction | null>(null);
@@ -40,14 +52,18 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
       return;
     }
 
-    if (
-      action === "create_person" &&
-      !window.confirm(
+    if (action !== "dry_run") {
+      const writesAttributes = action === "create_person_with_attributes";
+      const confirmationText =
         "Soll jetzt wirklich eine eBuSy-Testperson angelegt werden?\n\n" +
-          "Die Testperson wird nicht automatisch gelöscht und muss nach der Prüfung in eBuSy entfernt werden."
-      )
-    ) {
-      return;
+        (writesAttributes
+          ? "Zusätzlich werden die Test-Attribute für eine erwachsene Einzelperson gesetzt.\n\n"
+          : "") +
+        "Die Testperson wird nicht automatisch gelöscht und muss nach der Prüfung in eBuSy entfernt werden.";
+
+      if (!window.confirm(confirmationText)) {
+        return;
+      }
     }
 
     setLoadingAction(action);
@@ -118,7 +134,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             disabled={Boolean(loadingAction)}
             onClick={() => runAction("dry_run")}
           >
-            {loadingAction === "dry_run" ? "Datenpaket wird geprüft..." : "Datenpaket prüfen"}
+            {getActionLabel("dry_run", loadingAction === "dry_run")}
           </button>
           <button
             className="button"
@@ -126,9 +142,18 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             disabled={Boolean(loadingAction)}
             onClick={() => runAction("create_person")}
           >
-            {loadingAction === "create_person"
-              ? "Live-Test läuft..."
-              : "Live-Testperson anlegen"}
+            {getActionLabel("create_person", loadingAction === "create_person")}
+          </button>
+          <button
+            className="button"
+            type="button"
+            disabled={Boolean(loadingAction)}
+            onClick={() => runAction("create_person_with_attributes")}
+          >
+            {getActionLabel(
+              "create_person_with_attributes",
+              loadingAction === "create_person_with_attributes"
+            )}
           </button>
         </div>
 
@@ -137,7 +162,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             <strong>Live-Schreibtest gesperrt</strong>
             <p style={{ margin: "8px 0 0" }}>
               Der Live-Button ist absichtlich serverseitig gesperrt, bis{" "}
-              <code>EBUSY_TEST_LAB_WRITE_ENABLED=true</code> gesetzt ist. Der Payload-Test
+              <code>EBUSY_TEST_LAB_WRITE_ENABLED=true</code> gesetzt ist. Der Datenpaket-Test
               funktioniert trotzdem ohne eBuSy-Schreibzugriff.
             </p>
           </div>
@@ -184,6 +209,20 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             </div>
           ) : null}
 
+          {result.attributeAssignments?.length ? (
+            <div className="hint-box" style={{ marginTop: 16 }}>
+              <strong>Geplante Attribute</strong>
+              <ul className="list" style={{ marginTop: 8 }}>
+                {result.attributeAssignments.map((assignment) => (
+                  <li key={`${assignment.attributeId}-${assignment.valueId}`}>
+                    {assignment.attributeName}: {assignment.valueName} ({assignment.attributeId} -{" "}
+                    {assignment.valueId})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {result.checks.length > 0 ? (
             <div style={{ overflowX: "auto", marginTop: 16 }}>
               <table className="table">
@@ -211,7 +250,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
 
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-              Gesendeten Payload anzeigen
+              Gesendetes Datenpaket anzeigen
             </summary>
             <pre style={{ whiteSpace: "pre-wrap", marginTop: 12 }}>
               {JSON.stringify(result.payload, null, 2)}

@@ -1,6 +1,6 @@
 # eBuSy-Mapping: Benutzer, Bankkonto, Mitgliedschaft und Attribute
 
-Stand: 08.05.2026
+Stand: 09.05.2026
 
 Dieses Dokument fasst zusammen, was aus den eBuSy-Screenshots, den bisherigen Tests und der API-Struktur ableitbar ist. Ziel ist eine fachliche Gegenüberstellung für Vorstand/Kassenwart, bevor wir weitere produktive Schreiblogik in eBuSy aktivieren.
 
@@ -20,7 +20,9 @@ Noch nicht vollständig bestätigt gesetzt werden:
 - Mitgliedsbeitrag / Beitragsart in `Mitglieder > Mitgliedschaften`
 - Familien-/Haushalts-/Zahlerbezug
 
-Bankkonto/IBAN und SEPA-Mandat wurden am 09.05.2026 als nächste technische Stufe in den eBuSy-Payload aufgenommen. Der Live-Rücklesetest steht noch aus.
+Bankkonto/IBAN und SEPA-Mandat wurden am 09.05.2026 als nächste technische Stufe in das eBuSy-Datenpaket aufgenommen und im Live-Rücklesetest bestätigt. eBuSy erkennt den Banknamen aus der IBAN selbst und erzeugt die SEPA-Mandatsreferenz automatisch.
+
+Die im Testlabor angezeigte Nummer, z. B. `812`, ist die interne eBuSy-Person-ID/API-ID. Sie ist nicht identisch mit der sichtbaren Kundennummer im eBuSy-Backend, z. B. `0255`. Für API-Folgeoperationen wie erneutes Auslesen, Attribute setzen oder später Mitgliedschaft anlegen benötigen wir die interne Personen-ID. Für manuelle Kontrolle im eBuSy-Backend bleibt die Kundennummer die sichtbare Nummer.
 
 Der aktuelle Test zeigt deshalb korrekt: Die Person existiert als Benutzer/Person, ist aber noch kein vollständiges Mitglied im eBuSy-Mitgliederbereich.
 
@@ -111,15 +113,15 @@ Seit 09.05.2026 sendet die Personenanlage zusätzlich:
 - `bankAccount.number`
 - `sepaMandate.date`
 
-Die Mandatsreferenz wird zunächst nicht gesendet, damit eBuSy sie ggf. selbst erzeugen kann. Das muss im Live-Test bestätigt werden.
+Die Mandatsreferenz wird zunächst nicht gesendet. Der Live-Test hat bestätigt, dass eBuSy daraus automatisch eine eigene Referenz erzeugt.
 
-Sichere nächste technische Verbesserung:
+Bestätigte technische Umsetzung:
 
 - `bankAccount.holder` aus Kontoinhaber setzen
 - `bankAccount.number` aus IBAN setzen
-- `bankAccount.bank` leer lassen oder nur setzen, wenn zuverlässig bekannt
-- `sepaMandate.date` mit Datum der Antragstellung oder Freigabe setzen, fachlich noch zu klären
-- `sepaMandate.reference` nur setzen, wenn geklärt ist, ob eBuSy sie automatisch generieren soll oder der Verein ein festes Muster nutzt
+- `bankAccount.bank` nicht setzen, weil eBuSy den Banknamen aus der IBAN ableitet
+- `sepaMandate.date` setzen
+- `sepaMandate.reference` nicht setzen, weil eBuSy die Referenz automatisch erzeugt
 
 Vor Umsetzung fachlich klären:
 
@@ -332,12 +334,11 @@ Diese Fragen sollten für die nächste Automatisierungsstufe beantwortet werden:
 
 Kurzfristig sollten wir nicht sofort die komplette Mitgliedschafts- und Familienlogik produktiv schreiben.
 
-Sinnvoller nächster technischer Block:
+Aktueller technischer Block:
 
-1. Bankkonto/SEPA für Einzelpersonen sauber zur Personenanlage hinzufügen.
-2. Einen einzelnen kontrollierten Test mit einem Testantrag durchführen.
-3. Danach Attribute für eine einfache Einzelperson (`adult_active`) testweise setzen.
-4. Danach Mitgliedschaft für eine einfache Einzelperson testweise anlegen.
-5. Erst nach Bestätigung den Mehrpersonen-/Familienprozess bauen.
+1. Bankkonto/SEPA für Einzelpersonen ist umgesetzt und im Live-Rücklesetest bestätigt.
+2. Als nächstes wird im Testlabor isoliert geprüft, ob Attribute für eine einfache Einzelperson (`adult_active`) gesetzt und zurückgelesen werden können.
+3. Danach sollte erst die Mitgliedschaft für eine einfache Einzelperson testweise angelegt werden.
+4. Erst nach Bestätigung dieser Einzelschritte sollte der Mehrpersonen-/Familienprozess gebaut werden.
 
 So reduzieren wir manuelle Arbeit schrittweise, ohne dass eBuSy halb gefüllte oder fachlich falsche Mitgliedschaften bekommt.

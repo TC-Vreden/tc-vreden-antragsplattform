@@ -51,11 +51,26 @@ export type EbusyPerson = {
   attributes?: Array<{
     id?: number;
     name?: string;
+    values?: Array<{
+      id?: number;
+      name?: string;
+    }>;
     value?: {
       id?: number;
       name?: string;
     };
   }>;
+};
+
+export type EbusyAttributeAssignment = {
+  attributeId: number;
+  attributeName: string;
+  valueId: number;
+  valueName: string;
+};
+
+export type EbusyAttributePayload = {
+  attributes: Record<string, number | string>;
 };
 
 type EbusyMembership = {
@@ -297,6 +312,16 @@ export function buildEbusyPersonPayloadFromApplication(application: ApplicationR
   });
 }
 
+export function buildEbusyAttributePayload(
+  assignments: EbusyAttributeAssignment[]
+): EbusyAttributePayload {
+  return {
+    attributes: Object.fromEntries(
+      assignments.map((assignment) => [String(assignment.attributeId), assignment.valueId])
+    )
+  };
+}
+
 export async function getEbusyPersonById(personId: string | number): Promise<EbusyPerson> {
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
 
@@ -312,6 +337,27 @@ export async function getEbusyPersonById(personId: string | number): Promise<Ebu
   }
 
   return person;
+}
+
+export async function setEbusyPersonAttributes(
+  personId: string | number,
+  assignments: EbusyAttributeAssignment[]
+) {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+
+  if (mode !== "live") {
+    throw new Error("eBuSy-Attribute koennen nur im Live-Modus gesetzt werden.");
+  }
+
+  if (assignments.length === 0) {
+    throw new Error("Es wurden keine eBuSy-Attribute zum Setzen uebergeben.");
+  }
+
+  const payload = buildEbusyAttributePayload(assignments);
+
+  await ebusyPost<null>(`/general/person/${personId}/set-attributes`, payload);
+
+  return payload;
 }
 
 export async function createEbusyPersonFromApplication(application: ApplicationRow): Promise<{
