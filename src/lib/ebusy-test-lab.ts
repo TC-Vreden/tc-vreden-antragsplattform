@@ -291,7 +291,8 @@ function formatMembershipFeeTypes(membership: EbusyMembership) {
 function buildMembershipPayload(
   application: ApplicationRow,
   personId: number,
-  config: EbusyMembershipTestConfig
+  config: EbusyMembershipTestConfig,
+  membershipNumber?: string
 ): EbusyMembershipPayload {
   return {
     begin: application.created_at.slice(0, 10),
@@ -300,6 +301,7 @@ function buildMembershipPayload(
     consideredActive: config.consideredActive,
     status: config.status,
     sections: config.sectionIds,
+    number: membershipNumber,
     comment: `Automatischer eBuSy-Test fuer Antrag ${application.id}.`
   };
 }
@@ -310,7 +312,8 @@ function buildMembershipPreviewPayload(
 ) {
   return {
     ...buildMembershipPayload(application, 0, config),
-    personId: "<interne eBuSy-ID nach Personenanlage>"
+    personId: "<interne eBuSy-ID nach Personenanlage>",
+    number: "<Kundennummer nach Personenanlage>"
   };
 }
 
@@ -506,7 +509,12 @@ export async function runEbusyTestLabAction(input: {
       );
     }
 
-    const membershipPayload = buildMembershipPayload(application, personId, scenario.membershipTest);
+    const membershipPayload = buildMembershipPayload(
+      application,
+      personId,
+      scenario.membershipTest,
+      resultCreatedPerson.customerId
+    );
 
     try {
       createdMembership = await createEbusyMembership(

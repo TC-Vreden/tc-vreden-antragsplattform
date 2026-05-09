@@ -79,6 +79,7 @@ Aktuell werden nur Felder gesetzt, die anhand der API und vorhandener eBuSy-Date
 - Status `ACTIVE`
 - aktiv / `consideredActive = true`
 - Eintrittsdatum aus dem Testlaufdatum
+- Mitgliedsnummer aus der von eBuSy erzeugten Kundennummer der Testperson
 - Mitgliedschaftsart-ID `null`, weil die API-Liste der Membership-Types leer zurückkommt und vorhandene eBuSy-Mitgliedschaften ebenfalls `membershipTypeId: null` enthalten
 
 Bewusst noch nicht geschrieben werden:
