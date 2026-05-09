@@ -73,14 +73,48 @@ export type EbusyAttributePayload = {
   attributes: Record<string, number | string>;
 };
 
-type EbusyMembership = {
+export type EbusyMembership = {
   id?: number;
   personId?: number;
+  archived?: boolean;
   number?: string;
   status?: string;
+  consideredActive?: boolean;
+  begin?: string | null;
+  end?: string | null;
+  cancellationDate?: string | null;
+  cancellationReason?: string | null;
+  comment?: string | null;
+  membershipTypeId?: number | null;
+  sections?: number[];
+  paymentType?: Record<string, unknown> | null;
+  membershipFeeTypes?: Array<{
+    id?: number;
+    name?: string;
+  }>;
+  workServiceTypes?: Array<{
+    id?: number;
+    name?: string;
+  }>;
 };
 
 type EbusyCreatedPerson = {
+  id?: number;
+  name?: string;
+};
+
+export type EbusyMembershipPayload = {
+  begin: string;
+  personId: number;
+  membershipTypeId: number | null;
+  consideredActive?: boolean;
+  status?: "ACTIVE" | "REQUESTED" | "DECLINED";
+  sections?: number[];
+  comment?: string;
+  number?: string;
+};
+
+type EbusyCreatedMembership = {
   id?: number;
   name?: string;
 };
@@ -358,6 +392,52 @@ export async function setEbusyPersonAttributes(
   await ebusyPost<null>(`/general/person/${personId}/set-attributes`, payload);
 
   return payload;
+}
+
+export async function createEbusyMembership(
+  moduleId: number,
+  payload: EbusyMembershipPayload
+): Promise<{
+  externalMembershipId: string;
+  displayName: string;
+}> {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+
+  if (mode !== "live") {
+    throw new Error("eBuSy-Mitgliedschaften koennen nur im Live-Modus erstellt werden.");
+  }
+
+  const result = await ebusyPost<EbusyCreatedMembership>(
+    `/member/modules/${moduleId}/membership`,
+    payload
+  );
+  const createdMembership = result.response ?? result.result;
+
+  if (!createdMembership?.id) {
+    throw new Error("eBuSy hat keine Mitgliedschafts-ID fuer den neuen Datensatz zurueckgegeben.");
+  }
+
+  return {
+    externalMembershipId: String(createdMembership.id),
+    displayName: createdMembership.name ?? String(createdMembership.id)
+  };
+}
+
+export async function getEbusyMembershipsByPersonId(
+  moduleId: number,
+  personId: string | number
+): Promise<EbusyMembership[]> {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+
+  if (mode !== "live") {
+    throw new Error("eBuSy-Mitgliedschaftsabruf ist nur im Live-Modus erlaubt.");
+  }
+
+  const result = await ebusyGet<{
+    content?: EbusyMembership[];
+  }>(`/member/modules/${moduleId}/memberships/by-person-id/${personId}`);
+
+  return result.response?.content ?? [];
 }
 
 export async function createEbusyPersonFromApplication(application: ApplicationRow): Promise<{

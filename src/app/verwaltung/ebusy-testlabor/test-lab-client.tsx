@@ -35,6 +35,10 @@ function getActionLabel(action: EbusyTestAction, isLoading: boolean) {
     return isLoading ? "Live-Test mit Attributen läuft..." : "Live-Testperson + Attribute anlegen";
   }
 
+  if (action === "create_person_with_membership") {
+    return isLoading ? "Live-Test mit Mitgliedschaft läuft..." : "Live-Testperson + Mitgliedschaft anlegen";
+  }
+
   return isLoading ? "Live-Test läuft..." : "Live-Testperson anlegen";
 }
 
@@ -54,10 +58,14 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
 
     if (action !== "dry_run") {
       const writesAttributes = action === "create_person_with_attributes";
+      const writesMembership = action === "create_person_with_membership";
       const confirmationText =
         "Soll jetzt wirklich eine eBuSy-Testperson angelegt werden?\n\n" +
         (writesAttributes
           ? "Zusätzlich werden die Test-Attribute für eine erwachsene Einzelperson gesetzt.\n\n"
+          : "") +
+        (writesMembership
+          ? "Zusätzlich wird eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Eine Beitragsart wird noch nicht geschrieben.\n\n"
           : "") +
         "Die Testperson wird nicht automatisch gelöscht und muss nach der Prüfung in eBuSy entfernt werden.";
 
@@ -155,6 +163,17 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
               loadingAction === "create_person_with_attributes"
             )}
           </button>
+          <button
+            className="button"
+            type="button"
+            disabled={Boolean(loadingAction)}
+            onClick={() => runAction("create_person_with_membership")}
+          >
+            {getActionLabel(
+              "create_person_with_membership",
+              loadingAction === "create_person_with_membership"
+            )}
+          </button>
         </div>
 
         {!writeEnabled ? (
@@ -205,6 +224,12 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
                   ? `, persönlicher Code: ${result.createdPerson.personCode}`
                   : ""}
                 )
+              </li>
+            ) : null}
+            {result.createdMembership ? (
+              <li>
+                eBuSy-Testmitgliedschaft: {result.createdMembership.displayName} (ID:{" "}
+                {result.createdMembership.externalMembershipId})
               </li>
             ) : null}
           </ul>

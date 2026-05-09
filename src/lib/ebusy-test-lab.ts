@@ -3,14 +3,30 @@ import { getMembershipLabel } from "@/lib/application-options";
 import {
   buildEbusyAttributePayload,
   buildEbusyPersonPayloadFromApplication,
+  createEbusyMembership,
   createEbusyPersonFromApplication,
+  getEbusyMembershipsByPersonId,
   getEbusyPersonById,
   setEbusyPersonAttributes,
   type EbusyAttributeAssignment,
+  type EbusyMembership,
+  type EbusyMembershipPayload,
   type EbusyPerson
 } from "@/lib/ebusy";
 
-export type EbusyTestAction = "dry_run" | "create_person" | "create_person_with_attributes";
+export type EbusyTestAction =
+  | "dry_run"
+  | "create_person"
+  | "create_person_with_attributes"
+  | "create_person_with_membership";
+
+type EbusyMembershipTestConfig = {
+  moduleId: number;
+  sectionIds: number[];
+  membershipTypeId: number | null;
+  consideredActive: boolean;
+  status: "ACTIVE" | "REQUESTED" | "DECLINED";
+};
 
 export type EbusyTestScenario = {
   id: string;
@@ -18,6 +34,7 @@ export type EbusyTestScenario = {
   description: string;
   application: ApplicationRow;
   attributeAssignments?: EbusyAttributeAssignment[];
+  membershipTest?: EbusyMembershipTestConfig;
 };
 
 export type EbusyTestCheck = {
@@ -44,6 +61,10 @@ export type EbusyTestLabResult = {
     displayName: string;
     customerId?: string;
     personCode?: string;
+  };
+  createdMembership?: {
+    externalMembershipId: string;
+    displayName: string;
   };
   checks: EbusyTestCheck[];
   cleanupHint?: string;
@@ -116,7 +137,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "adult_active_person",
     title: "Erwachsene Einzelperson",
     description:
-      "Prüft die Personen-/Benutzeranlage für ein aktives Erwachsenenmitglied. Optional kann danach ein kontrollierter Attribut-Test ausgeführt werden; Mitgliedschaft und Beitragslogik werden noch nicht geschrieben.",
+      "Prüft die Personen-/Benutzeranlage für ein aktives Erwachsenenmitglied. Optional können danach kontrollierte Attribut- und Mitgliedschaftstests ausgeführt werden; Beitragslogik wird noch nicht geschrieben.",
     application: createBaseApplication({}),
     attributeAssignments: [
       {
@@ -137,7 +158,14 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
         valueId: 30,
         valueName: "Erwachsene"
       }
-    ]
+    ],
+    membershipTest: {
+      moduleId: 4,
+      sectionIds: [1],
+      membershipTypeId: null,
+      consideredActive: true,
+      status: "ACTIVE"
+    }
   }
 ];
 
@@ -244,6 +272,48 @@ function formatPersonAttribute(attribute: NonNullable<EbusyPerson["attributes"]>
   return `${attribute.id ?? "-"} (${attribute.name ?? "-"})`;
 }
 
+function formatIdList(values: number[] | undefined) {
+  return values?.length ? values.join(", ") : undefined;
+}
+
+function formatNullableId(value: number | null | undefined) {
+  return value === null ? "null" : value;
+}
+
+function formatMembershipFeeTypes(membership: EbusyMembership) {
+  return membership.membershipFeeTypes?.length
+    ? membership.membershipFeeTypes
+        .map((feeType) => `${feeType.id ?? "-"} (${feeType.name ?? "-"})`)
+        .join(", ")
+    : undefined;
+}
+
+function buildMembershipPayload(
+  application: ApplicationRow,
+  personId: number,
+  config: EbusyMembershipTestConfig
+): EbusyMembershipPayload {
+  return {
+    begin: application.created_at.slice(0, 10),
+    personId,
+    membershipTypeId: config.membershipTypeId,
+    consideredActive: config.consideredActive,
+    status: config.status,
+    sections: config.sectionIds,
+    comment: `Automatischer eBuSy-Test fuer Antrag ${application.id}.`
+  };
+}
+
+function buildMembershipPreviewPayload(
+  application: ApplicationRow,
+  config: EbusyMembershipTestConfig
+) {
+  return {
+    ...buildMembershipPayload(application, 0, config),
+    personId: "<interne eBuSy-ID nach Personenanlage>"
+  };
+}
+
 function comparePayloadWithPerson(payload: unknown, person: EbusyPerson) {
   const checks: EbusyTestCheck[] = [];
 
@@ -305,6 +375,29 @@ function compareAttributeAssignmentsWithPerson(
   return checks;
 }
 
+function compareMembershipPayloadWithMembership(
+  payload: EbusyMembershipPayload,
+  membership: EbusyMembership
+) {
+  const checks: EbusyTestCheck[] = [];
+
+  addCheck(checks, "Mitgliedschaft: Person-ID", payload.personId, membership.personId);
+  addCheck(checks, "Mitgliedschaft: Status", payload.status, membership.status);
+  addCheck(checks, "Mitgliedschaft: Aktiv", payload.consideredActive, membership.consideredActive);
+  addCheck(checks, "Mitgliedschaft: Eintritt", payload.begin, membership.begin);
+  addCheck(checks, "Mitgliedschaft: Abteilungen", formatIdList(payload.sections), formatIdList(membership.sections));
+  addCheck(
+    checks,
+    "Mitgliedschaft: Mitgliedschaftsart-ID",
+    formatNullableId(payload.membershipTypeId),
+    formatNullableId(membership.membershipTypeId)
+  );
+  addCheck(checks, "Mitgliedschaft: Mitgliedsnummer", payload.number, membership.number);
+  addCheck(checks, "Mitgliedschaft: Beitragsarten", undefined, formatMembershipFeeTypes(membership));
+
+  return checks;
+}
+
 export function getEbusyTestScenario(scenarioId: string) {
   return ebusyTestScenarios.find((scenario) => scenario.id === scenarioId);
 }
@@ -326,6 +419,9 @@ export async function runEbusyTestLabAction(input: {
   const attributePayload = scenario.attributeAssignments?.length
     ? buildEbusyAttributePayload(scenario.attributeAssignments)
     : undefined;
+  const membershipPayloadPreview = scenario.membershipTest
+    ? buildMembershipPreviewPayload(application, scenario.membershipTest)
+    : undefined;
   const baseResult = {
     action: input.action,
     mode,
@@ -337,7 +433,8 @@ export async function runEbusyTestLabAction(input: {
     },
     payload: sanitizePayload({
       person: personPayload,
-      attributes: attributePayload
+      attributes: attributePayload,
+      membership: membershipPayloadPreview
     }),
     attributeAssignments: scenario.attributeAssignments
   };
@@ -364,6 +461,7 @@ export async function runEbusyTestLabAction(input: {
     customerId: readBack.customerId,
     personCode: readBack.code
   };
+  let createdMembership: EbusyTestLabResult["createdMembership"];
   let checks = comparePayloadWithPerson(personPayload, readBack);
   let message =
     "Testperson wurde in eBuSy angelegt und direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
@@ -395,10 +493,62 @@ export async function runEbusyTestLabAction(input: {
       "Testperson wurde in eBuSy angelegt, die Test-Attribute wurden gesetzt und der Datensatz wurde direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
   }
 
+  if (input.action === "create_person_with_membership") {
+    if (!scenario.membershipTest) {
+      throw new Error("Für dieses Testszenario ist kein Mitgliedschaftstest hinterlegt.");
+    }
+
+    const personId = Number(createdPerson.externalPersonId);
+
+    if (!Number.isInteger(personId)) {
+      throw new Error(
+        `Testperson ${createdPerson.displayName} (${createdPerson.externalPersonId}) wurde angelegt, aber die eBuSy-Person-ID konnte nicht als Zahl verarbeitet werden. Bitte diese Testperson manuell in eBuSy löschen.`
+      );
+    }
+
+    const membershipPayload = buildMembershipPayload(application, personId, scenario.membershipTest);
+
+    try {
+      createdMembership = await createEbusyMembership(
+        scenario.membershipTest.moduleId,
+        membershipPayload
+      );
+
+      const memberships = await getEbusyMembershipsByPersonId(
+        scenario.membershipTest.moduleId,
+        personId
+      );
+      const readBackMembership =
+        memberships.find(
+          (membership) => String(membership.id) === createdMembership?.externalMembershipId
+        ) ?? memberships[0];
+
+      if (!readBackMembership) {
+        throw new Error("Die neue Mitgliedschaft konnte nicht zurueckgelesen werden.");
+      }
+
+      checks = [
+        ...checks,
+        ...compareMembershipPayloadWithMembership(membershipPayload, readBackMembership)
+      ];
+    } catch (membershipError) {
+      const reason =
+        membershipError instanceof Error ? membershipError.message : "Unbekannter Mitgliedschaftsfehler";
+
+      throw new Error(
+        `Testperson ${createdPerson.displayName} (${createdPerson.externalPersonId}) wurde angelegt, aber die Mitgliedschaft konnte nicht erstellt oder gelesen werden: ${reason} Bitte diese Testperson manuell in eBuSy löschen.`
+      );
+    }
+
+    message =
+      "Testperson wurde in eBuSy angelegt, eine einfache Test-Mitgliedschaft wurde erstellt und der Datensatz wurde direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
+  }
+
   return {
     ...baseResult,
     message,
     createdPerson: resultCreatedPerson,
+    createdMembership,
     checks,
     cleanupHint: resultCreatedPerson.customerId
       ? `Bitte eBuSy-Testperson ${createdPerson.displayName} (Kundennummer ${resultCreatedPerson.customerId}, interne eBuSy-ID ${createdPerson.externalPersonId}) nach der Prüfung manuell löschen.`

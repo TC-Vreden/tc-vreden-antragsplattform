@@ -14,6 +14,7 @@ Ziel ist, die eBuSy-Übertragung feldweise und wiederholbar zu prüfen, ohne jed
 - Datenpaket anzeigen, ohne eBuSy-Schreibzugriff auszuführen
 - optional eine klar markierte eBuSy-Testperson anlegen
 - optional eine klar markierte eBuSy-Testperson anlegen und danach die Test-Attribute für `Erwachsene Einzelperson` setzen
+- optional eine klar markierte eBuSy-Testperson anlegen und danach eine einfache Test-Mitgliedschaft setzen
 - die angelegte Person direkt wieder aus eBuSy auslesen
 - gesendete Werte mit zurückgelesenen eBuSy-Werten vergleichen
 - Abweichungen in einer Tabelle anzeigen
@@ -63,6 +64,32 @@ Diese Aktion legt zuerst eine Testperson an und setzt danach für `Erwachsene Ei
 
 Der Test schreibt weiterhin keine Mitgliedschaft und keine Beitragslogik. Er prüft nur, ob die Attributwerte per eBuSy-API gesetzt und wieder ausgelesen werden können.
 
+## Nächster Testschritt: einfache Mitgliedschaft
+
+Das Testlabor enthält nun eine eigene Live-Aktion für einen isolierten Mitgliedschaftstest:
+
+`Live-Testperson + Mitgliedschaft anlegen`
+
+Diese Aktion legt zuerst eine klar markierte Testperson an und setzt danach eine einfache Test-Mitgliedschaft.
+
+Aktuell werden nur Felder gesetzt, die anhand der API und vorhandener eBuSy-Daten kontrolliert nachvollziehbar sind:
+
+- Modul-ID `4`
+- Abteilung `1` / `Tennis`
+- Status `ACTIVE`
+- aktiv / `consideredActive = true`
+- Eintrittsdatum aus dem Testlaufdatum
+- Mitgliedschaftsart-ID `null`, weil die API-Liste der Membership-Types leer zurückkommt und vorhandene eBuSy-Mitgliedschaften ebenfalls `membershipTypeId: null` enthalten
+
+Bewusst noch nicht geschrieben werden:
+
+- Beitragsart / `membershipFeeTypes`
+- Familien-/Haushaltsbezug
+- Hauptzahler-/Beitragszahler-Bezug
+- Mehrpersonen-Mitgliedschaften
+
+Der Test liest die Mitgliedschaft direkt nach dem Schreiben wieder aus und vergleicht die gesetzten Felder. Wenn eBuSy automatisch eine Mitgliedsnummer oder Beitragsart ergänzt, wird das in der Ergebnistabelle sichtbar, aber nicht als Fehler behandelt.
+
 ## Sicherheitslogik
 
 Der Datenpaket-Test funktioniert ohne zusätzliche Freigabe.
@@ -85,11 +112,11 @@ Solange kein sicherer API-Löschweg für eBuSy-Personen bestätigt ist, muss die
 
 ## Wichtige Einschränkung
 
-Das Testlabor testet zunächst nur die Personen-/Benutzeranlage inkl. Bankkonto/SEPA und den isolierten Attribut-Schreibweg für eine einfache Einzelperson.
+Das Testlabor testet zunächst nur die Personen-/Benutzeranlage inkl. Bankkonto/SEPA, den isolierten Attribut-Schreibweg und eine einfache Test-Mitgliedschaft für eine erwachsene Einzelperson.
 
 Noch nicht produktiv automatisiert:
 
-- Mitgliedschaft
+- produktive Mitgliedschaftsübernahme aus echten Anträgen
 - Beitragsart
 - Familien-/Mehrpersonenprozess
 - eBuSy-Löschung

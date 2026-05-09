@@ -9,7 +9,12 @@ type TestLabRequest = {
   action?: EbusyTestAction;
 };
 
-const allowedActions: EbusyTestAction[] = ["dry_run", "create_person", "create_person_with_attributes"];
+const allowedActions: EbusyTestAction[] = [
+  "dry_run",
+  "create_person",
+  "create_person_with_attributes",
+  "create_person_with_membership"
+];
 
 export async function POST(request: Request) {
   try {
