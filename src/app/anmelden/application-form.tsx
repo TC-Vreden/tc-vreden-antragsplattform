@@ -74,6 +74,16 @@ function isLikelyMinorMembership(value: string) {
   return value === "child" || value === "youth_active" || value === "youth_passive";
 }
 
+function shouldShowJuniorTrainingNotice(value: string) {
+  return (
+    value === "child" ||
+    value === "youth_active" ||
+    value === "youth_passive" ||
+    value === "adult_child" ||
+    value === "family"
+  );
+}
+
 function createAdditionalMember(relation: AdditionalMemberRelation): AdditionalMember {
   return {
     id:
@@ -143,6 +153,7 @@ export function ApplicationForm() {
 
   const additionalMemberConfig = getAdditionalMemberConfig(membershipKind);
   const mainApplicantIsMinor = isLikelyMinorMembership(membershipKind);
+  const showJuniorTrainingNotice = shouldShowJuniorTrainingNotice(membershipKind);
 
   function handleMembershipChange(nextValue: string) {
     setMembershipKind(nextValue);
@@ -369,16 +380,18 @@ export function ApplicationForm() {
         </div>
       </details>
 
-      <details style={{ margin: "0 0 18px" }}>
-        <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-          Hinweis zum Jugendtraining anzeigen
-        </summary>
-        <div style={{ marginTop: 10, color: "var(--muted)" }}>
-          {JUNIOR_TRAINING_NOTES.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
-        </div>
-      </details>
+      {showJuniorTrainingNotice ? (
+        <details style={{ margin: "0 0 18px" }}>
+          <summary style={{ color: "#b00020", cursor: "pointer", fontWeight: 700 }}>
+            Wichtiger Hinweis zum Jugendtraining anzeigen
+          </summary>
+          <div style={{ marginTop: 10, color: "var(--muted)" }}>
+            {JUNIOR_TRAINING_NOTES.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
+        </details>
+      ) : null}
 
       <h2 style={{ fontSize: "1.15rem" }}>Hauptperson</h2>
 

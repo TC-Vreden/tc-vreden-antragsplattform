@@ -42,6 +42,8 @@ export type EbusyTestLabResult = {
   createdPerson?: {
     externalPersonId: string;
     displayName: string;
+    customerId?: string;
+    personCode?: string;
   };
   checks: EbusyTestCheck[];
   cleanupHint?: string;
@@ -88,6 +90,24 @@ function createBaseApplication(overrides: Partial<ApplicationRow>): ApplicationR
     ebusy_person_id: null,
     ebusy_match_payload: null,
     ...overrides
+  };
+}
+
+function createTestRunId() {
+  return `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 12);
+}
+
+function createRunApplication(application: ApplicationRow): ApplicationRow {
+  const now = new Date().toISOString();
+  const runId = createTestRunId();
+
+  return {
+    ...application,
+    id: `${runId}-${application.id}`,
+    created_at: now,
+    updated_at: now,
+    email: `tcv-testperson-erwachsen-${runId}@example.com`,
+    notes: `${TEST_MARKER} (${runId})`
   };
 }
 
@@ -299,9 +319,10 @@ export async function runEbusyTestLabAction(input: {
     throw new Error("Testszenario wurde nicht gefunden.");
   }
 
+  const application = createRunApplication(scenario.application);
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
   const writeEnabled = process.env.EBUSY_TEST_LAB_WRITE_ENABLED === "true";
-  const personPayload = buildEbusyPersonPayloadFromApplication(scenario.application);
+  const personPayload = buildEbusyPersonPayloadFromApplication(application);
   const attributePayload = scenario.attributeAssignments?.length
     ? buildEbusyAttributePayload(scenario.attributeAssignments)
     : undefined;
@@ -312,7 +333,7 @@ export async function runEbusyTestLabAction(input: {
     scenario: {
       id: scenario.id,
       title: scenario.title,
-      membershipLabel: getMembershipLabel(scenario.application.membership_kind)
+      membershipLabel: getMembershipLabel(application.membership_kind)
     },
     payload: sanitizePayload({
       person: personPayload,
@@ -336,8 +357,13 @@ export async function runEbusyTestLabAction(input: {
     );
   }
 
-  const createdPerson = await createEbusyPersonFromApplication(scenario.application);
+  const createdPerson = await createEbusyPersonFromApplication(application);
   let readBack = await getEbusyPersonById(createdPerson.externalPersonId);
+  const resultCreatedPerson = {
+    ...createdPerson,
+    customerId: readBack.customerId,
+    personCode: readBack.code
+  };
   let checks = comparePayloadWithPerson(personPayload, readBack);
   let message =
     "Testperson wurde in eBuSy angelegt und direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
@@ -359,6 +385,8 @@ export async function runEbusyTestLabAction(input: {
     }
 
     readBack = await getEbusyPersonById(createdPerson.externalPersonId);
+    resultCreatedPerson.customerId = readBack.customerId;
+    resultCreatedPerson.personCode = readBack.code;
     checks = [
       ...checks,
       ...compareAttributeAssignmentsWithPerson(scenario.attributeAssignments, readBack)
@@ -370,8 +398,10 @@ export async function runEbusyTestLabAction(input: {
   return {
     ...baseResult,
     message,
-    createdPerson,
+    createdPerson: resultCreatedPerson,
     checks,
-    cleanupHint: `Bitte eBuSy-Testperson ${createdPerson.displayName} (${createdPerson.externalPersonId}) nach der Prüfung manuell löschen.`
+    cleanupHint: resultCreatedPerson.customerId
+      ? `Bitte eBuSy-Testperson ${createdPerson.displayName} (Kundennummer ${resultCreatedPerson.customerId}, interne eBuSy-ID ${createdPerson.externalPersonId}) nach der Prüfung manuell löschen.`
+      : `Bitte eBuSy-Testperson ${createdPerson.displayName} (interne eBuSy-ID ${createdPerson.externalPersonId}) nach der Prüfung manuell löschen.`
   };
 }

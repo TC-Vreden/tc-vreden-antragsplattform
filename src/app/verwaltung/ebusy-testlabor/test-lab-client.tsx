@@ -196,8 +196,15 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             <li>Mitgliedschaft: {result.scenario.membershipLabel}</li>
             {result.createdPerson ? (
               <li>
-                eBuSy-Testperson: {result.createdPerson.displayName} (
-                {result.createdPerson.externalPersonId})
+                eBuSy-Testperson: {result.createdPerson.displayName} (interne eBuSy-ID:{" "}
+                {result.createdPerson.externalPersonId}
+                {result.createdPerson.customerId
+                  ? `, Kundennummer: ${result.createdPerson.customerId}`
+                  : ""}
+                {result.createdPerson.personCode
+                  ? `, persönlicher Code: ${result.createdPerson.personCode}`
+                  : ""}
+                )
               </li>
             ) : null}
           </ul>
