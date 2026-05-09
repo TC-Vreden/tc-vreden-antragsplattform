@@ -155,6 +155,18 @@ function optionalText(value: string | null | undefined) {
   return trimmed || undefined;
 }
 
+function normalizeIban(value: string | null | undefined) {
+  const normalized = (value ?? "").replace(/\s+/g, "").toUpperCase();
+
+  return normalized || undefined;
+}
+
+function getIsoDate(value: string | null | undefined) {
+  const datePart = value?.slice(0, 10);
+
+  return datePart || undefined;
+}
+
 function buildApplicationComment(application: ApplicationRow) {
   const applicantName = `${application.first_name} ${application.last_name}`.trim();
   const lines = [
@@ -237,6 +249,11 @@ function buildTemporaryPassword() {
 export function buildEbusyPersonPayloadFromApplication(application: ApplicationRow) {
   const hasAddress = Boolean(application.street || application.postal_code || application.city);
   const hasContact = Boolean(application.email || application.mobile || application.phone);
+  const applicantName = `${application.first_name} ${application.last_name}`.trim();
+  const iban = normalizeIban(application.iban);
+  const accountHolder = optionalText(application.account_holder) ?? applicantName;
+  const shouldSendBankAccount = Boolean(iban || application.account_holder);
+  const shouldSendSepaMandate = Boolean(application.accepts_sepa && iban);
 
   return pruneEmptyValues({
     firstname: application.first_name,
@@ -257,6 +274,17 @@ export function buildEbusyPersonPayloadFromApplication(application: ApplicationR
           email: optionalText(application.email),
           mobile: optionalText(application.mobile),
           phone: optionalText(application.phone)
+        }
+      : undefined,
+    bankAccount: shouldSendBankAccount
+      ? {
+          holder: optionalText(accountHolder),
+          number: iban
+        }
+      : undefined,
+    sepaMandate: shouldSendSepaMandate
+      ? {
+          date: getIsoDate(application.created_at)
         }
       : undefined,
     user: {

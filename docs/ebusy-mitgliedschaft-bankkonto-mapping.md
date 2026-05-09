@@ -13,14 +13,14 @@ Die Personenanlage aus der Antragsplattform funktioniert grundsätzlich:
 - Die Anrede wird korrekt übertragen, z. B. `Herr`.
 - Der Antrag wird in der Verwaltungsoberfläche als übertragen markiert.
 
-Noch nicht automatisch gesetzt werden:
+Noch nicht vollständig bestätigt gesetzt werden:
 
-- Bankkonto/IBAN im eBuSy-Reiter `Bankkonto`
-- SEPA-Mandat im eBuSy-Reiter `Bankkonto`
 - Attribute im eBuSy-Reiter `Attribute`
 - Mitgliedschaft im eBuSy-Reiter `Mitgliedschaft`
 - Mitgliedsbeitrag / Beitragsart in `Mitglieder > Mitgliedschaften`
 - Familien-/Haushalts-/Zahlerbezug
+
+Bankkonto/IBAN und SEPA-Mandat wurden am 09.05.2026 als nächste technische Stufe in den eBuSy-Payload aufgenommen. Der Live-Rücklesetest steht noch aus.
 
 Der aktuelle Test zeigt deshalb korrekt: Die Person existiert als Benutzer/Person, ist aber noch kein vollständiges Mitglied im eBuSy-Mitgliederbereich.
 
@@ -103,7 +103,15 @@ Die eBuSy-API kennt am Personenobjekt grundsätzlich:
 - `sepaMandate.reference`
 - `sepaMandate.lastUsedDate`
 
-Im aktuellen Code werden diese Felder noch nicht an eBuSy gesendet. Deshalb sind Bankkonto und SEPA-Mandat beim Testeintrag leer, obwohl sie im Kommentar stehen.
+Im ersten Live-Test wurden diese Felder noch nicht an eBuSy gesendet. Deshalb waren Bankkonto und SEPA-Mandat beim Testeintrag leer, obwohl sie im Kommentar standen.
+
+Seit 09.05.2026 sendet die Personenanlage zusätzlich:
+
+- `bankAccount.holder`
+- `bankAccount.number`
+- `sepaMandate.date`
+
+Die Mandatsreferenz wird zunächst nicht gesendet, damit eBuSy sie ggf. selbst erzeugen kann. Das muss im Live-Test bestätigt werden.
 
 Sichere nächste technische Verbesserung:
 

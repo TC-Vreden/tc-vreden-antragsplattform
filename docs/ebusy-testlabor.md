@@ -17,6 +17,25 @@ Ziel ist, die eBuSy-Übertragung feldweise und wiederholbar zu prüfen, ohne jed
 - gesendete Werte mit zurückgelesenen eBuSy-Werten vergleichen
 - Abweichungen in einer Tabelle anzeigen
 
+## Bisher bestätigter Test
+
+Am 09.05.2026 wurde eine Testperson angelegt und direkt wieder aus eBuSy gelesen.
+
+Bestätigt wurden:
+
+- Anrede
+- Vorname/Nachname
+- Geburtsdatum
+- Adresse
+- E-Mail
+- Mobil/Telefon
+- Benutzername
+- Benutzerkonto aktiv
+- Kontoart
+- Kommentar
+
+Bankkonto und SEPA wurden danach als echte Payload-Felder ergänzt und sind im nächsten Live-Test zu prüfen.
+
 ## Sicherheitslogik
 
 Der Payload-Test funktioniert ohne zusätzliche Freigabe.
@@ -39,7 +58,7 @@ Solange kein sicherer API-Löschweg für eBuSy-Personen bestätigt ist, muss die
 
 ## Wichtige Einschränkung
 
-Das Testlabor testet zunächst nur die Personen-/Benutzeranlage.
+Das Testlabor testet zunächst nur die Personen-/Benutzeranlage inkl. Bankkonto/SEPA.
 
 Noch nicht produktiv automatisiert:
 

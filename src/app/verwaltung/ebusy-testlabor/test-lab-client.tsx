@@ -118,7 +118,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             disabled={Boolean(loadingAction)}
             onClick={() => runAction("dry_run")}
           >
-            {loadingAction === "dry_run" ? "Payload wird geprüft..." : "Payload prüfen"}
+            {loadingAction === "dry_run" ? "Datenpaket wird geprüft..." : "Datenpaket prüfen"}
           </button>
           <button
             className="button"
@@ -141,7 +141,15 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
               funktioniert trotzdem ohne eBuSy-Schreibzugriff.
             </p>
           </div>
-        ) : null}
+        ) : (
+          <div className="hint-box" style={{ marginTop: 16 }}>
+            <strong>Live-Schreibtest freigeschaltet</strong>
+            <p style={{ margin: "8px 0 0" }}>
+              Der Live-Test darf eine eindeutig markierte Testperson in eBuSy anlegen. Bitte die
+              Testperson nach der Prüfung in eBuSy wieder löschen.
+            </p>
+          </div>
+        )}
       </article>
 
       {error ? (
