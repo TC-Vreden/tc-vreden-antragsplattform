@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { getEbusyDiagnostics } from "@/lib/ebusy";
 import { LookupForm } from "@/app/verwaltung/lookup-form";
 import { ApplicationsTable } from "@/app/verwaltung/applications-table";
@@ -9,6 +10,7 @@ export default async function VerwaltungPage() {
   const diagnostics = await getEbusyDiagnostics();
   const { applications, error: applicationsError } = await getApplicationsForManagement();
   const isLiveMode = diagnostics.mode === "live";
+  const testLabRoute = "/verwaltung/ebusy-testlabor" as Route;
 
   return (
     <main className="page-shell">
@@ -24,6 +26,9 @@ export default async function VerwaltungPage() {
         <div className="cta-row" style={{ marginBottom: 20 }}>
           <Link className="button secondary" href="/anmelden">
             Öffentliches Formular ansehen
+          </Link>
+          <Link className="button secondary" href={testLabRoute}>
+            eBuSy-Testlabor öffnen
           </Link>
         </div>
 

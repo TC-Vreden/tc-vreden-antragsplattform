@@ -10,7 +10,7 @@ type EbusyApiResponse<T> = {
   result?: T;
 };
 
-type EbusyPerson = {
+export type EbusyPerson = {
   id?: number;
   firstname?: string;
   lastname?: string;
@@ -18,13 +18,35 @@ type EbusyPerson = {
   code?: string;
   customerId?: string;
   salutation?: "FEMALE" | "MALE" | "NONE";
+  address?: {
+    street?: string;
+    postcode?: string;
+    city?: string;
+    country?: string;
+    countryCode?: string;
+  };
   contact?: {
+    phone?: string;
+    mobile?: string;
     email?: string;
   };
+  bankAccount?: {
+    holder?: string | null;
+    number?: string | null;
+    bank?: string | null;
+  } | null;
+  sepaMandate?: {
+    date?: string | null;
+    reference?: string | null;
+    lastUsedDate?: string | null;
+  } | null;
+  comment?: string | null;
   user?: {
     email?: string;
     username?: string;
     name?: string;
+    enabled?: boolean;
+    level?: string;
   };
   attributes?: Array<{
     id?: number;
@@ -212,21 +234,11 @@ function buildTemporaryPassword() {
   return `TCV-${randomBytes(9).toString("base64url")}-2026`;
 }
 
-export async function createEbusyPersonFromApplication(application: ApplicationRow): Promise<{
-  externalPersonId: string;
-  displayName: string;
-}> {
-  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
-
-  if (mode !== "live") {
-    throw new Error("Personenanlage in eBuSy ist nur im Live-Modus erlaubt.");
-  }
-
-  const displayName = `${application.first_name} ${application.last_name}`.trim();
+export function buildEbusyPersonPayloadFromApplication(application: ApplicationRow) {
   const hasAddress = Boolean(application.street || application.postal_code || application.city);
   const hasContact = Boolean(application.email || application.mobile || application.phone);
 
-  const payload = pruneEmptyValues({
+  return pruneEmptyValues({
     firstname: application.first_name,
     lastname: application.last_name,
     salutation: optionalText(application.salutation),
@@ -255,6 +267,37 @@ export async function createEbusyPersonFromApplication(application: ApplicationR
     },
     comment: buildApplicationComment(application)
   });
+}
+
+export async function getEbusyPersonById(personId: string | number): Promise<EbusyPerson> {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+
+  if (mode !== "live") {
+    throw new Error("eBuSy-Personenabruf ist nur im Live-Modus erlaubt.");
+  }
+
+  const result = await ebusyGet<EbusyPerson>(`/general/person/by-id/${personId}`);
+  const person = result.response ?? result.result;
+
+  if (!person?.id) {
+    throw new Error(`eBuSy hat keine Person für ID ${personId} zurückgegeben.`);
+  }
+
+  return person;
+}
+
+export async function createEbusyPersonFromApplication(application: ApplicationRow): Promise<{
+  externalPersonId: string;
+  displayName: string;
+}> {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+
+  if (mode !== "live") {
+    throw new Error("Personenanlage in eBuSy ist nur im Live-Modus erlaubt.");
+  }
+
+  const displayName = `${application.first_name} ${application.last_name}`.trim();
+  const payload = buildEbusyPersonPayloadFromApplication(application);
 
   const result = await ebusyPost<EbusyCreatedPerson>("/general/person", payload);
   const createdPerson = result.response ?? result.result;

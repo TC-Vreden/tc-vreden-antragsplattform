@@ -395,6 +395,19 @@ export function ApplicationsTable({ applications }: Props) {
   }
 
   async function handleDelete(applicationId: string) {
+    const application = rows.find((row) => row.id === applicationId);
+    const transferred = application ? isTransferredApplication(application) : false;
+    const displayName = application
+      ? `${application.first_name} ${application.last_name}`.trim()
+      : "diesen Antrag";
+    const hint = transferred
+      ? "Der Antrag wird nur aus der Verwaltungsansicht/Supabase gelöscht. Eine eventuell bereits angelegte Person in eBuSy wird dadurch nicht gelöscht."
+      : "Der Antrag wird aus der Verwaltungsansicht/Supabase gelöscht.";
+
+    if (!window.confirm(`Soll der Eintrag für ${displayName} wirklich gelöscht werden?\n\n${hint}`)) {
+      return;
+    }
+
     setStates((current) => ({
       ...current,
       [applicationId]: {
@@ -592,17 +605,20 @@ export function ApplicationsTable({ applications }: Props) {
                         </button>
                       ) : null}
 
-                      {!transferred ? (
-                        <button
-                          className="button secondary"
-                          type="button"
-                          disabled={Boolean(localState?.loading)}
-                          onClick={() => handleDelete(application.id)}
-                          style={{ minWidth: 190 }}
-                        >
-                          Testeintrag löschen
-                        </button>
-                      ) : null}
+                      <button
+                        className="button secondary"
+                        type="button"
+                        disabled={Boolean(localState?.loading)}
+                        title={
+                          transferred
+                            ? "Löscht nur den gespeicherten Antrag aus der Verwaltung, nicht die Person in eBuSy."
+                            : "Löscht den gespeicherten Antrag aus der Verwaltung."
+                        }
+                        onClick={() => handleDelete(application.id)}
+                        style={{ minWidth: 190 }}
+                      >
+                        {transferred ? "Eintrag löschen" : "Testeintrag löschen"}
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -818,7 +834,8 @@ export function ApplicationsTable({ applications }: Props) {
         <div className="hint-box">
           <strong>{transferredRows.length} bereits übertragene Anträge</strong>
           <p style={{ margin: "8px 0 0" }}>
-            Diese bleiben nachvollziehbar erhalten und werden nicht gelöscht.
+            Diese bleiben nachvollziehbar erhalten und können bei Testfällen gezielt gelöscht
+            werden.
           </p>
         </div>
       </div>
