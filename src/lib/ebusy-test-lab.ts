@@ -18,7 +18,8 @@ export type EbusyTestAction =
   | "dry_run"
   | "create_person"
   | "create_person_with_attributes"
-  | "create_person_with_membership";
+  | "create_person_with_membership"
+  | "create_person_with_attributes_and_membership";
 
 type EbusyMembershipTestConfig = {
   moduleId: number;
@@ -468,8 +469,14 @@ export async function runEbusyTestLabAction(input: {
   let checks = comparePayloadWithPerson(personPayload, readBack);
   let message =
     "Testperson wurde in eBuSy angelegt und direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
+  const shouldSetAttributes =
+    input.action === "create_person_with_attributes" ||
+    input.action === "create_person_with_attributes_and_membership";
+  const shouldCreateMembership =
+    input.action === "create_person_with_membership" ||
+    input.action === "create_person_with_attributes_and_membership";
 
-  if (input.action === "create_person_with_attributes") {
+  if (shouldSetAttributes) {
     if (!scenario.attributeAssignments?.length) {
       throw new Error("Für dieses Testszenario sind keine Attributwerte hinterlegt.");
     }
@@ -496,7 +503,7 @@ export async function runEbusyTestLabAction(input: {
       "Testperson wurde in eBuSy angelegt, die Test-Attribute wurden gesetzt und der Datensatz wurde direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
   }
 
-  if (input.action === "create_person_with_membership") {
+  if (shouldCreateMembership) {
     if (!scenario.membershipTest) {
       throw new Error("Für dieses Testszenario ist kein Mitgliedschaftstest hinterlegt.");
     }
@@ -548,8 +555,9 @@ export async function runEbusyTestLabAction(input: {
       );
     }
 
-    message =
-      "Testperson wurde in eBuSy angelegt, eine einfache Test-Mitgliedschaft wurde erstellt und der Datensatz wurde direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
+    message = shouldSetAttributes
+      ? "Testperson wurde in eBuSy angelegt, die Test-Attribute wurden gesetzt, eine einfache Test-Mitgliedschaft wurde erstellt und der Datensatz wurde direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist."
+      : "Testperson wurde in eBuSy angelegt, eine einfache Test-Mitgliedschaft wurde erstellt und der Datensatz wurde direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
   }
 
   return {

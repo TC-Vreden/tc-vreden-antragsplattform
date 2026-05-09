@@ -15,6 +15,7 @@ Ziel ist, die eBuSy-Übertragung feldweise und wiederholbar zu prüfen, ohne jed
 - optional eine klar markierte eBuSy-Testperson anlegen
 - optional eine klar markierte eBuSy-Testperson anlegen und danach die Test-Attribute für `Erwachsene Einzelperson` setzen
 - optional eine klar markierte eBuSy-Testperson anlegen und danach eine einfache Test-Mitgliedschaft setzen
+- optional eine klar markierte eBuSy-Testperson anlegen, danach die Test-Attribute setzen und anschließend die einfache Test-Mitgliedschaft setzen
 - die angelegte Person direkt wieder aus eBuSy auslesen
 - gesendete Werte mit zurückgelesenen eBuSy-Werten vergleichen
 - Abweichungen in einer Tabelle anzeigen
@@ -90,6 +91,23 @@ Bewusst noch nicht geschrieben werden:
 - Mehrpersonen-Mitgliedschaften
 
 Der Test liest die Mitgliedschaft direkt nach dem Schreiben wieder aus und vergleicht die gesetzten Felder. Wenn eBuSy automatisch eine Mitgliedsnummer oder Beitragsart ergänzt, wird das in der Ergebnistabelle sichtbar, aber nicht als Fehler behandelt.
+
+## Kombinierter Test: Attribute plus Mitgliedschaft
+
+Nach den Einzeltests gibt es zusätzlich die kombinierte Aktion:
+
+`Live-Testperson + Attribute + Mitgliedschaft anlegen`
+
+Diese Aktion ist der nächste Zwischenschritt in Richtung produktiver Einzelpersonen-Übernahme. Sie führt in einem kontrollierten Testlauf aus:
+
+1. Testperson anlegen
+2. Person direkt aus eBuSy zurücklesen
+3. Test-Attribute für `Erwachsene Einzelperson` setzen
+4. Person erneut zurücklesen und Attribute vergleichen
+5. einfache Test-Mitgliedschaft setzen
+6. Mitgliedschaft zurücklesen und vergleichen
+
+Auch dieser Test bleibt ausdrücklich ein Testlabor-Schreibtest. Die produktive Verwaltungsübernahme wird dadurch noch nicht verändert.
 
 ## Sicherheitslogik
 

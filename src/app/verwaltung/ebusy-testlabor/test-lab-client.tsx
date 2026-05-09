@@ -39,6 +39,12 @@ function getActionLabel(action: EbusyTestAction, isLoading: boolean) {
     return isLoading ? "Live-Test mit Mitgliedschaft läuft..." : "Live-Testperson + Mitgliedschaft anlegen";
   }
 
+  if (action === "create_person_with_attributes_and_membership") {
+    return isLoading
+      ? "Live-Test komplett läuft..."
+      : "Live-Testperson + Attribute + Mitgliedschaft anlegen";
+  }
+
   return isLoading ? "Live-Test läuft..." : "Live-Testperson anlegen";
 }
 
@@ -57,8 +63,12 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
     }
 
     if (action !== "dry_run") {
-      const writesAttributes = action === "create_person_with_attributes";
-      const writesMembership = action === "create_person_with_membership";
+      const writesAttributes =
+        action === "create_person_with_attributes" ||
+        action === "create_person_with_attributes_and_membership";
+      const writesMembership =
+        action === "create_person_with_membership" ||
+        action === "create_person_with_attributes_and_membership";
       const confirmationText =
         "Soll jetzt wirklich eine eBuSy-Testperson angelegt werden?\n\n" +
         (writesAttributes
@@ -172,6 +182,17 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             {getActionLabel(
               "create_person_with_membership",
               loadingAction === "create_person_with_membership"
+            )}
+          </button>
+          <button
+            className="button"
+            type="button"
+            disabled={Boolean(loadingAction)}
+            onClick={() => runAction("create_person_with_attributes_and_membership")}
+          >
+            {getActionLabel(
+              "create_person_with_attributes_and_membership",
+              loadingAction === "create_person_with_attributes_and_membership"
             )}
           </button>
         </div>

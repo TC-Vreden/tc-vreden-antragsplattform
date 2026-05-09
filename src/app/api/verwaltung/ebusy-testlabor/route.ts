@@ -13,7 +13,8 @@ const allowedActions: EbusyTestAction[] = [
   "dry_run",
   "create_person",
   "create_person_with_attributes",
-  "create_person_with_membership"
+  "create_person_with_membership",
+  "create_person_with_attributes_and_membership"
 ];
 
 export async function POST(request: Request) {
