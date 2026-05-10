@@ -348,5 +348,6 @@ So reduzieren wir manuelle Arbeit schrittweise, ohne dass eBuSy halb gefüllte o
 - In der produktiven Verwaltungsuebernahme ist deshalb fuer `adult_active` nicht mehr nur die Personenanlage aktiv, sondern auch Attribute und eine einfache Mitgliedschaft mit Kundennummer als Mitgliedsnummer.
 - Der komplette Testpfad fuer `adult_passive` wurde ebenfalls bestaetigt: Person, Bankkonto/SEPA, Attribute und einfache passive Mitgliedschaft werden korrekt angelegt und wieder ausgelesen.
 - In der produktiven Verwaltungsuebernahme ist deshalb fuer `adult_passive` jetzt ebenfalls Person, Attribute und einfache Mitgliedschaft mit Kundennummer als Mitgliedsnummer freigegeben.
-- Als naechster Testfall ist `child` / `Kind bis 14 Jahre` im eBuSy-Testlabor vorbereitet.
+- Der technische Lauf fuer `child` / `Kind bis 14 Jahre` zeigt anhand der eBuSy-Kontrolle: Attribute sowie Bankkonto/SEPA kommen korrekt an. Produktiv bleibt dieser Fall noch gesperrt, weil Minderjaehrigen-/Vertreter-, PDF- und Mailprozess fachlich finalisiert werden muessen.
+- Als naechster Testfall ist `youth_active` / `Jugendliche bis 18 Jahre aktiv` im eBuSy-Testlabor vorbereitet.
 - Kinder-/Minderjaehrigenantraege bleiben produktiv noch nicht vollautomatisch freigegeben, bis gesetzliche Vertreter, SEPA-Zahler, PDF-Zusammenfassung und Bestaetigungs-Mail fachlich sauber bestaetigt sind.

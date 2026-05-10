@@ -147,5 +147,6 @@ Diese Schritte sollen nach und nach ergänzt werden, sobald der jeweilige API-Sc
 - Der kombinierte Test fuer `Erwachsene Einzelperson` wurde live bestaetigt.
 - Die produktive Verwaltungsuebernahme darf fuer `adult_active` jetzt Person, Attribute und einfache Mitgliedschaft schreiben.
 - Der kombinierte Test fuer `Erwachsene Einzelperson passiv` wurde live bestaetigt. Die produktive Verwaltungsuebernahme darf fuer `adult_passive` jetzt ebenfalls Person, Attribute und einfache Mitgliedschaft schreiben.
-- Als naechster Testfall ist `Kind bis 14 Jahre` vorbereitet. Dieser Fall bleibt bis zur Live-Bestaetigung noch nicht produktiv freigegeben.
+- Der technische Lauf fuer `Kind bis 14 Jahre` zeigt anhand der eBuSy-Kontrolle: Attribute sowie Bankkonto/SEPA kommen korrekt an. Produktiv bleibt dieser Fall noch gesperrt, bis der Minderjaehrigen-/Vertreter-, PDF- und Mailprozess fachlich final ist.
+- Als naechster Testfall ist `Jugendliche bis 18 Jahre aktiv` vorbereitet. Dieser Fall bleibt bis zur Live-Bestaetigung noch nicht produktiv freigegeben.
 - Zusaetzlich gibt es nun den Button `Alle Datenpakete pruefen`. Dieser fuehrt fuer alle Testlabor-Szenarien nur Datenpaket-Pruefungen aus und schreibt nichts nach eBuSy.

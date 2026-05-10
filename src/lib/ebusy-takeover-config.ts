@@ -121,6 +121,40 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
       consideredActive: true,
       status: "ACTIVE"
     }
+  },
+  {
+    membershipKind: "youth_active",
+    title: "Jugendliche bis 18 Jahre aktiv",
+    description:
+      "Kontrollierter Test fuer Jugendliche bis 18 Jahre. Prueft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Minderjaehrigenuebernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestaetigt sind.",
+    productionEnabled: false,
+    attributeAssignments: [
+      {
+        attributeId: 4,
+        attributeName: "Status Quo - Beitragsarten TENNIS RW",
+        valueId: 12,
+        valueName: "4 Beitrag Kinder, Jugendl. bis 16"
+      },
+      {
+        attributeId: 6,
+        attributeName: "Mitgliedsbeitraege NEU",
+        valueId: 17,
+        valueName: "Jugendliche bis 18 Jahre"
+      },
+      {
+        attributeId: 7,
+        attributeName: "Status Quo TCH",
+        valueId: 25,
+        valueName: "1. Kind/Jugendlicher bis 18 Jahre"
+      }
+    ],
+    membership: {
+      moduleId: 4,
+      sectionIds: [1],
+      membershipTypeId: null,
+      consideredActive: true,
+      status: "ACTIVE"
+    }
   }
 ];
 

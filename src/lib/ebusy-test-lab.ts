@@ -258,6 +258,58 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
       consideredActive: true,
       status: "ACTIVE"
     }
+  },
+  {
+    id: "youth_active_person",
+    title: "Jugendliche bis 18 Jahre aktiv",
+    description:
+      "Kontrollierter Test fuer Jugendliche bis 18 Jahre. Prueft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Minderjaehrigenuebernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestaetigt sind.",
+    application: createBaseApplication({
+      id: "tcv-test-youth-active-0001",
+      salutation: "MALE",
+      first_name: "TCV Testjugend",
+      last_name: "Jugend",
+      birth_date: "2010-01-01",
+      email: "tcv-testperson-jugend@example.com",
+      phone: "02861 000002",
+      mobile: "015100000002",
+      membership_kind: "youth_active",
+      account_holder: "TCV Test-Elternteil",
+      account_holder_address: "Testweg 1, 48691 Vreden",
+      guardian_name: "TCV Test-Elternteil",
+      guardian_email: "tcv-test-elternteil@example.com",
+      guardian_phone: "02861 000002",
+      guardian_consent: true,
+      notes:
+        `${TEST_MARKER}\nMinderjaehrigen-Test Jugendliche bis 18 Jahre: gesetzlicher Vertreter und SEPA-Zahler muessen spaeter im PDF/E-Mail-Prozess nachvollziehbar dokumentiert werden.`
+    }),
+    attributeAssignments: [
+      {
+        attributeId: 4,
+        attributeName: "Status Quo - Beitragsarten TENNIS RW",
+        valueId: 12,
+        valueName: "4 Beitrag Kinder, Jugendl. bis 16"
+      },
+      {
+        attributeId: 6,
+        attributeName: "Mitgliedsbeitraege NEU",
+        valueId: 17,
+        valueName: "Jugendliche bis 18 Jahre"
+      },
+      {
+        attributeId: 7,
+        attributeName: "Status Quo TCH",
+        valueId: 25,
+        valueName: "1. Kind/Jugendlicher bis 18 Jahre"
+      }
+    ],
+    membershipTest: {
+      moduleId: 4,
+      sectionIds: [1],
+      membershipTypeId: null,
+      consideredActive: true,
+      status: "ACTIVE"
+    }
   }
 ];
 
