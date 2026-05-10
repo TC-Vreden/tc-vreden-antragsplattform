@@ -51,8 +51,11 @@ function getActionLabel(action: EbusyTestAction, isLoading: boolean) {
 export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
   const [selectedScenarioId, setSelectedScenarioId] = useState(scenarios[0]?.id ?? "");
   const [loadingAction, setLoadingAction] = useState<EbusyTestAction | null>(null);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchResults, setBatchResults] = useState<EbusyTestLabResult[]>([]);
   const [result, setResult] = useState<EbusyTestLabResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isBusy = Boolean(loadingAction) || batchLoading;
 
   async function runAction(action: EbusyTestAction) {
     const selectedScenario = scenarios.find((scenario) => scenario.id === selectedScenarioId);
@@ -87,6 +90,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
     setLoadingAction(action);
     setError(null);
     setResult(null);
+    setBatchResults([]);
 
     try {
       const response = await fetch("/api/verwaltung/ebusy-testlabor", {
@@ -115,6 +119,48 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
       );
     } finally {
       setLoadingAction(null);
+    }
+  }
+
+  async function runAllDryRuns() {
+    setBatchLoading(true);
+    setError(null);
+    setResult(null);
+    setBatchResults([]);
+
+    try {
+      const results: EbusyTestLabResult[] = [];
+
+      for (const scenario of scenarios) {
+        const response = await fetch("/api/verwaltung/ebusy-testlabor", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            scenarioId: scenario.id,
+            action: "dry_run"
+          })
+        });
+
+        const payload = (await response.json()) as EbusyTestLabResult | { message?: string };
+
+        if (!response.ok) {
+          throw new Error(`${scenario.title}: ${payload.message || `HTTP ${response.status}`}`);
+        }
+
+        results.push(payload as EbusyTestLabResult);
+      }
+
+      setBatchResults(results);
+    } catch (batchError) {
+      setError(
+        batchError instanceof Error
+          ? batchError.message
+          : "Die Mehrfachpruefung konnte nicht ausgefuehrt werden."
+      );
+    } finally {
+      setBatchLoading(false);
     }
   }
 
@@ -149,15 +195,23 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
           <button
             className="button secondary"
             type="button"
-            disabled={Boolean(loadingAction)}
+            disabled={isBusy}
             onClick={() => runAction("dry_run")}
           >
             {getActionLabel("dry_run", loadingAction === "dry_run")}
           </button>
           <button
+            className="button secondary"
+            type="button"
+            disabled={isBusy}
+            onClick={runAllDryRuns}
+          >
+            {batchLoading ? "Alle Datenpakete werden geprueft..." : "Alle Datenpakete pruefen"}
+          </button>
+          <button
             className="button"
             type="button"
-            disabled={Boolean(loadingAction)}
+            disabled={isBusy}
             onClick={() => runAction("create_person")}
           >
             {getActionLabel("create_person", loadingAction === "create_person")}
@@ -165,7 +219,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
           <button
             className="button"
             type="button"
-            disabled={Boolean(loadingAction)}
+            disabled={isBusy}
             onClick={() => runAction("create_person_with_attributes")}
           >
             {getActionLabel(
@@ -176,7 +230,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
           <button
             className="button"
             type="button"
-            disabled={Boolean(loadingAction)}
+            disabled={isBusy}
             onClick={() => runAction("create_person_with_membership")}
           >
             {getActionLabel(
@@ -187,7 +241,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
           <button
             className="button"
             type="button"
-            disabled={Boolean(loadingAction)}
+            disabled={isBusy}
             onClick={() => runAction("create_person_with_attributes_and_membership")}
           >
             {getActionLabel(
@@ -221,6 +275,38 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
         <article className="warning-box">
           <strong>Test fehlgeschlagen</strong>
           <p style={{ margin: "8px 0 0" }}>{error}</p>
+        </article>
+      ) : null}
+
+      {batchResults.length > 0 ? (
+        <article className="card" style={{ padding: 18 }}>
+          <h2 style={{ fontSize: "1.2rem" }}>Mehrfachpruefung</h2>
+          <p>
+            Alle aktuell hinterlegten Szenarien wurden als Datenpaket vorbereitet. Es wurde keine
+            Person in eBuSy angelegt.
+          </p>
+          <div style={{ display: "grid", gap: 12 }}>
+            {batchResults.map((batchResult) => (
+              <details key={batchResult.scenario.id}>
+                <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+                  {batchResult.scenario.title} - {batchResult.scenario.membershipLabel}
+                </summary>
+                {batchResult.attributeAssignments?.length ? (
+                  <ul className="list" style={{ marginTop: 8 }}>
+                    {batchResult.attributeAssignments.map((assignment) => (
+                      <li key={`${batchResult.scenario.id}-${assignment.attributeId}-${assignment.valueId}`}>
+                        {assignment.attributeName}: {assignment.valueName} ({assignment.attributeId} -{" "}
+                        {assignment.valueId})
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <pre style={{ whiteSpace: "pre-wrap", marginTop: 12 }}>
+                  {JSON.stringify(batchResult.payload, null, 2)}
+                </pre>
+              </details>
+            ))}
+          </div>
         </article>
       ) : null}
 

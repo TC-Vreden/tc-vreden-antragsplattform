@@ -129,7 +129,7 @@ function createRunApplication(application: ApplicationRow): ApplicationRow {
     created_at: now,
     updated_at: now,
     email: `tcv-testperson-${membershipPart}-${runId}@example.com`,
-    notes: `${TEST_MARKER} (${runId})`
+    notes: `${application.notes ?? TEST_MARKER} (${runId})`
   };
 }
 
@@ -172,7 +172,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "adult_passive_person",
     title: "Erwachsene Einzelperson passiv",
     description:
-      "Naechster kontrollierter Test fuer eine passive erwachsene Einzelperson. Dieser Fall ist noch nicht fuer die produktive Uebernahme freigegeben.",
+      "Kontrollierter Test fuer eine passive erwachsene Einzelperson. Nach Live-Bestaetigung darf dieser Fall auch produktiv fuer Einzelpersonen uebernommen werden.",
     application: createBaseApplication({
       id: "tcv-test-adult-passive-0001",
       last_name: "Passiv",
@@ -204,6 +204,58 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
       sectionIds: [1],
       membershipTypeId: null,
       consideredActive: false,
+      status: "ACTIVE"
+    }
+  },
+  {
+    id: "child_person",
+    title: "Kind bis 14 Jahre",
+    description:
+      "Kontrollierter Test fuer ein Kind bis 14 Jahre. Prueft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Kinderuebernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestaetigt sind.",
+    application: createBaseApplication({
+      id: "tcv-test-child-0001",
+      salutation: "FEMALE",
+      first_name: "TCV Testkind",
+      last_name: "Kind",
+      birth_date: "2016-01-01",
+      email: "tcv-testperson-kind@example.com",
+      phone: "02861 000001",
+      mobile: "015100000001",
+      membership_kind: "child",
+      account_holder: "TCV Test-Elternteil",
+      account_holder_address: "Testweg 1, 48691 Vreden",
+      guardian_name: "TCV Test-Elternteil",
+      guardian_email: "tcv-test-elternteil@example.com",
+      guardian_phone: "02861 000001",
+      guardian_consent: true,
+      notes:
+        `${TEST_MARKER}\nMinderjaehrigen-Test: gesetzlicher Vertreter und SEPA-Zahler muessen spaeter im PDF/E-Mail-Prozess nachvollziehbar dokumentiert werden.`
+    }),
+    attributeAssignments: [
+      {
+        attributeId: 4,
+        attributeName: "Status Quo - Beitragsarten TENNIS RW",
+        valueId: 12,
+        valueName: "4 Beitrag Kinder, Jugendl. bis 16"
+      },
+      {
+        attributeId: 6,
+        attributeName: "Mitgliedsbeitraege NEU",
+        valueId: 14,
+        valueName: "Kinder bis 14 Jahre"
+      },
+      {
+        attributeId: 7,
+        attributeName: "Status Quo TCH",
+        valueId: 25,
+        valueName: "1. Kind/Jugendlicher bis 18 Jahre"
+      }
+    ],
+    membershipTest: {
+      moduleId: 4,
+      sectionIds: [1],
+      membershipTypeId: null,
+      consideredActive: true,
       status: "ACTIVE"
     }
   }

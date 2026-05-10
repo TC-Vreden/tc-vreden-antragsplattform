@@ -58,8 +58,8 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     membershipKind: "adult_passive",
     title: "Erwachsene Einzelperson passiv",
     description:
-      "Naechster kontrollierter Test fuer eine passive erwachsene Einzelperson. Dieser Fall ist noch nicht fuer die produktive Uebernahme freigegeben.",
-    productionEnabled: false,
+      "Kontrollierter Test fuer eine passive erwachsene Einzelperson. Nach Live-Bestaetigung darf dieser Fall auch produktiv fuer Einzelpersonen uebernommen werden.",
+    productionEnabled: true,
     attributeAssignments: [
       {
         attributeId: 4,
@@ -85,6 +85,40 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
       sectionIds: [1],
       membershipTypeId: null,
       consideredActive: false,
+      status: "ACTIVE"
+    }
+  },
+  {
+    membershipKind: "child",
+    title: "Kind bis 14 Jahre",
+    description:
+      "Kontrollierter Test fuer ein Kind bis 14 Jahre. Prueft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Kinderuebernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestaetigt sind.",
+    productionEnabled: false,
+    attributeAssignments: [
+      {
+        attributeId: 4,
+        attributeName: "Status Quo - Beitragsarten TENNIS RW",
+        valueId: 12,
+        valueName: "4 Beitrag Kinder, Jugendl. bis 16"
+      },
+      {
+        attributeId: 6,
+        attributeName: "Mitgliedsbeitraege NEU",
+        valueId: 14,
+        valueName: "Kinder bis 14 Jahre"
+      },
+      {
+        attributeId: 7,
+        attributeName: "Status Quo TCH",
+        valueId: 25,
+        valueName: "1. Kind/Jugendlicher bis 18 Jahre"
+      }
+    ],
+    membership: {
+      moduleId: 4,
+      sectionIds: [1],
+      membershipTypeId: null,
+      consideredActive: true,
       status: "ACTIVE"
     }
   }

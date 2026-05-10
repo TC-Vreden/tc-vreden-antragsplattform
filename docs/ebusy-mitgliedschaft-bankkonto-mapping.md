@@ -346,5 +346,7 @@ So reduzieren wir manuelle Arbeit schrittweise, ohne dass eBuSy halb gefüllte o
 
 - Der komplette Testpfad fuer `adult_active` wurde bestaetigt: Person, Bankkonto/SEPA, Attribute und einfache Mitgliedschaft werden angelegt und wieder korrekt aus eBuSy gelesen.
 - In der produktiven Verwaltungsuebernahme ist deshalb fuer `adult_active` nicht mehr nur die Personenanlage aktiv, sondern auch Attribute und eine einfache Mitgliedschaft mit Kundennummer als Mitgliedsnummer.
-- Andere Einzelpersonenarten werden produktiv noch nicht vollautomatisch uebernommen, bis sie im Testlabor bestaetigt wurden.
-- Als naechster Testfall ist `adult_passive` im eBuSy-Testlabor vorbereitet.
+- Der komplette Testpfad fuer `adult_passive` wurde ebenfalls bestaetigt: Person, Bankkonto/SEPA, Attribute und einfache passive Mitgliedschaft werden korrekt angelegt und wieder ausgelesen.
+- In der produktiven Verwaltungsuebernahme ist deshalb fuer `adult_passive` jetzt ebenfalls Person, Attribute und einfache Mitgliedschaft mit Kundennummer als Mitgliedsnummer freigegeben.
+- Als naechster Testfall ist `child` / `Kind bis 14 Jahre` im eBuSy-Testlabor vorbereitet.
+- Kinder-/Minderjaehrigenantraege bleiben produktiv noch nicht vollautomatisch freigegeben, bis gesetzliche Vertreter, SEPA-Zahler, PDF-Zusammenfassung und Bestaetigungs-Mail fachlich sauber bestaetigt sind.
