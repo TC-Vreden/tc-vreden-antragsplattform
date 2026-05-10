@@ -1,6 +1,6 @@
 # eBuSy-Mapping: Benutzer, Bankkonto, Mitgliedschaft und Attribute
 
-Stand: 09.05.2026
+Stand: 10.05.2026
 
 Dieses Dokument fasst zusammen, was aus den eBuSy-Screenshots, den bisherigen Tests und der API-Struktur ableitbar ist. Ziel ist eine fachliche Gegenüberstellung für Vorstand/Kassenwart, bevor wir weitere produktive Schreiblogik in eBuSy aktivieren.
 
@@ -342,3 +342,9 @@ Aktueller technischer Block:
 4. Erst nach Bestätigung dieser Einzelschritte sollte der Mehrpersonen-/Familienprozess gebaut werden.
 
 So reduzieren wir manuelle Arbeit schrittweise, ohne dass eBuSy halb gefüllte oder fachlich falsche Mitgliedschaften bekommt.
+## Update 10.05.2026
+
+- Der komplette Testpfad fuer `adult_active` wurde bestaetigt: Person, Bankkonto/SEPA, Attribute und einfache Mitgliedschaft werden angelegt und wieder korrekt aus eBuSy gelesen.
+- In der produktiven Verwaltungsuebernahme ist deshalb fuer `adult_active` nicht mehr nur die Personenanlage aktiv, sondern auch Attribute und eine einfache Mitgliedschaft mit Kundennummer als Mitgliedsnummer.
+- Andere Einzelpersonenarten werden produktiv noch nicht vollautomatisch uebernommen, bis sie im Testlabor bestaetigt wurden.
+- Als naechster Testfall ist `adult_passive` im eBuSy-Testlabor vorbereitet.

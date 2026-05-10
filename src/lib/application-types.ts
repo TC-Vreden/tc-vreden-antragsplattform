@@ -79,6 +79,10 @@ export type ApplicationMatchPayload = {
     externalPersonId: string;
     displayName?: string;
   };
+  createdMembership?: {
+    externalMembershipId: string;
+    displayName?: string;
+  };
 };
 
 export type ApplicationInput = {

@@ -4,8 +4,19 @@ import type {
   ApplicationMatchSummary,
   ApplicationRow
 } from "@/lib/application-types";
-import { createEbusyPersonFromApplication, lookupEbusyPerson } from "@/lib/ebusy";
+import {
+  createEbusyMembership,
+  createEbusyPersonFromApplication,
+  getEbusyMembershipsByPersonId,
+  getEbusyPersonById,
+  lookupEbusyPerson,
+  setEbusyPersonAttributes
+} from "@/lib/ebusy";
 import { isMultiPersonMembership } from "@/lib/application-options";
+import {
+  buildEbusyMembershipPayloadForApplication,
+  getProductionEbusySinglePersonTakeoverConfig
+} from "@/lib/ebusy-takeover-config";
 
 function isStrongAutomaticMatch(candidate: { matchScore: number }) {
   return candidate.matchScore >= 98;
@@ -233,15 +244,116 @@ export async function createApplicationPersonInEbusy(
     };
   }
 
+  const takeoverConfig = getProductionEbusySinglePersonTakeoverConfig(row.membership_kind);
+
+  if (!takeoverConfig) {
+    return {
+      status: "error",
+      message:
+        "Diese Mitgliedschaftsart ist noch nicht fuer die vollstaendige automatische eBuSy-Uebernahme freigegeben. Bitte zuerst im eBuSy-Testlabor pruefen."
+    };
+  }
+
   const createdPerson = await createEbusyPersonFromApplication(row);
   const existingPayload = row.ebusy_match_payload as ApplicationMatchPayload | null;
-  const message = `Person wurde in eBuSy angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`;
+  let readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
+  const personId = Number(createdPerson.externalPersonId);
+
+  if (!Number.isInteger(personId)) {
+    return {
+      status: "error",
+      message: `Person wurde in eBuSy angelegt (${createdPerson.externalPersonId}), aber die eBuSy-ID konnte nicht als Zahl fuer Folgeschritte verarbeitet werden. Bitte manuell pruefen.`,
+      externalPersonId: createdPerson.externalPersonId
+    };
+  }
+
+  try {
+    await setEbusyPersonAttributes(
+      createdPerson.externalPersonId,
+      takeoverConfig.attributeAssignments
+    );
+    readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Unbekannter Attributfehler";
+    const failedPayload: ApplicationMatchPayload = {
+      status: "error",
+      source: "live",
+      message: `Person wurde in eBuSy angelegt, aber Attribute konnten nicht gesetzt werden: ${reason}`,
+      candidates: existingPayload?.candidates ?? [],
+      createdPerson
+    };
+
+    await supabase
+      .from("applications")
+      .update({
+        ebusy_match_status: "error",
+        ebusy_person_id: createdPerson.externalPersonId,
+        ebusy_match_payload: failedPayload
+      })
+      .eq("id", applicationId);
+
+    return {
+      status: "error",
+      message: `${failedPayload.message}. Bitte die Person in eBuSy manuell pruefen.`,
+      externalPersonId: createdPerson.externalPersonId
+    };
+  }
+
+  const membershipPayload = buildEbusyMembershipPayloadForApplication(
+    row,
+    personId,
+    takeoverConfig.membership,
+    readBackPerson.customerId,
+    "Digitaler Mitgliedsantrag"
+  );
+  let createdMembership:
+    | {
+        externalMembershipId: string;
+        displayName: string;
+      }
+    | undefined;
+
+  try {
+    createdMembership = await createEbusyMembership(
+      takeoverConfig.membership.moduleId,
+      membershipPayload
+    );
+
+    await getEbusyMembershipsByPersonId(takeoverConfig.membership.moduleId, personId);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Unbekannter Mitgliedschaftsfehler";
+    const failedPayload: ApplicationMatchPayload = {
+      status: "error",
+      source: "live",
+      message: `Person wurde in eBuSy angelegt und Attribute wurden gesetzt, aber die Mitgliedschaft konnte nicht erstellt oder gelesen werden: ${reason}`,
+      candidates: existingPayload?.candidates ?? [],
+      createdPerson
+    };
+
+    await supabase
+      .from("applications")
+      .update({
+        ebusy_match_status: "error",
+        ebusy_person_id: createdPerson.externalPersonId,
+        ebusy_match_payload: failedPayload
+      })
+      .eq("id", applicationId);
+
+    return {
+      status: "error",
+      message: `${failedPayload.message}. Bitte die Person in eBuSy manuell pruefen.`,
+      externalPersonId: createdPerson.externalPersonId
+    };
+  }
+
+  const message = `Person, Attribute und Mitgliedschaft wurden in eBuSy angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`;
   const nextPayload: ApplicationMatchPayload = {
-    status: "person_created",
+    status: "created_in_ebusy",
     source: "live",
     message,
     candidates: existingPayload?.candidates ?? [],
-    createdPerson
+    createdPerson,
+    createdMembership
   };
 
   let { error: updateError } = await supabase
@@ -249,7 +361,7 @@ export async function createApplicationPersonInEbusy(
     .update({
       status: "transferred_to_ebusy",
       transferred_at: new Date().toISOString(),
-      ebusy_match_status: "person_created",
+      ebusy_match_status: "created_in_ebusy",
       ebusy_person_id: createdPerson.externalPersonId,
       ebusy_match_payload: nextPayload
     })
@@ -260,7 +372,7 @@ export async function createApplicationPersonInEbusy(
       .from("applications")
       .update({
         status: "transferred_to_ebusy",
-        ebusy_match_status: "person_created",
+        ebusy_match_status: "created_in_ebusy",
         ebusy_person_id: createdPerson.externalPersonId,
         ebusy_match_payload: nextPayload
       })
@@ -271,14 +383,14 @@ export async function createApplicationPersonInEbusy(
 
   if (updateError) {
     return {
-      status: "person_created",
+      status: "created_in_ebusy",
       message: `${message} Achtung: Die lokale Verknüpfung konnte nicht gespeichert werden: ${updateError.message}`,
       externalPersonId: createdPerson.externalPersonId
     };
   }
 
   return {
-    status: "person_created",
+    status: "created_in_ebusy",
     message,
     externalPersonId: createdPerson.externalPersonId
   };

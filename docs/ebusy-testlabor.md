@@ -1,6 +1,6 @@
 # eBuSy-Testlabor
 
-Stand: 09.05.2026
+Stand: 10.05.2026
 
 Das eBuSy-Testlabor ist ein geschützter interner Bereich unter:
 
@@ -10,7 +10,8 @@ Ziel ist, die eBuSy-Übertragung feldweise und wiederholbar zu prüfen, ohne jed
 
 ## Was das Testlabor aktuell kann
 
-- festes Testszenario `Erwachsene Einzelperson`
+- Testszenario `Erwachsene Einzelperson`
+- Testszenario `Erwachsene Einzelperson passiv`
 - Datenpaket anzeigen, ohne eBuSy-Schreibzugriff auszuführen
 - optional eine klar markierte eBuSy-Testperson anlegen
 - optional eine klar markierte eBuSy-Testperson anlegen und danach die Test-Attribute für `Erwachsene Einzelperson` setzen
@@ -141,3 +142,8 @@ Noch nicht produktiv automatisiert:
 - eBuSy-Löschung
 
 Diese Schritte sollen nach und nach ergänzt werden, sobald der jeweilige API-Schreibweg kontrolliert getestet wurde.
+## Update 10.05.2026
+
+- Der kombinierte Test fuer `Erwachsene Einzelperson` wurde live bestaetigt.
+- Die produktive Verwaltungsuebernahme darf fuer `adult_active` jetzt Person, Attribute und einfache Mitgliedschaft schreiben.
+- Als naechster Testfall ist `Erwachsene Einzelperson passiv` vorbereitet. Dieser Fall bleibt bis zur Live-Bestaetigung noch nicht produktiv freigegeben.

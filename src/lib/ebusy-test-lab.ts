@@ -1,6 +1,10 @@
 import type { ApplicationRow } from "@/lib/application-types";
 import { getMembershipLabel } from "@/lib/application-options";
 import {
+  buildEbusyMembershipPayloadForApplication,
+  type EbusyMembershipWriteConfig
+} from "@/lib/ebusy-takeover-config";
+import {
   buildEbusyAttributePayload,
   buildEbusyPersonPayloadFromApplication,
   createEbusyMembership,
@@ -21,21 +25,13 @@ export type EbusyTestAction =
   | "create_person_with_membership"
   | "create_person_with_attributes_and_membership";
 
-type EbusyMembershipTestConfig = {
-  moduleId: number;
-  sectionIds: number[];
-  membershipTypeId: number | null;
-  consideredActive: boolean;
-  status: "ACTIVE" | "REQUESTED" | "DECLINED";
-};
-
 export type EbusyTestScenario = {
   id: string;
   title: string;
   description: string;
   application: ApplicationRow;
   attributeAssignments?: EbusyAttributeAssignment[];
-  membershipTest?: EbusyMembershipTestConfig;
+  membershipTest?: EbusyMembershipWriteConfig;
 };
 
 export type EbusyTestCheck = {
@@ -122,13 +118,17 @@ function createTestRunId() {
 function createRunApplication(application: ApplicationRow): ApplicationRow {
   const now = new Date().toISOString();
   const runId = createTestRunId();
+  const membershipPart = (application.membership_kind ?? "unknown")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
   return {
     ...application,
     id: `${runId}-${application.id}`,
     created_at: now,
     updated_at: now,
-    email: `tcv-testperson-erwachsen-${runId}@example.com`,
+    email: `tcv-testperson-${membershipPart}-${runId}@example.com`,
     notes: `${TEST_MARKER} (${runId})`
   };
 }
@@ -165,6 +165,45 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
       sectionIds: [1],
       membershipTypeId: null,
       consideredActive: true,
+      status: "ACTIVE"
+    }
+  },
+  {
+    id: "adult_passive_person",
+    title: "Erwachsene Einzelperson passiv",
+    description:
+      "Naechster kontrollierter Test fuer eine passive erwachsene Einzelperson. Dieser Fall ist noch nicht fuer die produktive Uebernahme freigegeben.",
+    application: createBaseApplication({
+      id: "tcv-test-adult-passive-0001",
+      last_name: "Passiv",
+      membership_kind: "adult_passive",
+      account_holder: "TCV Testperson Passiv"
+    }),
+    attributeAssignments: [
+      {
+        attributeId: 4,
+        attributeName: "Status Quo - Beitragsarten TENNIS RW",
+        valueId: 10,
+        valueName: "7 Beitrag Passiv"
+      },
+      {
+        attributeId: 6,
+        attributeName: "Mitgliedsbeitraege NEU",
+        valueId: 33,
+        valueName: "Passiv"
+      },
+      {
+        attributeId: 7,
+        attributeName: "Status Quo TCH",
+        valueId: 31,
+        valueName: "Passiv"
+      }
+    ],
+    membershipTest: {
+      moduleId: 4,
+      sectionIds: [1],
+      membershipTypeId: null,
+      consideredActive: false,
       status: "ACTIVE"
     }
   }
@@ -292,24 +331,15 @@ function formatMembershipFeeTypes(membership: EbusyMembership) {
 function buildMembershipPayload(
   application: ApplicationRow,
   personId: number,
-  config: EbusyMembershipTestConfig,
+  config: EbusyMembershipWriteConfig,
   membershipNumber?: string
 ): EbusyMembershipPayload {
-  return {
-    begin: application.created_at.slice(0, 10),
-    personId,
-    membershipTypeId: config.membershipTypeId,
-    consideredActive: config.consideredActive,
-    status: config.status,
-    sections: config.sectionIds,
-    number: membershipNumber,
-    comment: `Automatischer eBuSy-Test fuer Antrag ${application.id}.`
-  };
+  return buildEbusyMembershipPayloadForApplication(application, personId, config, membershipNumber);
 }
 
 function buildMembershipPreviewPayload(
   application: ApplicationRow,
-  config: EbusyMembershipTestConfig
+  config: EbusyMembershipWriteConfig
 ) {
   return {
     ...buildMembershipPayload(application, 0, config),
