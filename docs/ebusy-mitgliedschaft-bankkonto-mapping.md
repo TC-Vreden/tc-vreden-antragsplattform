@@ -351,3 +351,15 @@ So reduzieren wir manuelle Arbeit schrittweise, ohne dass eBuSy halb gefüllte o
 - Der technische Lauf fuer `child` / `Kind bis 14 Jahre` zeigt anhand der eBuSy-Kontrolle: Attribute sowie Bankkonto/SEPA kommen korrekt an. Produktiv bleibt dieser Fall noch gesperrt, weil Minderjaehrigen-/Vertreter-, PDF- und Mailprozess fachlich finalisiert werden muessen.
 - Als naechster Testfall ist `youth_active` / `Jugendliche bis 18 Jahre aktiv` im eBuSy-Testlabor vorbereitet.
 - Kinder-/Minderjaehrigenantraege bleiben produktiv noch nicht vollautomatisch freigegeben, bis gesetzliche Vertreter, SEPA-Zahler, PDF-Zusammenfassung und Bestaetigungs-Mail fachlich sauber bestaetigt sind.
+
+## Update 11.05.2026
+
+- Der technische Testpfad fuer `youth_active` / `Jugendliche bis 18 Jahre aktiv` wurde live bestaetigt: Person, Bankkonto/SEPA, Attribute und einfache Mitgliedschaft kommen an. Produktiv bleibt der Minderjaehrigenfall weiterhin gesperrt, bis Vertreter-, PDF- und Mailprozess fachlich abgenommen sind.
+- Im eBuSy-Testlabor ist ein Mehrpersonen-Szenario `Familie mit 4 Personen` vorbereitet.
+- Dieses Szenario kann ein Datenpaket fuer Hauptperson, Partner:in, Kind und jugendliche Person erzeugen, alle vier Testpersonen anlegen und vorgeschlagene Attribute setzen.
+- Bewusst nicht geschrieben werden: Mitgliedschaften je Person, Beitragsarten, Familien-/Haushaltsbezug, Hauptzahler-/Beitragszahlerbezug und gemeinsame Abrechnung.
+- Vorgeschlagenes, noch vom Vorstand zu bestaetigendes Mapping:
+  - Hauptperson/Familienzahler: `Status Quo - Beitragsarten TENNIS RW` = `3 Familienbeitrag`, `Mitgliedsbeitraege NEU` = `Familien`, `Status Quo TCH` = `Familienbeitrag`.
+  - Partner:in und Kinder im Familienantrag: `Status Quo - Beitragsarten TENNIS RW` = `9 beitragsfrei z.B. wg. Familienzugehoerigkeit`, `Mitgliedsbeitraege NEU` = `Beitragsfreie Familienangehoerige`, `Status Quo TCH` = `Beitragsfrei Familie`.
+- Noch fachlich offen: ob eBuSy Familienmitglieder nur ueber Attribute, ueber den Reiter `Hauptzahler`, ueber Mitgliedschaften/Beitragsarten oder ueber eine andere interne Verknuepfung korrekt abbildet.
+- Ebenfalls offen: die Diskrepanz zwischen Formular-Kategorien fuer Kinder/Jugendliche und eBuSy-Attributtexten, z.B. `Jugendliche bis 18 Jahre` gegen `Kinder, Jugendl. bis 16`.

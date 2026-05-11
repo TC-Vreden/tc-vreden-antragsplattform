@@ -26,13 +26,17 @@ function getStatusLabel(status: EbusyTestCheck["status"]) {
   }
 }
 
-function getActionLabel(action: EbusyTestAction, isLoading: boolean) {
+function getActionLabel(action: EbusyTestAction, isLoading: boolean, isMultiPerson = false) {
   if (action === "dry_run") {
     return isLoading ? "Datenpaket wird geprüft..." : "Datenpaket prüfen";
   }
 
   if (action === "create_person_with_attributes") {
-    return isLoading ? "Live-Test mit Attributen läuft..." : "Live-Testperson + Attribute anlegen";
+    return isLoading
+      ? "Live-Test mit Attributen läuft..."
+      : isMultiPerson
+        ? "Live-Testpersonen + Attribute anlegen"
+        : "Live-Testperson + Attribute anlegen";
   }
 
   if (action === "create_person_with_membership") {
@@ -45,7 +49,38 @@ function getActionLabel(action: EbusyTestAction, isLoading: boolean) {
       : "Live-Testperson + Attribute + Mitgliedschaft anlegen";
   }
 
-  return isLoading ? "Live-Test läuft..." : "Live-Testperson anlegen";
+  return isLoading
+    ? "Live-Test läuft..."
+    : isMultiPerson
+      ? "Live-Testpersonen anlegen"
+      : "Live-Testperson anlegen";
+}
+
+function scenarioSupportsAttributes(scenario: EbusyTestScenario | undefined) {
+  if (!scenario) {
+    return false;
+  }
+
+  if (scenario.kind === "multi") {
+    return scenario.members.some((member) => Boolean(member.attributeAssignments?.length));
+  }
+
+  return Boolean(scenario.attributeAssignments?.length);
+}
+
+function scenarioSupportsMembership(scenario: EbusyTestScenario | undefined) {
+  if (!scenario) {
+    return false;
+  }
+
+  if (scenario.kind === "multi") {
+    return (
+      scenario.members.length > 0 &&
+      scenario.members.every((member) => Boolean(member.membershipTest))
+    );
+  }
+
+  return Boolean(scenario.membershipTest);
 }
 
 export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
@@ -56,10 +91,12 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
   const [result, setResult] = useState<EbusyTestLabResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isBusy = Boolean(loadingAction) || batchLoading;
+  const selectedScenario = scenarios.find((scenario) => scenario.id === selectedScenarioId);
+  const selectedScenarioIsMulti = selectedScenario?.kind === "multi";
+  const selectedScenarioHasAttributes = scenarioSupportsAttributes(selectedScenario);
+  const selectedScenarioHasMembership = scenarioSupportsMembership(selectedScenario);
 
   async function runAction(action: EbusyTestAction) {
-    const selectedScenario = scenarios.find((scenario) => scenario.id === selectedScenarioId);
-
     if (!selectedScenario) {
       setError("Bitte zuerst ein Testszenario auswählen.");
       return;
@@ -73,14 +110,16 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
         action === "create_person_with_membership" ||
         action === "create_person_with_attributes_and_membership";
       const confirmationText =
-        "Soll jetzt wirklich eine eBuSy-Testperson angelegt werden?\n\n" +
+        `Soll jetzt wirklich ${selectedScenarioIsMulti ? "mehrere eBuSy-Testpersonen" : "eine eBuSy-Testperson"} angelegt werden?\n\n` +
         (writesAttributes
-          ? "Zusätzlich werden die Test-Attribute für eine erwachsene Einzelperson gesetzt.\n\n"
+          ? selectedScenarioIsMulti
+            ? "Zusätzlich werden die vorgeschlagenen Test-Attribute für alle Testpersonen gesetzt.\n\n"
+            : "Zusätzlich werden die Test-Attribute für dieses Szenario gesetzt.\n\n"
           : "") +
         (writesMembership
           ? "Zusätzlich wird eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Eine Beitragsart wird noch nicht geschrieben.\n\n"
           : "") +
-        "Die Testperson wird nicht automatisch gelöscht und muss nach der Prüfung in eBuSy entfernt werden.";
+        `${selectedScenarioIsMulti ? "Die Testpersonen werden" : "Die Testperson wird"} nicht automatisch gelöscht und ${selectedScenarioIsMulti ? "müssen" : "muss"} nach der Prüfung in eBuSy entfernt werden.`;
 
       if (!window.confirm(confirmationText)) {
         return;
@@ -214,41 +253,50 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             disabled={isBusy}
             onClick={() => runAction("create_person")}
           >
-            {getActionLabel("create_person", loadingAction === "create_person")}
+            {getActionLabel("create_person", loadingAction === "create_person", selectedScenarioIsMulti)}
           </button>
-          <button
-            className="button"
-            type="button"
-            disabled={isBusy}
-            onClick={() => runAction("create_person_with_attributes")}
-          >
-            {getActionLabel(
-              "create_person_with_attributes",
-              loadingAction === "create_person_with_attributes"
-            )}
-          </button>
-          <button
-            className="button"
-            type="button"
-            disabled={isBusy}
-            onClick={() => runAction("create_person_with_membership")}
-          >
-            {getActionLabel(
-              "create_person_with_membership",
-              loadingAction === "create_person_with_membership"
-            )}
-          </button>
-          <button
-            className="button"
-            type="button"
-            disabled={isBusy}
-            onClick={() => runAction("create_person_with_attributes_and_membership")}
-          >
-            {getActionLabel(
-              "create_person_with_attributes_and_membership",
-              loadingAction === "create_person_with_attributes_and_membership"
-            )}
-          </button>
+          {selectedScenarioHasAttributes ? (
+            <button
+              className="button"
+              type="button"
+              disabled={isBusy}
+              onClick={() => runAction("create_person_with_attributes")}
+            >
+              {getActionLabel(
+                "create_person_with_attributes",
+                loadingAction === "create_person_with_attributes",
+                selectedScenarioIsMulti
+              )}
+            </button>
+          ) : null}
+          {selectedScenarioHasMembership ? (
+            <button
+              className="button"
+              type="button"
+              disabled={isBusy}
+              onClick={() => runAction("create_person_with_membership")}
+            >
+              {getActionLabel(
+                "create_person_with_membership",
+                loadingAction === "create_person_with_membership",
+                selectedScenarioIsMulti
+              )}
+            </button>
+          ) : null}
+          {selectedScenarioHasAttributes && selectedScenarioHasMembership ? (
+            <button
+              className="button"
+              type="button"
+              disabled={isBusy}
+              onClick={() => runAction("create_person_with_attributes_and_membership")}
+            >
+              {getActionLabel(
+                "create_person_with_attributes_and_membership",
+                loadingAction === "create_person_with_attributes_and_membership",
+                selectedScenarioIsMulti
+              )}
+            </button>
+          ) : null}
         </div>
 
         {!writeEnabled ? (
@@ -264,8 +312,8 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
           <div className="hint-box" style={{ marginTop: 16 }}>
             <strong>Live-Schreibtest freigeschaltet</strong>
             <p style={{ margin: "8px 0 0" }}>
-              Der Live-Test darf eine eindeutig markierte Testperson in eBuSy anlegen. Bitte die
-              Testperson nach der Prüfung in eBuSy wieder löschen.
+              Der Live-Test darf eindeutig markierte Testpersonen in eBuSy anlegen. Bitte die
+              Testpersonen nach der Prüfung in eBuSy wieder löschen.
             </p>
           </div>
         )}
@@ -300,6 +348,25 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
                       </li>
                     ))}
                   </ul>
+                ) : null}
+                {batchResult.memberAttributeAssignments?.length ? (
+                  <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                    {batchResult.memberAttributeAssignments.map((memberGroup) => (
+                      <div key={`${batchResult.scenario.id}-${memberGroup.memberId}`}>
+                        <strong>{memberGroup.roleLabel}</strong>
+                        <ul className="list" style={{ marginTop: 4 }}>
+                          {memberGroup.assignments.map((assignment) => (
+                            <li
+                              key={`${batchResult.scenario.id}-${memberGroup.memberId}-${assignment.attributeId}-${assignment.valueId}`}
+                            >
+                              {assignment.attributeName}: {assignment.valueName} ({assignment.attributeId} -{" "}
+                              {assignment.valueId})
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 ) : null}
                 <pre style={{ whiteSpace: "pre-wrap", marginTop: 12 }}>
                   {JSON.stringify(batchResult.payload, null, 2)}
@@ -341,6 +408,22 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             ) : null}
           </ul>
 
+          {result.createdPersons?.length ? (
+            <div className="hint-box" style={{ marginTop: 16 }}>
+              <strong>Angelegte Testpersonen</strong>
+              <ul className="list" style={{ marginTop: 8 }}>
+                {result.createdPersons.map((person) => (
+                  <li key={`${person.memberId}-${person.externalPersonId}`}>
+                    {person.roleLabel}: {person.displayName} (interne eBuSy-ID:{" "}
+                    {person.externalPersonId}
+                    {person.customerId ? `, Kundennummer: ${person.customerId}` : ""}
+                    {person.personCode ? `, persönlicher Code: ${person.personCode}` : ""})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {result.cleanupHint ? (
             <div className="warning-box" style={{ marginTop: 16 }}>
               <strong>Aufräumen</strong>
@@ -359,6 +442,27 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
                   </li>
                 ))}
               </ul>
+            </div>
+          ) : null}
+
+          {result.memberAttributeAssignments?.length ? (
+            <div className="hint-box" style={{ marginTop: 16 }}>
+              <strong>Geplante Attribute pro Testperson</strong>
+              <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                {result.memberAttributeAssignments.map((memberGroup) => (
+                  <div key={memberGroup.memberId}>
+                    <strong>{memberGroup.roleLabel}</strong>
+                    <ul className="list" style={{ marginTop: 4 }}>
+                      {memberGroup.assignments.map((assignment) => (
+                        <li key={`${memberGroup.memberId}-${assignment.attributeId}-${assignment.valueId}`}>
+                          {assignment.attributeName}: {assignment.valueName} ({assignment.attributeId} -{" "}
+                          {assignment.valueId})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 

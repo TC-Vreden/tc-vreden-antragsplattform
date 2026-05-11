@@ -25,7 +25,17 @@ export type EbusyTestAction =
   | "create_person_with_membership"
   | "create_person_with_attributes_and_membership";
 
-export type EbusyTestScenario = {
+export type EbusyTestScenarioMember = {
+  id: string;
+  roleLabel: string;
+  description?: string;
+  application: ApplicationRow;
+  attributeAssignments?: EbusyAttributeAssignment[];
+  membershipTest?: EbusyMembershipWriteConfig;
+};
+
+export type EbusySinglePersonTestScenario = {
+  kind: "single";
   id: string;
   title: string;
   description: string;
@@ -33,6 +43,16 @@ export type EbusyTestScenario = {
   attributeAssignments?: EbusyAttributeAssignment[];
   membershipTest?: EbusyMembershipWriteConfig;
 };
+
+export type EbusyMultiPersonTestScenario = {
+  kind: "multi";
+  id: string;
+  title: string;
+  description: string;
+  members: EbusyTestScenarioMember[];
+};
+
+export type EbusyTestScenario = EbusySinglePersonTestScenario | EbusyMultiPersonTestScenario;
 
 export type EbusyTestCheck = {
   label: string;
@@ -49,16 +69,30 @@ export type EbusyTestLabResult = {
     id: string;
     title: string;
     membershipLabel: string;
+    kind: EbusyTestScenario["kind"];
   };
   message: string;
   payload: unknown;
   attributeAssignments?: EbusyAttributeAssignment[];
+  memberAttributeAssignments?: Array<{
+    memberId: string;
+    roleLabel: string;
+    assignments: EbusyAttributeAssignment[];
+  }>;
   createdPerson?: {
     externalPersonId: string;
     displayName: string;
     customerId?: string;
     personCode?: string;
   };
+  createdPersons?: Array<{
+    memberId: string;
+    roleLabel: string;
+    externalPersonId: string;
+    displayName: string;
+    customerId?: string;
+    personCode?: string;
+  }>;
   createdMembership?: {
     externalMembershipId: string;
     displayName: string;
@@ -66,6 +100,8 @@ export type EbusyTestLabResult = {
   checks: EbusyTestCheck[];
   cleanupHint?: string;
 };
+
+type EbusyTestCreatedPerson = NonNullable<EbusyTestLabResult["createdPersons"]>[number];
 
 const TEST_MARKER = "AUTOMATISCHER EBUSY-TEST - darf geloescht werden";
 
@@ -111,16 +147,171 @@ function createBaseApplication(overrides: Partial<ApplicationRow>): ApplicationR
   };
 }
 
+async function runMultiEbusyTestLabAction(
+  input: {
+    scenarioId: string;
+    action: EbusyTestAction;
+  },
+  scenario: EbusyMultiPersonTestScenario
+): Promise<EbusyTestLabResult> {
+  const runId = createTestRunId();
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+  const writeEnabled = process.env.EBUSY_TEST_LAB_WRITE_ENABLED === "true";
+  const members = getScenarioMembers(scenario, runId);
+  const memberPayloadPreview = buildMemberPayloadPreview(members);
+  const memberAttributeAssignments = getMemberAttributeAssignments(members);
+  const baseResult = {
+    action: input.action,
+    mode,
+    writeEnabled,
+    scenario: {
+      id: scenario.id,
+      title: scenario.title,
+      membershipLabel: getScenarioMembershipLabel(scenario),
+      kind: scenario.kind
+    },
+    payload: sanitizePayload({
+      runId,
+      members: memberPayloadPreview,
+      safetyNote:
+        "Mehrpersonen-Test: Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug werden noch nicht geschrieben."
+    }),
+    memberAttributeAssignments
+  };
+
+  if (input.action === "dry_run") {
+    return {
+      ...baseResult,
+      message:
+        "Mehrpersonen-Datenpaket wurde vorbereitet. Es wurde keine Person in eBuSy angelegt und kein Live-Schreibzugriff verwendet.",
+      checks: []
+    };
+  }
+
+  const shouldSetAttributes =
+    input.action === "create_person_with_attributes" ||
+    input.action === "create_person_with_attributes_and_membership";
+  const shouldCreateMembership =
+    input.action === "create_person_with_membership" ||
+    input.action === "create_person_with_attributes_and_membership";
+
+  if (shouldCreateMembership) {
+    throw new Error(
+      "Für Mehrpersonen-Anträge ist der Mitgliedschafts-, Beitrags- und Familienbezug noch nicht sicher geklärt. Es wurde nichts in eBuSy geschrieben."
+    );
+  }
+
+  if (!writeEnabled) {
+    throw new Error(
+      "Live-Schreibtests sind serverseitig gesperrt. Setze EBUSY_TEST_LAB_WRITE_ENABLED=true, wenn du bewusst eBuSy-Testpersonen anlegen willst."
+    );
+  }
+
+  const createdPersons: EbusyTestCreatedPerson[] = [];
+  const checks: EbusyTestCheck[] = [];
+
+  try {
+    for (const member of members) {
+      const personPayload = buildEbusyPersonPayloadFromApplication(member.application);
+      const createdPerson = await createEbusyPersonFromApplication(member.application);
+      let readBack = await getEbusyPersonById(createdPerson.externalPersonId);
+      const resultCreatedPerson: EbusyTestCreatedPerson = {
+        memberId: member.id,
+        roleLabel: member.roleLabel,
+        externalPersonId: createdPerson.externalPersonId,
+        displayName: createdPerson.displayName,
+        customerId: readBack.customerId,
+        personCode: readBack.code
+      };
+
+      createdPersons.push(resultCreatedPerson);
+      checks.push(...prefixChecks(comparePayloadWithPerson(personPayload, readBack), member.roleLabel));
+
+      if (shouldSetAttributes && member.attributeAssignments?.length) {
+        await setEbusyPersonAttributes(createdPerson.externalPersonId, member.attributeAssignments);
+        readBack = await getEbusyPersonById(createdPerson.externalPersonId);
+        resultCreatedPerson.customerId = readBack.customerId;
+        resultCreatedPerson.personCode = readBack.code;
+        checks.push(
+          ...prefixChecks(
+            compareAttributeAssignmentsWithPerson(member.attributeAssignments, readBack),
+            member.roleLabel
+          )
+        );
+      }
+    }
+  } catch (multiPersonError) {
+    const reason =
+      multiPersonError instanceof Error ? multiPersonError.message : "Unbekannter Mehrpersonenfehler";
+    const cleanupList = createdPersons
+      .map((person) =>
+        person.customerId
+          ? `${person.roleLabel}: ${person.displayName} (Kundennummer ${person.customerId}, interne eBuSy-ID ${person.externalPersonId})`
+          : `${person.roleLabel}: ${person.displayName} (interne eBuSy-ID ${person.externalPersonId})`
+      )
+      .join("; ");
+    const cleanupHint = cleanupList
+      ? ` Bereits angelegte Testpersonen bitte manuell in eBuSy löschen: ${cleanupList}.`
+      : "";
+
+    throw new Error(`Mehrpersonen-Test fehlgeschlagen: ${reason}.${cleanupHint}`);
+  }
+
+  const cleanupHint =
+    "Bitte diese eBuSy-Testpersonen nach der Prüfung manuell löschen: " +
+    createdPersons
+      .map((person) =>
+        person.customerId
+          ? `${person.roleLabel}: ${person.displayName} (Kundennummer ${person.customerId}, interne eBuSy-ID ${person.externalPersonId})`
+          : `${person.roleLabel}: ${person.displayName} (interne eBuSy-ID ${person.externalPersonId})`
+      )
+      .join("; ");
+
+  return {
+    ...baseResult,
+    message: shouldSetAttributes
+      ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, vorgeschlagene Test-Attribute wurden gesetzt und alle Datensätze wurden direkt wieder ausgelesen. Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben."
+      : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt und direkt wieder ausgelesen. Attribute, Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben.",
+    createdPersons,
+    checks,
+    cleanupHint
+  };
+}
+
+export async function runEbusyTestLabAction(input: {
+  scenarioId: string;
+  action: EbusyTestAction;
+}): Promise<EbusyTestLabResult> {
+  const scenario = getEbusyTestScenario(input.scenarioId);
+
+  if (!scenario) {
+    throw new Error("Testszenario wurde nicht gefunden.");
+  }
+
+  if (scenario.kind === "multi") {
+    return runMultiEbusyTestLabAction(input, scenario);
+  }
+
+  return runSingleEbusyTestLabAction(input, scenario);
+}
+
 function createTestRunId() {
   return `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 12);
 }
 
-function createRunApplication(application: ApplicationRow): ApplicationRow {
+function createRunApplication(
+  application: ApplicationRow,
+  runId = createTestRunId(),
+  emailSuffix = runId
+): ApplicationRow {
   const now = new Date().toISOString();
-  const runId = createTestRunId();
   const membershipPart = (application.membership_kind ?? "unknown")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const safeEmailSuffix = emailSuffix
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
   return {
@@ -128,13 +319,14 @@ function createRunApplication(application: ApplicationRow): ApplicationRow {
     id: `${runId}-${application.id}`,
     created_at: now,
     updated_at: now,
-    email: `tcv-testperson-${membershipPart}-${runId}@example.com`,
+    email: `tcv-testperson-${membershipPart}-${safeEmailSuffix}@example.com`,
     notes: `${application.notes ?? TEST_MARKER} (${runId})`
   };
 }
 
 export const ebusyTestScenarios: EbusyTestScenario[] = [
   {
+    kind: "single",
     id: "adult_active_person",
     title: "Erwachsene Einzelperson",
     description:
@@ -169,6 +361,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     }
   },
   {
+    kind: "single",
     id: "adult_passive_person",
     title: "Erwachsene Einzelperson passiv",
     description:
@@ -208,6 +401,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     }
   },
   {
+    kind: "single",
     id: "child_person",
     title: "Kind bis 14 Jahre",
     description:
@@ -260,6 +454,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     }
   },
   {
+    kind: "single",
     id: "youth_active_person",
     title: "Jugendliche bis 18 Jahre aktiv",
     description:
@@ -310,6 +505,211 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
       consideredActive: true,
       status: "ACTIVE"
     }
+  },
+  {
+    kind: "multi",
+    id: "family_four_persons",
+    title: "Familie mit 4 Personen",
+    description:
+      "Kontrollierter Mehrpersonen-Test fuer eine Familie mit zahlender Hauptperson, Partner:in und zwei Kindern. Der Test kann Personen und vorgeschlagene Attribute schreiben; Mitgliedschaften, Beitragslogik und Familienverknuepfung bleiben bewusst gesperrt.",
+    members: [
+      {
+        id: "family_main",
+        roleLabel: "Hauptperson / Familienzahler",
+        description: "Zahlende Hauptperson des Familienantrags.",
+        application: createBaseApplication({
+          id: "tcv-test-family-main-0001",
+          salutation: "MALE",
+          first_name: "TCV Testfamilie",
+          last_name: "Hauptperson",
+          birth_date: "1988-01-01",
+          email: "tcv-testperson-family-main@example.com",
+          phone: "02861 000010",
+          mobile: "015100000010",
+          membership_kind: "family",
+          account_holder: "TCV Testfamilie Hauptperson",
+          account_holder_address: "Testweg 1, 48691 Vreden",
+          family_members: [
+            {
+              relation: "partner",
+              salutation: "FEMALE",
+              firstName: "TCV Testfamilie",
+              lastName: "Partnerin",
+              birthDate: "1990-02-02"
+            },
+            {
+              relation: "child",
+              salutation: "FEMALE",
+              firstName: "TCV Testfamilie",
+              lastName: "Kind",
+              birthDate: "2016-03-03"
+            },
+            {
+              relation: "child",
+              salutation: "MALE",
+              firstName: "TCV Testfamilie",
+              lastName: "Jugend",
+              birthDate: "2010-04-04"
+            }
+          ],
+          notes: `${TEST_MARKER}\nFamilien-Test: zahlende Hauptperson. Familien-/Hauptzahlerbezug wird noch nicht per API geschrieben.`
+        }),
+        attributeAssignments: [
+          {
+            attributeId: 4,
+            attributeName: "Status Quo - Beitragsarten TENNIS RW",
+            valueId: 6,
+            valueName: "3 Familienbeitrag"
+          },
+          {
+            attributeId: 6,
+            attributeName: "Mitgliedsbeitraege NEU",
+            valueId: 18,
+            valueName: "Familien"
+          },
+          {
+            attributeId: 7,
+            attributeName: "Status Quo TCH",
+            valueId: 32,
+            valueName: "Familienbeitrag"
+          }
+        ]
+      },
+      {
+        id: "family_partner",
+        roleLabel: "Partner:in / Familienmitglied",
+        description: "Zweite erwachsene Person im Familienantrag, voraussichtlich beitragsfrei zugeordnet.",
+        application: createBaseApplication({
+          id: "tcv-test-family-partner-0001",
+          salutation: "FEMALE",
+          first_name: "TCV Testfamilie",
+          last_name: "Partnerin",
+          birth_date: "1990-02-02",
+          email: "tcv-testperson-family-partner@example.com",
+          phone: "02861 000011",
+          mobile: "015100000011",
+          membership_kind: "family",
+          accepts_sepa: false,
+          iban: null,
+          account_holder: null,
+          account_holder_address: null,
+          notes:
+            `${TEST_MARKER}\nFamilien-Test: Partner:in. Vorschlag: beitragsfreie Familienzugehoerigkeit, fachlich noch zu bestaetigen.`
+        }),
+        attributeAssignments: [
+          {
+            attributeId: 4,
+            attributeName: "Status Quo - Beitragsarten TENNIS RW",
+            valueId: 5,
+            valueName: "9 beitragsfrei z.B. wg. Familienzugehoerigkeit"
+          },
+          {
+            attributeId: 6,
+            attributeName: "Mitgliedsbeitraege NEU",
+            valueId: 22,
+            valueName: "Beitragsfreie Familienangehoerige"
+          },
+          {
+            attributeId: 7,
+            attributeName: "Status Quo TCH",
+            valueId: 26,
+            valueName: "Beitragsfrei Familie"
+          }
+        ]
+      },
+      {
+        id: "family_child",
+        roleLabel: "Kind / Familienmitglied",
+        description: "Kind im Familienantrag, voraussichtlich beitragsfrei zugeordnet.",
+        application: createBaseApplication({
+          id: "tcv-test-family-child-0001",
+          salutation: "FEMALE",
+          first_name: "TCV Testfamilie",
+          last_name: "Kind",
+          birth_date: "2016-03-03",
+          email: "tcv-testperson-family-child@example.com",
+          phone: "02861 000012",
+          mobile: "015100000012",
+          membership_kind: "family",
+          accepts_sepa: false,
+          iban: null,
+          account_holder: null,
+          account_holder_address: null,
+          guardian_name: "TCV Testfamilie Hauptperson",
+          guardian_email: "tcv-testperson-family-main@example.com",
+          guardian_phone: "02861 000010",
+          guardian_consent: true,
+          notes:
+            `${TEST_MARKER}\nFamilien-Test: minderjaehriges Kind. Vertreter-/PDF-/Mailnachweis bleibt separat zu klaeren.`
+        }),
+        attributeAssignments: [
+          {
+            attributeId: 4,
+            attributeName: "Status Quo - Beitragsarten TENNIS RW",
+            valueId: 5,
+            valueName: "9 beitragsfrei z.B. wg. Familienzugehoerigkeit"
+          },
+          {
+            attributeId: 6,
+            attributeName: "Mitgliedsbeitraege NEU",
+            valueId: 22,
+            valueName: "Beitragsfreie Familienangehoerige"
+          },
+          {
+            attributeId: 7,
+            attributeName: "Status Quo TCH",
+            valueId: 26,
+            valueName: "Beitragsfrei Familie"
+          }
+        ]
+      },
+      {
+        id: "family_youth",
+        roleLabel: "Jugendliche:r / Familienmitglied",
+        description: "Jugendliche Person im Familienantrag, voraussichtlich beitragsfrei zugeordnet.",
+        application: createBaseApplication({
+          id: "tcv-test-family-youth-0001",
+          salutation: "MALE",
+          first_name: "TCV Testfamilie",
+          last_name: "Jugend",
+          birth_date: "2010-04-04",
+          email: "tcv-testperson-family-youth@example.com",
+          phone: "02861 000013",
+          mobile: "015100000013",
+          membership_kind: "family",
+          accepts_sepa: false,
+          iban: null,
+          account_holder: null,
+          account_holder_address: null,
+          guardian_name: "TCV Testfamilie Hauptperson",
+          guardian_email: "tcv-testperson-family-main@example.com",
+          guardian_phone: "02861 000010",
+          guardian_consent: true,
+          notes:
+            `${TEST_MARKER}\nFamilien-Test: minderjaehrige jugendliche Person. Vertreter-/PDF-/Mailnachweis bleibt separat zu klaeren.`
+        }),
+        attributeAssignments: [
+          {
+            attributeId: 4,
+            attributeName: "Status Quo - Beitragsarten TENNIS RW",
+            valueId: 5,
+            valueName: "9 beitragsfrei z.B. wg. Familienzugehoerigkeit"
+          },
+          {
+            attributeId: 6,
+            attributeName: "Mitgliedsbeitraege NEU",
+            valueId: 22,
+            valueName: "Beitragsfreie Familienangehoerige"
+          },
+          {
+            attributeId: 7,
+            attributeName: "Status Quo TCH",
+            valueId: 26,
+            valueName: "Beitragsfrei Familie"
+          }
+        ]
+      }
+    ]
   }
 ];
 
@@ -540,16 +940,78 @@ export function getEbusyTestScenario(scenarioId: string) {
   return ebusyTestScenarios.find((scenario) => scenario.id === scenarioId);
 }
 
-export async function runEbusyTestLabAction(input: {
-  scenarioId: string;
-  action: EbusyTestAction;
-}): Promise<EbusyTestLabResult> {
-  const scenario = getEbusyTestScenario(input.scenarioId);
-
-  if (!scenario) {
-    throw new Error("Testszenario wurde nicht gefunden.");
+function getScenarioMembers(scenario: EbusyTestScenario, runId: string): EbusyTestScenarioMember[] {
+  if (scenario.kind === "multi") {
+    return scenario.members.map((member) => ({
+      ...member,
+      application: createRunApplication(member.application, runId, `${runId}-${member.id}`)
+    }));
   }
 
+  return [
+    {
+      id: scenario.id,
+      roleLabel: "Testperson",
+      application: createRunApplication(scenario.application, runId),
+      attributeAssignments: scenario.attributeAssignments,
+      membershipTest: scenario.membershipTest
+    }
+  ];
+}
+
+function getScenarioMembershipLabel(scenario: EbusyTestScenario) {
+  if (scenario.kind === "multi") {
+    return scenario.title;
+  }
+
+  return getMembershipLabel(scenario.application.membership_kind);
+}
+
+function prefixChecks(checks: EbusyTestCheck[], roleLabel: string) {
+  return checks.map((check) => ({
+    ...check,
+    label: `${roleLabel}: ${check.label}`
+  }));
+}
+
+function buildMemberPayloadPreview(members: EbusyTestScenarioMember[]) {
+  return members.map((member) => {
+    const personPayload = buildEbusyPersonPayloadFromApplication(member.application);
+    const attributePayload = member.attributeAssignments?.length
+      ? buildEbusyAttributePayload(member.attributeAssignments)
+      : undefined;
+    const membershipPayload = member.membershipTest
+      ? buildMembershipPreviewPayload(member.application, member.membershipTest)
+      : undefined;
+
+    return {
+      id: member.id,
+      role: member.roleLabel,
+      description: member.description,
+      person: personPayload,
+      attributes: attributePayload,
+      membership: membershipPayload
+    };
+  });
+}
+
+function getMemberAttributeAssignments(members: EbusyTestScenarioMember[]) {
+  return members
+    .filter((member) => member.attributeAssignments?.length)
+    .map((member) => ({
+      memberId: member.id,
+      roleLabel: member.roleLabel,
+      assignments: member.attributeAssignments ?? []
+    }));
+}
+
+async function runSingleEbusyTestLabAction(
+  input: {
+    scenarioId: string;
+    action: EbusyTestAction;
+  },
+  scenario: EbusySinglePersonTestScenario
+): Promise<EbusyTestLabResult> {
   const application = createRunApplication(scenario.application);
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
   const writeEnabled = process.env.EBUSY_TEST_LAB_WRITE_ENABLED === "true";
@@ -567,7 +1029,8 @@ export async function runEbusyTestLabAction(input: {
     scenario: {
       id: scenario.id,
       title: scenario.title,
-      membershipLabel: getMembershipLabel(application.membership_kind)
+      membershipLabel: getMembershipLabel(application.membership_kind),
+      kind: scenario.kind
     },
     payload: sanitizePayload({
       person: personPayload,

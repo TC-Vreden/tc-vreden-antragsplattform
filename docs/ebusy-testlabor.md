@@ -150,3 +150,13 @@ Diese Schritte sollen nach und nach ergänzt werden, sobald der jeweilige API-Sc
 - Der technische Lauf fuer `Kind bis 14 Jahre` zeigt anhand der eBuSy-Kontrolle: Attribute sowie Bankkonto/SEPA kommen korrekt an. Produktiv bleibt dieser Fall noch gesperrt, bis der Minderjaehrigen-/Vertreter-, PDF- und Mailprozess fachlich final ist.
 - Als naechster Testfall ist `Jugendliche bis 18 Jahre aktiv` vorbereitet. Dieser Fall bleibt bis zur Live-Bestaetigung noch nicht produktiv freigegeben.
 - Zusaetzlich gibt es nun den Button `Alle Datenpakete pruefen`. Dieser fuehrt fuer alle Testlabor-Szenarien nur Datenpaket-Pruefungen aus und schreibt nichts nach eBuSy.
+
+## Update 11.05.2026
+
+- Der technische Lauf fuer `Jugendliche bis 18 Jahre aktiv` wurde bestaetigt: Person, Bankkonto/SEPA, Attribute und einfache Mitgliedschaft kommen an. Produktiv bleibt der Fall trotzdem gesperrt, weil Minderjaehrigen-/Vertreter-, PDF- und Mailprozess fachlich finalisiert werden muessen.
+- Im Testlabor ist nun das Szenario `Familie mit 4 Personen` vorbereitet.
+- Dieses Szenario besteht aus zahlender Hauptperson, Partner:in, Kind und Jugendlicher Person.
+- Fuer dieses Szenario koennen nur Datenpakete, Personenanlage und vorgeschlagene Attribute getestet werden.
+- Mitgliedschaften, Beitragslogik, Familien-/Hauptzahlerbezug und gemeinsame Abrechnung bleiben fuer Mehrpersonen-Antraege bewusst gesperrt.
+- Hintergrund: eBuSy muss erst fachlich bestaetigt werden, ob Familienmitglieder ueber Attribute, Mitgliedschaften, Hauptzahler-Felder oder eine andere Verbindung abgebildet werden.
+- Bei Live-Tests muessen alle angelegten `TCV Testfamilie ...` Testpersonen anschliessend manuell in eBuSy geloescht werden.
