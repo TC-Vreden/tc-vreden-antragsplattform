@@ -2,7 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import type { ApplicationMatchSummary } from "@/lib/application-types";
-import { membershipOptions, salutationOptions } from "@/lib/application-options";
+import {
+  isReducedContributionMembership,
+  membershipOptions,
+  salutationOptions
+} from "@/lib/application-options";
 import {
   CONTRIBUTION_NOTES,
   CONTRIBUTION_ROWS,
@@ -77,10 +81,6 @@ function isValidIban(value: string) {
   }
 
   return remainder === 1;
-}
-
-function isReducedContributionMembership(value: string) {
-  return value === "student_active" || value === "student_passive";
 }
 
 function isLikelyMinorMembership(value: string) {

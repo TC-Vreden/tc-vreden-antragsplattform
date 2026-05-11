@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import type { ApplicationAdditionalMember, ApplicationRow } from "@/lib/application-types";
 import {
   getAdditionalMemberRelationLabel,
+  isReducedContributionMembership,
   membershipOptions,
   salutationOptions
 } from "@/lib/application-options";
@@ -123,6 +124,7 @@ export function ApplicationEditForm({ application, onCancel, onSaved }: Props) {
   const [form, setForm] = useState<ApplicationEditPayload>(() => createForm(application));
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const showReducedProofUntil = isReducedContributionMembership(form.membership_kind);
 
   function updateField<K extends keyof ApplicationEditPayload>(
     field: K,
@@ -237,15 +239,25 @@ export function ApplicationEditForm({ application, onCancel, onSaved }: Props) {
           <SelectField
             label="Mitgliedschaftsart"
             value={form.membership_kind}
-            onChange={(value) => updateField("membership_kind", value)}
+            onChange={(value) =>
+              setForm((current) => ({
+                ...current,
+                membership_kind: value,
+                student_status_until: isReducedContributionMembership(value)
+                  ? current.student_status_until
+                  : ""
+              }))
+            }
             options={[{ value: "", label: "Bitte auswählen" }, ...membershipOptions]}
           />
-          <TextField
-            label="Nachweis reduziert bis"
-            type="date"
-            value={form.student_status_until}
-            onChange={(value) => updateField("student_status_until", value)}
-          />
+          {showReducedProofUntil ? (
+            <TextField
+              label="Nachweis Schüler:innen / Azubis / Student:innen gültig bis"
+              type="date"
+              value={form.student_status_until}
+              onChange={(value) => updateField("student_status_until", value)}
+            />
+          ) : null}
         </div>
       </fieldset>
 

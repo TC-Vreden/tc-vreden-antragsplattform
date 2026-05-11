@@ -190,7 +190,7 @@ export const confirmationLegalSections: ConfirmationSection[] = [
 ];
 
 export const confirmationMailPreview = {
-  subject: "Bestätigung Ihrer Mitgliedschaft beim TennisClub Vreden e.V.",
+  subject: "Bestätigung deiner Mitgliedschaft beim TennisClub Vreden e.V.",
   bcc: clubContact.email,
   intro:
     "vielen Dank für den digitalen Mitgliedsantrag. Wir haben den Antrag intern geprüft und die Daten in unsere Vereinsverwaltung übernommen.",

@@ -47,6 +47,10 @@ export function getSalutationLabel(value: string | null | undefined) {
   return salutationOptions.find((option) => option.value === value)?.label ?? value ?? "-";
 }
 
+export function isReducedContributionMembership(value: string | null | undefined) {
+  return value === "student_active" || value === "student_passive";
+}
+
 export function isMultiPersonMembership(value: string | null | undefined) {
   return (
     value === "partner_active" ||

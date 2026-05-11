@@ -11,6 +11,7 @@ import {
   getAdditionalMemberRelationLabel,
   getMembershipLabel,
   getSalutationLabel,
+  isReducedContributionMembership,
   isMultiPersonMembership
 } from "@/lib/application-options";
 import { ApplicationEditForm } from "./application-edit-form";
@@ -824,10 +825,13 @@ export function ApplicationsTable({ applications }: Props) {
                     : "Kein Familienbezug erfasst"
                 }
               />
-              <DetailItem
-                label="Nachweis reduziert bis"
-                value={formatDate(application.student_status_until)}
-              />
+              {isReducedContributionMembership(application.membership_kind) ||
+              application.student_status_until ? (
+                <DetailItem
+                  label="Nachweis Schüler:innen / Azubis / Student:innen gültig bis"
+                  value={formatDate(application.student_status_until)}
+                />
+              ) : null}
             </DetailSection>
 
             <DetailSection title="Zusatzpersonen / Familienmitglieder">
