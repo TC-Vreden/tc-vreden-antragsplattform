@@ -149,3 +149,24 @@ Empfohlene Behandlung:
 - rechtliche Freigabe der Pflichttexte und der digitalen Bestaetigungsstrecke
 - Entscheidung, ob die vollstaendige oder maskierte IBAN in das PDF fuer den Antragsteller aufgenommen wird
 - Entscheidung, wie eBuSy-Benutzerpasswoerter spaeter an Mitglieder kommuniziert oder zurueckgesetzt werden
+
+## 9. Optische Vorschau im Prototyp
+
+Stand: 11.05.2026
+
+Es gibt jetzt eine interne Vorschauseite unter `/verwaltung/bestaetigung-vorschau`.
+
+Diese Vorschau ist noch kein produktiver PDF- oder Mailversand. Sie dient dazu, mit vollstaendig ausgefuellten Testdaten zu pruefen:
+
+- ob die spaetere PDF-Zusammenfassung gut lesbar und ablagefaehig ist
+- ob Logo, Vereinsfarben und Dokumentstruktur zum TennisClub-Vreden-Design passen
+- ob die Inhalte aus Mitgliedsantrag, Beitragsuebersicht, Jugendtraining-Information und Datenschutz-/Einwilligungstexten sinnvoll zusammengefuehrt sind
+- wie die spaetere HTML-Bestaetigungsmail aussehen kann
+
+Technisch vorbereitet:
+
+- zentrale Testdaten und Textbloecke in `src/lib/confirmation-document.ts`
+- interne Vorschauseite in `src/app/verwaltung/bestaetigung-vorschau/page.tsx`
+- Druck-/PDF-Vorschau ueber den Browserdruck
+
+Wichtig: Beim oeffentlichen Absenden des Formulars wird weiterhin kein PDF erzeugt und keine E-Mail verschickt. Die Vorschau bildet den Zielzeitpunkt nach interner Pruefung und erfolgreicher eBuSy-Uebernahme ab.

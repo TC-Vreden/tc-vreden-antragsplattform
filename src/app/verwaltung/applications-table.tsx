@@ -13,6 +13,7 @@ import {
   getSalutationLabel,
   isMultiPersonMembership
 } from "@/lib/application-options";
+import { ApplicationEditForm } from "./application-edit-form";
 
 type Props = {
   applications: ApplicationRow[];
@@ -23,6 +24,7 @@ type LocalState = {
   feedback?: ApplicationMatchSummary;
   candidatesExpanded?: boolean;
   detailsExpanded?: boolean;
+  editing?: boolean;
 };
 
 function getStatusLabel(status: string) {
@@ -526,6 +528,53 @@ export function ApplicationsTable({ applications }: Props) {
     }
   }
 
+  function startEditing(applicationId: string) {
+    setStates((current) => ({
+      ...current,
+      [applicationId]: {
+        ...current[applicationId],
+        editing: true,
+        detailsExpanded: false,
+        candidatesExpanded: false,
+        feedback: undefined
+      }
+    }));
+  }
+
+  function cancelEditing(applicationId: string) {
+    setStates((current) => ({
+      ...current,
+      [applicationId]: {
+        ...current[applicationId],
+        editing: false
+      }
+    }));
+  }
+
+  function handleApplicationSaved(
+    applicationId: string,
+    updatedApplication: ApplicationRow,
+    message: string
+  ) {
+    setRows((current) =>
+      current.map((application) =>
+        application.id === applicationId ? updatedApplication : application
+      )
+    );
+    setStates((current) => ({
+      ...current,
+      [applicationId]: {
+        ...current[applicationId],
+        loading: false,
+        editing: false,
+        feedback: {
+          status: "needs_review",
+          message
+        }
+      }
+    }));
+  }
+
   function toggleCandidates(applicationId: string) {
     setStates((current) => ({
       ...current,
@@ -570,6 +619,7 @@ export function ApplicationsTable({ applications }: Props) {
             const candidates = matchPayload?.candidates ?? [];
             const showCandidates = Boolean(localState?.candidatesExpanded) && candidates.length > 0;
             const showDetails = Boolean(localState?.detailsExpanded);
+            const editing = Boolean(localState?.editing);
             const multiPersonApplication = isMultiPersonApplication(application);
             const transferred = isTransferredApplication(application);
 
@@ -626,6 +676,18 @@ export function ApplicationsTable({ applications }: Props) {
                       >
                         {showDetails ? "Details ausblenden" : "Details anzeigen"}
                       </button>
+
+                      {!transferred ? (
+                        <button
+                          className="button secondary"
+                          type="button"
+                          disabled={Boolean(localState?.loading)}
+                          onClick={() => startEditing(application.id)}
+                          style={{ minWidth: 190 }}
+                        >
+                          {editing ? "Bearbeitung geöffnet" : "Antrag bearbeiten"}
+                        </button>
+                      ) : null}
 
                       {!transferred ? (
                         <button
@@ -696,8 +758,21 @@ export function ApplicationsTable({ applications }: Props) {
                   </td>
                 </tr>
 
-                {showDetails ? renderDetails(application, candidates, transferred) : null}
-                {showCandidates ? renderCandidates(application, candidates, localState) : null}
+                {editing ? (
+                  <tr>
+                    <td colSpan={6} style={{ background: "#fffdf6" }}>
+                      <ApplicationEditForm
+                        application={application}
+                        onCancel={() => cancelEditing(application.id)}
+                        onSaved={(updatedApplication, message) =>
+                          handleApplicationSaved(application.id, updatedApplication, message)
+                        }
+                      />
+                    </td>
+                  </tr>
+                ) : null}
+                {!editing && showDetails ? renderDetails(application, candidates, transferred) : null}
+                {!editing && showCandidates ? renderCandidates(application, candidates, localState) : null}
               </Fragment>
             );
           })}

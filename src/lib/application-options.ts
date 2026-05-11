@@ -32,8 +32,7 @@ export const membershipOptions: MembershipOption[] = [
 export const salutationOptions = [
   { value: "", label: "Bitte auswählen" },
   { value: "MALE", label: "Herr" },
-  { value: "FEMALE", label: "Frau" },
-  { value: "NONE", label: "Keine Anrede" }
+  { value: "FEMALE", label: "Frau" }
 ] as const;
 
 export function getMembershipLabel(value: string | null | undefined) {
@@ -41,6 +40,10 @@ export function getMembershipLabel(value: string | null | undefined) {
 }
 
 export function getSalutationLabel(value: string | null | undefined) {
+  if (value === "NONE") {
+    return "Keine Anrede";
+  }
+
   return salutationOptions.find((option) => option.value === value)?.label ?? value ?? "-";
 }
 

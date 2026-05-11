@@ -33,7 +33,7 @@ function isValidIban(value: string) {
 
 const familyMemberSchema = z.object({
   relation: z.enum(["partner", "child", "family_member"]).optional(),
-  salutation: z.enum(["FEMALE", "MALE", "NONE"]).or(z.literal("")).optional(),
+  salutation: z.enum(["FEMALE", "MALE"]).or(z.literal("")).optional(),
   firstName: z.string().trim().optional(),
   lastName: z.string().trim().optional(),
   birthDate: z.string().trim().optional(),
@@ -74,7 +74,7 @@ function isMissingColumnError(error: { message?: string } | null) {
 
 const applicationSchema = z
   .object({
-    salutation: z.enum(["FEMALE", "MALE", "NONE"]).or(z.literal("")).optional(),
+    salutation: z.enum(["FEMALE", "MALE"]).or(z.literal("")).optional(),
     firstName: z.string().trim().min(1, "Vorname fehlt."),
     lastName: z.string().trim().min(1, "Nachname fehlt."),
     birthDate: z.string().trim().optional(),
@@ -116,6 +116,14 @@ const applicationSchema = z
         code: z.ZodIssueCode.custom,
         path: ["birthDate"],
         message: "Das Geburtsdatum fehlt."
+      });
+    }
+
+    if (!value.salutation) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["salutation"],
+        message: "Die Anrede fehlt."
       });
     }
 
@@ -252,6 +260,14 @@ const applicationSchema = z
         });
       }
 
+      if (!member.salutation) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["familyMembers", index, "salutation"],
+          message: "Anrede der Zusatzperson fehlt."
+        });
+      }
+
       if (!member.lastName) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -320,11 +336,11 @@ export async function POST(request: NextRequest) {
     firstName: member.firstName ?? "",
     lastName: member.lastName ?? "",
     birthDate: member.birthDate ?? "",
-    email: member.email ?? "",
-    mobile: member.mobile ?? "",
-    street: member.street ?? "",
-    postalCode: member.postalCode ?? "",
-    city: member.city ?? ""
+    email: member.email || input.email,
+    mobile: member.mobile || input.mobile || "",
+    street: member.street || input.street || "",
+    postalCode: member.postalCode || input.postalCode || "",
+    city: member.city || input.city || ""
   }));
   let supabase;
 

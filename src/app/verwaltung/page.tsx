@@ -11,6 +11,7 @@ export default async function VerwaltungPage() {
   const { applications, error: applicationsError } = await getApplicationsForManagement();
   const isLiveMode = diagnostics.mode === "live";
   const testLabRoute = "/verwaltung/ebusy-testlabor" as Route;
+  const confirmationPreviewRoute = "/verwaltung/bestaetigung-vorschau" as Route;
 
   return (
     <main className="page-shell">
@@ -29,6 +30,9 @@ export default async function VerwaltungPage() {
           </Link>
           <Link className="button secondary" href={testLabRoute}>
             eBuSy-Testlabor öffnen
+          </Link>
+          <Link className="button secondary" href={confirmationPreviewRoute}>
+            Bestätigungsvorschau öffnen
           </Link>
         </div>
 

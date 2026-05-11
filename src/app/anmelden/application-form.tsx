@@ -38,6 +38,19 @@ type AdditionalMember = {
   city: string;
 };
 
+type MainContactDefaults = Pick<
+  AdditionalMember,
+  "email" | "mobile" | "street" | "postalCode" | "city"
+>;
+
+const emptyMainContactDefaults: MainContactDefaults = {
+  email: "",
+  mobile: "",
+  street: "",
+  postalCode: "",
+  city: ""
+};
+
 function normalizeIban(value: string) {
   return value.replace(/\s+/g, "").toUpperCase();
 }
@@ -84,7 +97,10 @@ function shouldShowJuniorTrainingNotice(value: string) {
   );
 }
 
-function createAdditionalMember(relation: AdditionalMemberRelation): AdditionalMember {
+function createAdditionalMember(
+  relation: AdditionalMemberRelation,
+  defaults: MainContactDefaults = emptyMainContactDefaults
+): AdditionalMember {
   return {
     id:
       globalThis.crypto?.randomUUID?.() ??
@@ -94,11 +110,11 @@ function createAdditionalMember(relation: AdditionalMemberRelation): AdditionalM
     firstName: "",
     lastName: "",
     birthDate: "",
-    email: "",
-    mobile: "",
-    street: "",
-    postalCode: "",
-    city: ""
+    email: defaults.email,
+    mobile: defaults.mobile,
+    street: defaults.street,
+    postalCode: defaults.postalCode,
+    city: defaults.city
   };
 }
 
@@ -146,6 +162,8 @@ export function ApplicationForm() {
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const [membershipKind, setMembershipKind] = useState("");
   const [additionalMembers, setAdditionalMembers] = useState<AdditionalMember[]>([]);
+  const [mainContactDefaults, setMainContactDefaults] =
+    useState<MainContactDefaults>(emptyMainContactDefaults);
   const [reducedContributionMode, setReducedContributionMode] = useState(false);
   const [iban, setIban] = useState("");
   const [acceptsSepa, setAcceptsSepa] = useState(false);
@@ -171,7 +189,10 @@ export function ApplicationForm() {
         return current;
       }
 
-      return [...current, createAdditionalMember(additionalMemberConfig.relation)];
+      return [
+        ...current,
+        createAdditionalMember(additionalMemberConfig.relation, mainContactDefaults)
+      ];
     });
   }
 
@@ -194,6 +215,13 @@ export function ApplicationForm() {
           : member
       )
     );
+  }
+
+  function updateMainContactDefault(field: keyof MainContactDefaults, value: string) {
+    setMainContactDefaults((current) => ({
+      ...current,
+      [field]: value
+    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -305,6 +333,7 @@ export function ApplicationForm() {
       form.reset();
       setMembershipKind("");
       setAdditionalMembers([]);
+      setMainContactDefaults(emptyMainContactDefaults);
       setReducedContributionMode(false);
       setIban("");
       setAcceptsSepa(false);
@@ -396,10 +425,10 @@ export function ApplicationForm() {
       <h2 style={{ fontSize: "1.15rem" }}>Hauptperson</h2>
 
       <div className="field">
-        <label htmlFor="salutation">Anrede</label>
-        <select id="salutation" name="salutation">
+        <label htmlFor="salutation">Anrede*</label>
+        <select id="salutation" name="salutation" required defaultValue="">
           {salutationOptions.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} disabled={option.value === ""}>
               {option.label}
             </option>
           ))}
@@ -424,7 +453,13 @@ export function ApplicationForm() {
         </div>
         <div className="field">
           <label htmlFor="email">E-Mail*</label>
-          <input id="email" name="email" type="email" required />
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            onChange={(event) => updateMainContactDefault("email", event.target.value)}
+          />
         </div>
       </div>
 
@@ -435,24 +470,44 @@ export function ApplicationForm() {
         </div>
         <div className="field">
           <label htmlFor="mobile">Mobil*</label>
-          <input id="mobile" name="mobile" required />
+          <input
+            id="mobile"
+            name="mobile"
+            required
+            onChange={(event) => updateMainContactDefault("mobile", event.target.value)}
+          />
         </div>
       </div>
 
       <div className="grid grid-2">
         <div className="field">
           <label htmlFor="street">Strasse*</label>
-          <input id="street" name="street" required />
+          <input
+            id="street"
+            name="street"
+            required
+            onChange={(event) => updateMainContactDefault("street", event.target.value)}
+          />
         </div>
         <div className="field">
           <label htmlFor="postalCode">PLZ*</label>
-          <input id="postalCode" name="postalCode" required />
+          <input
+            id="postalCode"
+            name="postalCode"
+            required
+            onChange={(event) => updateMainContactDefault("postalCode", event.target.value)}
+          />
         </div>
       </div>
 
       <div className="field">
         <label htmlFor="city">Ort*</label>
-        <input id="city" name="city" required />
+        <input
+          id="city"
+          name="city"
+          required
+          onChange={(event) => updateMainContactDefault("city", event.target.value)}
+        />
       </div>
 
       <div className="card" style={{ padding: 18 }}>
@@ -532,8 +587,10 @@ export function ApplicationForm() {
           <h2 style={{ fontSize: "1.15rem" }}>{additionalMemberConfig.title}</h2>
           <p>{additionalMemberConfig.intro}</p>
           <p style={{ color: "var(--muted)" }}>
-            Pflichtfelder für Zusatzpersonen: Vorname, Nachname und Geburtsdatum. E-Mail, Mobil
-            und Adresse sind optional.
+            Pflichtfelder für Zusatzpersonen: Anrede, Vorname, Nachname und Geburtsdatum.
+            E-Mail, Mobil und Adresse werden beim Hinzufügen mit den Angaben der Hauptperson
+            vorbelegt und können bei Bedarf angepasst werden. Leere Kontakt- und Adressfelder
+            werden beim Speichern von der Hauptperson übernommen.
           </p>
 
           {additionalMembers.map((member, index) => (
@@ -565,16 +622,17 @@ export function ApplicationForm() {
                 </button>
               </div>
               <div className="field">
-                <label htmlFor={`${member.id}-salutation`}>Anrede</label>
+                <label htmlFor={`${member.id}-salutation`}>Anrede*</label>
                 <select
                   id={`${member.id}-salutation`}
                   value={member.salutation}
+                  required
                   onChange={(event) =>
                     updateAdditionalMember(member.id, "salutation", event.target.value)
                   }
                 >
                   {salutationOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} disabled={option.value === ""}>
                       {option.label}
                     </option>
                   ))}

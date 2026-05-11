@@ -120,6 +120,7 @@ function buildAdditionalMemberApplication(
 
 function validateAdditionalMember(member: ApplicationAdditionalMember, index: number) {
   const missingFields = [
+    ["Anrede", member.salutation],
     ["Vorname", member.firstName],
     ["Nachname", member.lastName],
     ["Geburtsdatum", member.birthDate]
