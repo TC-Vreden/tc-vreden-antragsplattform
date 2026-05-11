@@ -47,6 +47,7 @@ export type ApplicationMatchSummary = {
   message: string;
   externalPersonId?: string | null;
   candidateCount?: number;
+  matchPayload?: ApplicationMatchPayload;
 };
 
 export type ApplicationMatchCandidate = {
@@ -83,6 +84,36 @@ export type ApplicationMatchPayload = {
     externalMembershipId: string;
     displayName?: string;
   };
+  createdPeople?: ApplicationCreatedEbusyPerson[];
+  createdMemberships?: ApplicationCreatedEbusyMembership[];
+  takeoverSteps?: ApplicationEbusyTakeoverStep[];
+  takeoverWarnings?: string[];
+};
+
+export type ApplicationCreatedEbusyPerson = {
+  memberId?: string;
+  roleLabel?: string;
+  externalPersonId: string;
+  displayName?: string;
+  customerId?: string;
+  personCode?: string;
+};
+
+export type ApplicationCreatedEbusyMembership = {
+  memberId?: string;
+  roleLabel?: string;
+  externalMembershipId: string;
+  displayName?: string;
+  personId?: string;
+  membershipNumber?: string;
+};
+
+export type ApplicationEbusyTakeoverStep = {
+  memberId?: string;
+  roleLabel?: string;
+  step: "person" | "attributes" | "membership";
+  status: "success" | "skipped" | "error";
+  message: string;
 };
 
 export type ApplicationInput = {

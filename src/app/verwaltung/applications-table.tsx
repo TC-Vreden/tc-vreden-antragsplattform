@@ -113,7 +113,6 @@ function needsManualReview(application: ApplicationRow) {
 
 function canCreateEbusyPerson(application: ApplicationRow) {
   return (
-    !isMultiPersonApplication(application) &&
     !application.ebusy_person_id &&
     ["no_match", "needs_review", "multiple_matches"].includes(application.ebusy_match_status)
   );
@@ -139,6 +138,83 @@ function DetailSection({ title, children }: { title: string; children: ReactNode
       <h3 style={{ fontSize: "1rem", marginBottom: 10 }}>{title}</h3>
       <div className="grid grid-2">{children}</div>
     </section>
+  );
+}
+
+function TakeoverDetails({ payload }: { payload: ApplicationMatchPayload | null }) {
+  const createdPeople = payload?.createdPeople ?? [];
+  const createdMemberships = payload?.createdMemberships ?? [];
+  const takeoverWarnings = payload?.takeoverWarnings ?? [];
+  const takeoverSteps = payload?.takeoverSteps ?? [];
+
+  if (
+    createdPeople.length === 0 &&
+    createdMemberships.length === 0 &&
+    takeoverWarnings.length === 0 &&
+    takeoverSteps.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <div style={{ gridColumn: "1 / -1", display: "grid", gap: 12 }}>
+      {takeoverWarnings.length > 0 ? (
+        <div className="warning-box">
+          <strong>Offene Prüfpunkte</strong>
+          <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+            {takeoverWarnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {createdPeople.length > 0 ? (
+        <div>
+          <strong>Angelegte eBuSy-Personen</strong>
+          <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+            {createdPeople.map((person) => (
+              <li key={`${person.memberId ?? person.externalPersonId}-${person.externalPersonId}`}>
+                {person.roleLabel ?? "Person"}: {person.displayName ?? person.externalPersonId}
+                {" "}({person.customerId ? `Kundennummer ${person.customerId}` : `eBuSy-ID ${person.externalPersonId}`})
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {createdMemberships.length > 0 ? (
+        <div>
+          <strong>Angelegte einfache Mitgliedschaften</strong>
+          <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+            {createdMemberships.map((membership) => (
+              <li
+                key={`${membership.memberId ?? membership.externalMembershipId}-${membership.externalMembershipId}`}
+              >
+                {membership.roleLabel ?? "Person"}:{" "}
+                {membership.displayName ?? membership.externalMembershipId}
+                {membership.membershipNumber ? `, Mitgliedsnummer ${membership.membershipNumber}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {takeoverSteps.length > 0 ? (
+        <details>
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            Übernahmeschritte anzeigen ({takeoverSteps.length})
+          </summary>
+          <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+            {takeoverSteps.map((step, index) => (
+              <li key={`${step.memberId ?? "step"}-${step.step}-${index}`}>
+                {step.roleLabel ?? "Person"} / {step.step}: {step.message}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </div>
   );
 }
 
@@ -296,26 +372,26 @@ export function ApplicationsTable({ applications }: Props) {
       ? `${application.first_name} ${application.last_name}`.trim()
       : "diesen Antrag";
 
-    if (!application || isMultiPersonApplication(application)) {
+    if (!application) {
       setStates((current) => ({
         ...current,
         [applicationId]: {
           ...current[applicationId],
           feedback: {
             status: "error",
-            message:
-              "Mehrpersonen-Anträge werden noch nicht automatisch angelegt. Bitte die Mehrpersonen-Anlage vorbereiten."
+            message: "Antrag wurde in der lokalen Liste nicht gefunden."
           }
         }
       }));
       return;
     }
 
-    if (
-      !window.confirm(
-        `Soll für ${displayName} jetzt wirklich eine neue Person in eBuSy angelegt werden?`
-      )
-    ) {
+    const multiPersonApplication = isMultiPersonApplication(application);
+    const confirmMessage = multiPersonApplication
+      ? `Soll der Mehrpersonen-Antrag für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nEs werden die Hauptperson und ${application.family_members.length} Zusatzperson(en) nacheinander angelegt. Attribute und einfache Mitgliedschaften werden gesetzt. Familien-/Hauptzahlerbezug und Beitragsarten bleiben zur Prüfung offen.`
+      : `Soll für ${displayName} jetzt wirklich eine neue Person mit Attributen und einfacher Mitgliedschaft in eBuSy angelegt werden?`;
+
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -360,18 +436,19 @@ export function ApplicationsTable({ applications }: Props) {
                 updated_at: now,
                 ebusy_match_status: payload.status,
                 ebusy_person_id: payload.externalPersonId ?? row.ebusy_person_id,
-                ebusy_match_payload: {
-                  status: payload.status,
-                  source: "live",
-                  message: payload.message,
-                  candidates: row.ebusy_match_payload?.candidates ?? [],
-                  createdPerson: payload.externalPersonId
-                    ? {
-                        externalPersonId: payload.externalPersonId,
-                        displayName
-                      }
-                    : undefined
-                }
+                ebusy_match_payload:
+                  payload.matchPayload ?? {
+                    status: payload.status,
+                    source: "live",
+                    message: payload.message,
+                    candidates: row.ebusy_match_payload?.candidates ?? [],
+                    createdPerson: payload.externalPersonId
+                      ? {
+                          externalPersonId: payload.externalPersonId,
+                          displayName
+                        }
+                      : undefined
+                  }
               }
             : row
         )
@@ -585,23 +662,19 @@ export function ApplicationsTable({ applications }: Props) {
                           className="button secondary"
                           type="button"
                           disabled={Boolean(localState?.loading)}
-                          title="Legt aus diesem Einzelpersonen-Antrag eine neue Person in eBuSy an."
+                          title={
+                            multiPersonApplication
+                              ? "Übernimmt Hauptperson und Zusatzpersonen nacheinander nach eBuSy. Familien-/Hauptzahlerbezug und Beitragsarten bleiben Prüfpunkte."
+                              : "Legt aus diesem Antrag eine neue Person in eBuSy an."
+                          }
                           onClick={() => handleCreateEbusy(application.id)}
                           style={{ minWidth: 190 }}
                         >
-                          {localState?.loading ? "Anlage läuft..." : "In eBuSy anlegen"}
-                        </button>
-                      ) : null}
-
-                      {!transferred && multiPersonApplication ? (
-                        <button
-                          className="button secondary"
-                          type="button"
-                          disabled
-                          title="Mehrpersonen-Anträge brauchen zuerst eine eigene Batch-Routine."
-                          style={{ minWidth: 190 }}
-                        >
-                          Mehrpersonen-Anlage vorbereiten
+                          {localState?.loading
+                            ? "Anlage läuft..."
+                            : multiPersonApplication
+                              ? "Mehrpersonen übernehmen"
+                              : "In eBuSy anlegen"}
                         </button>
                       ) : null}
 
@@ -646,8 +719,10 @@ export function ApplicationsTable({ applications }: Props) {
               <div className="warning-box">
                 <strong>Mehrpersonen-Antrag</strong>
                 <p style={{ margin: "8px 0 0" }}>
-                  Dieser Antrag enthält mehrere Personen. Die automatische eBuSy-Anlage ist hier
-                  gesperrt, damit nicht versehentlich nur die Hauptperson angelegt wird.
+                  Dieser Antrag enthält mehrere Personen. Die Übernahme legt Hauptperson und
+                  Zusatzpersonen nacheinander an und setzt einfache Mitgliedschaften. Familien-/
+                  Hauptzahlerbezug, Beitragsarten und noch nicht bestätigte Attribute bleiben
+                  Prüfpunkte.
                 </p>
               </div>
             ) : null}
@@ -762,6 +837,7 @@ export function ApplicationsTable({ applications }: Props) {
                 label="Übertragen am"
                 value={formatDate(application.transferred_at)}
               />
+              <TakeoverDetails payload={application.ebusy_match_payload as ApplicationMatchPayload | null} />
             </DetailSection>
           </div>
         </td>
