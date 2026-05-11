@@ -356,8 +356,9 @@ So reduzieren wir manuelle Arbeit schrittweise, ohne dass eBuSy halb gefüllte o
 
 - Der technische Testpfad fuer `youth_active` / `Jugendliche bis 18 Jahre aktiv` wurde live bestaetigt: Person, Bankkonto/SEPA, Attribute und einfache Mitgliedschaft kommen an. Produktiv bleibt der Minderjaehrigenfall weiterhin gesperrt, bis Vertreter-, PDF- und Mailprozess fachlich abgenommen sind.
 - Im eBuSy-Testlabor ist ein Mehrpersonen-Szenario `Familie mit 4 Personen` vorbereitet.
-- Dieses Szenario kann ein Datenpaket fuer Hauptperson, Partner:in, Kind und jugendliche Person erzeugen, alle vier Testpersonen anlegen und vorgeschlagene Attribute setzen.
-- Bewusst nicht geschrieben werden: Mitgliedschaften je Person, Beitragsarten, Familien-/Haushaltsbezug, Hauptzahler-/Beitragszahlerbezug und gemeinsame Abrechnung.
+- Dieses Szenario kann ein Datenpaket fuer Hauptperson, Partner:in, Kind und jugendliche Person erzeugen, alle vier Testpersonen anlegen, vorgeschlagene Attribute setzen und einfache Test-Mitgliedschaften je Person schreiben.
+- Die einfache Test-Mitgliedschaft setzt `Ist Mitglied?`, Status `ACTIVE`, Abteilung `Tennis`, Eintrittsdatum und Kundennummer als Mitgliedsnummer.
+- Bewusst nicht geschrieben werden: Beitragsarten, Familien-/Haushaltsbezug, Hauptzahler-/Beitragszahlerbezug und gemeinsame Abrechnung.
 - Vorgeschlagenes, noch vom Vorstand zu bestaetigendes Mapping:
   - Hauptperson/Familienzahler: `Status Quo - Beitragsarten TENNIS RW` = `3 Familienbeitrag`, `Mitgliedsbeitraege NEU` = `Familien`, `Status Quo TCH` = `Familienbeitrag`.
   - Partner:in und Kinder im Familienantrag: `Status Quo - Beitragsarten TENNIS RW` = `9 beitragsfrei z.B. wg. Familienzugehoerigkeit`, `Mitgliedsbeitraege NEU` = `Beitragsfreie Familienangehoerige`, `Status Quo TCH` = `Beitragsfrei Familie`.

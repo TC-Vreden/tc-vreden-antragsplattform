@@ -109,6 +109,9 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
       const writesMembership =
         action === "create_person_with_membership" ||
         action === "create_person_with_attributes_and_membership";
+      const membershipConfirmationText = selectedScenarioIsMulti
+        ? "Zusaetzlich wird je Testperson eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Beitragsarten und Familien-/Hauptzahlerbezug werden noch nicht geschrieben.\n\n"
+        : "Zusaetzlich wird eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Eine Beitragsart wird noch nicht geschrieben.\n\n";
       const confirmationText =
         `Soll jetzt wirklich ${selectedScenarioIsMulti ? "mehrere eBuSy-Testpersonen" : "eine eBuSy-Testperson"} angelegt werden?\n\n` +
         (writesAttributes
@@ -116,9 +119,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             ? "Zusätzlich werden die vorgeschlagenen Test-Attribute für alle Testpersonen gesetzt.\n\n"
             : "Zusätzlich werden die Test-Attribute für dieses Szenario gesetzt.\n\n"
           : "") +
-        (writesMembership
-          ? "Zusätzlich wird eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Eine Beitragsart wird noch nicht geschrieben.\n\n"
-          : "") +
+        (writesMembership ? membershipConfirmationText : "") +
         `${selectedScenarioIsMulti ? "Die Testpersonen werden" : "Die Testperson wird"} nicht automatisch gelöscht und ${selectedScenarioIsMulti ? "müssen" : "muss"} nach der Prüfung in eBuSy entfernt werden.`;
 
       if (!window.confirm(confirmationText)) {
@@ -418,6 +419,20 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
                     {person.externalPersonId}
                     {person.customerId ? `, Kundennummer: ${person.customerId}` : ""}
                     {person.personCode ? `, persönlicher Code: ${person.personCode}` : ""})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {result.createdMemberships?.length ? (
+            <div className="hint-box" style={{ marginTop: 16 }}>
+              <strong>Angelegte Test-Mitgliedschaften</strong>
+              <ul className="list" style={{ marginTop: 8 }}>
+                {result.createdMemberships.map((membership) => (
+                  <li key={`${membership.memberId}-${membership.externalMembershipId}`}>
+                    {membership.roleLabel}: {membership.displayName} (ID:{" "}
+                    {membership.externalMembershipId})
                   </li>
                 ))}
               </ul>

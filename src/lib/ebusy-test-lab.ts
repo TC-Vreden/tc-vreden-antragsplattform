@@ -97,13 +97,27 @@ export type EbusyTestLabResult = {
     externalMembershipId: string;
     displayName: string;
   };
+  createdMemberships?: Array<{
+    memberId: string;
+    roleLabel: string;
+    externalMembershipId: string;
+    displayName: string;
+  }>;
   checks: EbusyTestCheck[];
   cleanupHint?: string;
 };
 
 type EbusyTestCreatedPerson = NonNullable<EbusyTestLabResult["createdPersons"]>[number];
+type EbusyTestCreatedMembership = NonNullable<EbusyTestLabResult["createdMemberships"]>[number];
 
 const TEST_MARKER = "AUTOMATISCHER EBUSY-TEST - darf geloescht werden";
+const SIMPLE_ACTIVE_TENNIS_MEMBERSHIP: EbusyMembershipWriteConfig = {
+  moduleId: 4,
+  sectionIds: [1],
+  membershipTypeId: null,
+  consideredActive: true,
+  status: "ACTIVE"
+};
 
 function createBaseApplication(overrides: Partial<ApplicationRow>): ApplicationRow {
   const now = new Date().toISOString();
@@ -174,7 +188,7 @@ async function runMultiEbusyTestLabAction(
       runId,
       members: memberPayloadPreview,
       safetyNote:
-        "Mehrpersonen-Test: Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug werden noch nicht geschrieben."
+        "Mehrpersonen-Test: einfache Mitgliedschaften koennen je Person geschrieben werden. Beitragslogik und Familien-/Hauptzahlerbezug werden noch nicht geschrieben."
     }),
     memberAttributeAssignments
   };
@@ -195,12 +209,6 @@ async function runMultiEbusyTestLabAction(
     input.action === "create_person_with_membership" ||
     input.action === "create_person_with_attributes_and_membership";
 
-  if (shouldCreateMembership) {
-    throw new Error(
-      "Für Mehrpersonen-Anträge ist der Mitgliedschafts-, Beitrags- und Familienbezug noch nicht sicher geklärt. Es wurde nichts in eBuSy geschrieben."
-    );
-  }
-
   if (!writeEnabled) {
     throw new Error(
       "Live-Schreibtests sind serverseitig gesperrt. Setze EBUSY_TEST_LAB_WRITE_ENABLED=true, wenn du bewusst eBuSy-Testpersonen anlegen willst."
@@ -208,6 +216,7 @@ async function runMultiEbusyTestLabAction(
   }
 
   const createdPersons: EbusyTestCreatedPerson[] = [];
+  const createdMemberships: EbusyTestCreatedMembership[] = [];
   const checks: EbusyTestCheck[] = [];
 
   try {
@@ -235,6 +244,53 @@ async function runMultiEbusyTestLabAction(
         checks.push(
           ...prefixChecks(
             compareAttributeAssignmentsWithPerson(member.attributeAssignments, readBack),
+            member.roleLabel
+          )
+        );
+      }
+
+      if (shouldCreateMembership) {
+        if (!member.membershipTest) {
+          throw new Error(`Fuer ${member.roleLabel} ist kein Mitgliedschaftstest hinterlegt.`);
+        }
+
+        const personId = Number(createdPerson.externalPersonId);
+
+        if (!Number.isInteger(personId)) {
+          throw new Error(
+            `${member.roleLabel}: Die eBuSy-Person-ID ${createdPerson.externalPersonId} konnte nicht als Zahl verarbeitet werden.`
+          );
+        }
+
+        const membershipPayload = buildMembershipPayload(
+          member.application,
+          personId,
+          member.membershipTest,
+          resultCreatedPerson.customerId
+        );
+        const createdMembership = await createEbusyMembership(
+          member.membershipTest.moduleId,
+          membershipPayload
+        );
+        const memberships = await getEbusyMembershipsByPersonId(member.membershipTest.moduleId, personId);
+        const readBackMembership =
+          memberships.find(
+            (membership) => String(membership.id) === createdMembership.externalMembershipId
+          ) ?? memberships[0];
+
+        if (!readBackMembership) {
+          throw new Error(`${member.roleLabel}: Die neue Mitgliedschaft konnte nicht zurueckgelesen werden.`);
+        }
+
+        createdMemberships.push({
+          memberId: member.id,
+          roleLabel: member.roleLabel,
+          externalMembershipId: createdMembership.externalMembershipId,
+          displayName: createdMembership.displayName
+        });
+        checks.push(
+          ...prefixChecks(
+            compareMembershipPayloadWithMembership(membershipPayload, readBackMembership),
             member.roleLabel
           )
         );
@@ -269,10 +325,15 @@ async function runMultiEbusyTestLabAction(
 
   return {
     ...baseResult,
-    message: shouldSetAttributes
-      ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, vorgeschlagene Test-Attribute wurden gesetzt und alle Datensätze wurden direkt wieder ausgelesen. Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben."
-      : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt und direkt wieder ausgelesen. Attribute, Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben.",
+    message: shouldCreateMembership
+      ? shouldSetAttributes
+        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, vorgeschlagene Test-Attribute wurden gesetzt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Beitragslogik, Beitragsarten und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben."
+        : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Attribute, Beitragslogik, Beitragsarten und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben."
+      : shouldSetAttributes
+        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, vorgeschlagene Test-Attribute wurden gesetzt und alle Datensaetze wurden direkt wieder ausgelesen. Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben."
+        : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt und direkt wieder ausgelesen. Attribute, Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben.",
     createdPersons,
+    createdMemberships,
     checks,
     cleanupHint
   };
@@ -511,7 +572,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "family_four_persons",
     title: "Familie mit 4 Personen",
     description:
-      "Kontrollierter Mehrpersonen-Test fuer eine Familie mit zahlender Hauptperson, Partner:in und zwei Kindern. Der Test kann Personen und vorgeschlagene Attribute schreiben; Mitgliedschaften, Beitragslogik und Familienverknuepfung bleiben bewusst gesperrt.",
+      "Kontrollierter Mehrpersonen-Test fuer eine Familie mit zahlender Hauptperson, Partner:in und zwei Kindern. Der Test kann Personen, vorgeschlagene Attribute und einfache Mitgliedschaften je Person schreiben; Beitragslogik und Familienverknuepfung bleiben bewusst gesperrt.",
     members: [
       {
         id: "family_main",
@@ -573,7 +634,8 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
             valueId: 32,
             valueName: "Familienbeitrag"
           }
-        ]
+        ],
+        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP
       },
       {
         id: "family_partner",
@@ -615,7 +677,8 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
             valueId: 26,
             valueName: "Beitragsfrei Familie"
           }
-        ]
+        ],
+        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP
       },
       {
         id: "family_child",
@@ -661,7 +724,8 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
             valueId: 26,
             valueName: "Beitragsfrei Familie"
           }
-        ]
+        ],
+        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP
       },
       {
         id: "family_youth",
@@ -707,7 +771,8 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
             valueId: 26,
             valueName: "Beitragsfrei Familie"
           }
-        ]
+        ],
+        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP
       }
     ]
   }
