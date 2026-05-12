@@ -391,7 +391,7 @@ export function ApplicationsTable({ applications }: Props) {
 
     const multiPersonApplication = isMultiPersonApplication(application);
     const confirmMessage = multiPersonApplication
-      ? `Soll der Mehrpersonen-Antrag für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nEs werden die Hauptperson und ${application.family_members.length} Zusatzperson(en) nacheinander angelegt. Attribute und einfache Mitgliedschaften werden gesetzt. Familien-/Hauptzahlerbezug und Beitragsarten bleiben zur Prüfung offen.`
+      ? `Soll der Mehrpersonen-Antrag für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nEs werden die Hauptperson und ${application.family_members.length} Zusatzperson(en) nacheinander angelegt. Attribute und einfache Mitgliedschaften werden gesetzt. Die angewendete Familien- und Beitragslogik bleibt fachlich durch den Vorstand zu bestätigen.`
       : `Soll für ${displayName} jetzt wirklich eine neue Person mit Attributen und einfacher Mitgliedschaft in eBuSy angelegt werden?`;
 
     if (!window.confirm(confirmMessage)) {
@@ -727,7 +727,7 @@ export function ApplicationsTable({ applications }: Props) {
                           disabled={Boolean(localState?.loading)}
                           title={
                             multiPersonApplication
-                              ? "Übernimmt Hauptperson und Zusatzpersonen nacheinander nach eBuSy. Familien-/Hauptzahlerbezug und Beitragsarten bleiben Prüfpunkte."
+                              ? "Übernimmt Hauptperson und Zusatzpersonen nacheinander nach eBuSy. Die Familien- und Beitragslogik bleibt fachlich vom Vorstand zu bestätigen."
                               : "Legt aus diesem Antrag eine neue Person in eBuSy an."
                           }
                           onClick={() => handleCreateEbusy(application.id)}
@@ -796,9 +796,9 @@ export function ApplicationsTable({ applications }: Props) {
                 <strong>Mehrpersonen-Antrag</strong>
                 <p style={{ margin: "8px 0 0" }}>
                   Dieser Antrag enthält mehrere Personen. Die Übernahme legt Hauptperson und
-                  Zusatzpersonen nacheinander an und setzt einfache Mitgliedschaften. Familien-/
-                  Hauptzahlerbezug, Beitragsarten und noch nicht bestätigte Attribute bleiben
-                  Prüfpunkte.
+                  Zusatzpersonen nacheinander an und setzt einfache Mitgliedschaften. Die
+                  angewendete Familien- und Beitragslogik bleibt fachlich durch den Vorstand zu
+                  bestätigen.
                 </p>
               </div>
             ) : null}

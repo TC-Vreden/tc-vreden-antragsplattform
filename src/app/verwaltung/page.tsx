@@ -79,9 +79,9 @@ export default async function VerwaltungPage() {
             Person nach eBuSy übertragen wurden.
           </p>
           <p style={{ margin: "10px 0 0" }}>
-            Einzelpersonen können weiterhin nach eBuSy übertragen werden. Mehrpersonen-Anträge
-            werden bewusst gekennzeichnet und noch nicht automatisch angelegt, bis die sichere
-            Familien- und Beitragslogik geklärt ist.
+            Einzelpersonen und Mehrpersonen-Anträge können nach eBuSy übertragen werden.
+            Mehrpersonen-Anträge werden weiterhin bewusst gekennzeichnet, weil die angewendete
+            Familien- und Beitragslogik noch fachlich durch den Vorstand bestätigt werden muss.
           </p>
         </article>
 
