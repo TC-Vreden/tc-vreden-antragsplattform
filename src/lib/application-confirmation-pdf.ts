@@ -54,6 +54,7 @@ const yellow = rgb(1, 0.86, 0);
 const softYellow = rgb(1, 0.97, 0.76);
 const borderColor = rgb(0.86, 0.80, 0.68);
 const black = rgb(0.08, 0.08, 0.07);
+const germanTimeZone = "Europe/Berlin";
 
 function pdfText(value: string | number | boolean | null | undefined) {
   return String(value ?? "-")
@@ -84,12 +85,14 @@ function formatDate(value: string | null | undefined) {
         month: "2-digit",
         year: "numeric",
         hour: "2-digit",
-        minute: "2-digit"
+        minute: "2-digit",
+        timeZone: germanTimeZone
       }
     : {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric"
+        year: "numeric",
+        timeZone: germanTimeZone
       }).format(date);
 }
 

@@ -30,6 +30,8 @@ type ApplicationConfirmationEmailInput = {
   matchPayload: ApplicationMatchPayload;
 };
 
+const germanTimeZone = "Europe/Berlin";
+
 function isConfirmationEmailEnabled() {
   const explicitValue = getMailEnv("APPLICATION_CONFIRMATION_EMAIL_ENABLED");
 
@@ -66,14 +68,16 @@ function formatDate(value: string | null | undefined) {
       month: "2-digit",
       year: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
+      timeZone: germanTimeZone
     }).format(date);
   }
 
   return new Intl.DateTimeFormat("de-DE", {
     day: "2-digit",
     month: "2-digit",
-    year: "numeric"
+    year: "numeric",
+    timeZone: germanTimeZone
   }).format(date);
 }
 

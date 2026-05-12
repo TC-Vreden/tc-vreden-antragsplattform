@@ -55,7 +55,12 @@ function formatDate(value: string | null | undefined) {
     return "-";
   }
 
-  return new Date(value).toLocaleDateString("de-DE");
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Europe/Berlin",
+    year: "numeric"
+  }).format(new Date(value));
 }
 
 function displayValue(value: string | null | undefined) {

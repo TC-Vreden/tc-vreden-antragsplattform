@@ -200,11 +200,14 @@ export const confirmationMailPreview = {
     "Freiwillige Einwilligungen, zum Beispiel Foto/Video oder WhatsApp-Kommunikation, können jederzeit mit Wirkung für die Zukunft widerrufen werden."
 };
 
+const germanTimeZone = "Europe/Berlin";
+
 export function formatGermanDate(value: string) {
   return new Intl.DateTimeFormat("de-DE", {
     day: "2-digit",
     month: "2-digit",
-    year: "numeric"
+    year: "numeric",
+    timeZone: germanTimeZone
   }).format(new Date(`${value}T00:00:00`));
 }
 
@@ -214,7 +217,8 @@ export function formatGermanDateTime(value: string) {
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    timeZone: germanTimeZone
   }).format(new Date(value));
 }
 

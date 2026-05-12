@@ -47,6 +47,8 @@ type MailPayload = {
   text: string;
 };
 
+const germanTimeZone = "Europe/Berlin";
+
 function getEnv(name: string) {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
@@ -133,7 +135,8 @@ function formatDate(value: string | null | undefined) {
     month: "2-digit",
     year: "numeric",
     hour: value.includes("T") ? "2-digit" : undefined,
-    minute: value.includes("T") ? "2-digit" : undefined
+    minute: value.includes("T") ? "2-digit" : undefined,
+    timeZone: germanTimeZone
   }).format(date);
 }
 
