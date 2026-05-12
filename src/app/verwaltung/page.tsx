@@ -18,7 +18,7 @@ export default async function VerwaltungPage() {
       <section className="card">
         <TcVredenLogo />
         <span className="eyebrow">Interner Bereich</span>
-        <h1 style={{ maxWidth: "unset", fontSize: "2.5rem" }}>Verwaltungsbereich</h1>
+        <h1 className="page-title">Verwaltungsbereich</h1>
         <p>
           Diese Ansicht ist für die interne Bearbeitung gedacht. Sensible eBuSy-Daten werden
           serverseitig abgefragt und nur in stark reduzierter Form angezeigt.

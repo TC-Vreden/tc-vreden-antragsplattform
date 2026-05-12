@@ -825,8 +825,7 @@ export function ApplicationsTable({ applications }: Props) {
                     : "Kein Familienbezug erfasst"
                 }
               />
-              {isReducedContributionMembership(application.membership_kind) ||
-              application.student_status_until ? (
+              {isReducedContributionMembership(application.membership_kind) ? (
                 <DetailItem
                   label="Nachweis Schüler:innen / Azubis / Student:innen gültig bis"
                   value={formatDate(application.student_status_until)}

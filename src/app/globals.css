@@ -73,10 +73,11 @@ h3 {
 
 h1 {
   font-family: var(--font-heading), Impact, sans-serif;
-  font-size: clamp(2.2rem, 5vw, 4.5rem);
+  font-size: 4.5rem;
   max-width: 12ch;
   letter-spacing: 0.01em;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 h2 {
@@ -118,6 +119,12 @@ p {
   font-family: var(--font-heading), Impact, sans-serif;
   font-size: 1.35rem;
   letter-spacing: 0.04em;
+}
+
+.page-title {
+  max-width: none;
+  font-size: 2.5rem;
+  line-height: 1.12;
 }
 
 .grid {
@@ -297,4 +304,51 @@ p {
   padding: 12px;
   border-bottom: 1px solid var(--line);
   text-align: left;
+}
+
+@media (max-width: 900px) {
+  h1 {
+    font-size: 3.2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    padding: 22px 14px 52px;
+  }
+
+  .card,
+  .hero {
+    padding: 20px;
+  }
+
+  h1 {
+    max-width: 100%;
+    font-size: 2.25rem;
+    line-height: 1.14;
+  }
+
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .brand-lockup {
+    gap: 10px;
+  }
+
+  .brand-wordmark span {
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+  }
+
+  .brand-wordmark strong {
+    font-size: 1.05rem;
+  }
+}
+
+@media (max-width: 420px) {
+  h1,
+  .page-title {
+    font-size: 1.8rem;
+  }
 }

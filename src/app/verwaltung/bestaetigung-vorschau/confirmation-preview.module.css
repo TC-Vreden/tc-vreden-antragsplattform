@@ -272,6 +272,50 @@
   }
 }
 
+@media (max-width: 640px) {
+  .documentPage {
+    padding: 20px;
+  }
+
+  .documentHeader {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: start;
+    border-bottom-width: 6px;
+  }
+
+  .logoBox {
+    width: 60px;
+  }
+
+  .documentTitle {
+    font-size: 23px;
+  }
+
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldWide,
+  .fieldFull {
+    grid-column: 1 / -1;
+  }
+
+  .toolbarActions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .documentPage {
+    padding: 16px;
+  }
+
+  .documentTitle {
+    font-size: 21px;
+  }
+}
+
 @media print {
   .noPrint {
     display: none !important;

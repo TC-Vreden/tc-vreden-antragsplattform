@@ -7,7 +7,7 @@ export default function AnmeldenPage() {
       <section className="card">
         <TcVredenLogo />
         <span className="eyebrow">Öffentliches Formular</span>
-        <h1 style={{ maxWidth: "unset", fontSize: "2.5rem" }}>Neuanmeldung</h1>
+        <h1 className="page-title">Neuanmeldung</h1>
         <ApplicationForm />
       </section>
     </main>

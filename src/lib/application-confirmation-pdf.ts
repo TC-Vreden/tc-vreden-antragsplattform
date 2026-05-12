@@ -9,7 +9,8 @@ import {
 import {
   getAdditionalMemberRelationLabel,
   getMembershipLabel,
-  getSalutationLabel
+  getSalutationLabel,
+  isReducedContributionMembership
 } from "@/lib/application-options";
 import type {
   ApplicationAdditionalMember,
@@ -39,6 +40,10 @@ const pageHeight = 841.89;
 const margin = 42;
 const contentTop = 720;
 const footerReserve = 68;
+const headerLogoX = margin - 10;
+const headerLogoY = 744;
+const headerLogoScale = 0.12;
+const headerTextX = 112;
 const textColor = rgb(0.12, 0.12, 0.11);
 const mutedColor = rgb(0.37, 0.34, 0.29);
 const yellow = rgb(1, 0.86, 0);
@@ -380,33 +385,33 @@ class ConfirmationPdfWriter {
 
   private drawHeader(page: PDFPage) {
     page.drawSvgPath(logoPaths.yellowOne, {
-      x: margin - 6,
-      y: 755,
-      scale: 0.105,
+      x: headerLogoX,
+      y: headerLogoY,
+      scale: headerLogoScale,
       color: yellow
     });
     page.drawSvgPath(logoPaths.yellowTwo, {
-      x: margin - 6,
-      y: 755,
-      scale: 0.105,
+      x: headerLogoX,
+      y: headerLogoY,
+      scale: headerLogoScale,
       color: yellow
     });
     page.drawSvgPath(logoPaths.black, {
-      x: margin - 6,
-      y: 755,
-      scale: 0.105,
+      x: headerLogoX,
+      y: headerLogoY,
+      scale: headerLogoScale,
       color: black
     });
 
     page.drawText("TennisClub Vreden e.V.", {
-      x: 105,
+      x: headerTextX,
       y: 792,
       size: 18,
       font: this.boldFont,
       color: black
     });
-    page.drawText("Mitgliedsantrag / Bestätigung", {
-      x: 105,
+    page.drawText("Nachweis Mitgliedsantrag", {
+      x: headerTextX,
       y: 772,
       size: 11,
       font: this.regularFont,
@@ -414,9 +419,9 @@ class ConfirmationPdfWriter {
     });
     page.drawRectangle({
       x: margin,
-      y: 744,
+      y: 736,
       width: pageWidth - margin * 2,
-      height: 3,
+      height: 5,
       color: yellow
     });
   }
@@ -546,10 +551,18 @@ export async function buildApplicationConfirmationPdf(
   ]);
 
   writer.section("Mitgliedschaft");
-  writer.fields([
-    { label: "Mitgliedschaftsart", value: getMembershipLabel(application.membership_kind) },
-    { label: "Nachweis reduziert bis", value: formatDate(application.student_status_until) }
-  ]);
+  const membershipRows: FieldRow[] = [
+    { label: "Mitgliedschaftsart", value: getMembershipLabel(application.membership_kind) }
+  ];
+
+  if (isReducedContributionMembership(application.membership_kind)) {
+    membershipRows.push({
+      label: "Nachweis Schüler:innen / Azubis / Student:innen gültig bis",
+      value: formatDate(application.student_status_until)
+    });
+  }
+
+  writer.fields(membershipRows, membershipRows.length > 1 ? 1 : 2);
 
   if (additionalMembers.length === 0) {
     writer.section("Zusatzpersonen / Familienmitglieder");

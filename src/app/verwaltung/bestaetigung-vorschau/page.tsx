@@ -53,9 +53,7 @@ export default function ConfirmationPreviewPage() {
           <div>
             <TcVredenLogo />
             <span className="eyebrow">Interner Bereich</span>
-            <h1 style={{ maxWidth: "unset", fontSize: "2.35rem" }}>
-              Bestätigungsvorschau
-            </h1>
+            <h1 className="page-title">Bestätigungsvorschau</h1>
             <p>
               Optischer Test für die spätere PDF-Zusammenfassung und HTML-Mail. Es wird
               noch kein PDF gespeichert und keine E-Mail versendet.

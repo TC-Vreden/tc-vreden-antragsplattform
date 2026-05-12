@@ -1,7 +1,8 @@
 import {
   getAdditionalMemberRelationLabel,
   getMembershipLabel,
-  getSalutationLabel
+  getSalutationLabel,
+  isReducedContributionMembership
 } from "@/lib/application-options";
 import type {
   ApplicationAdditionalMember,
@@ -184,6 +185,12 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
     ? application.family_members
     : [];
   const applicantName = mainPersonName(application);
+  const reducedProofRow = isReducedContributionMembership(application.membership_kind)
+    ? detailRow(
+        "Nachweis Schüler:innen / Azubis / Student:innen gültig bis",
+        formatDate(application.student_status_until)
+      )
+    : "";
   const legalNotice = confirmationLegalSections
     .map((section) => `<li><strong>${escapeHtml(section.title)}:</strong> ${escapeHtml(section.text)}</li>`)
     .join("");
@@ -240,7 +247,7 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
           <table class="details">
             <tbody>
               ${detailRow("Mitgliedschaftsart", getMembershipLabel(application.membership_kind))}
-              ${detailRow("Nachweis reduziert bis", formatDate(application.student_status_until))}
+              ${reducedProofRow}
               ${detailRow("Übernommen am", formatDate(transferredAt))}
             </tbody>
           </table>
@@ -292,6 +299,9 @@ function buildText(input: ApplicationConfirmationEmailInput) {
     ? application.family_members
     : [];
   const applicantName = mainPersonName(application);
+  const reducedProofLine = isReducedContributionMembership(application.membership_kind)
+    ? [`Nachweis Schüler:innen / Azubis / Student:innen gültig bis: ${formatDate(application.student_status_until)}`]
+    : [];
   const people = matchPayload.createdPeople?.length
     ? matchPayload.createdPeople
     : matchPayload.createdPerson
@@ -310,6 +320,7 @@ function buildText(input: ApplicationConfirmationEmailInput) {
     confirmationMailPreview.attachmentNote,
     "",
     `Mitgliedschaft: ${getMembershipLabel(application.membership_kind)}`,
+    ...reducedProofLine,
     `Übernommen am: ${formatDate(transferredAt)}`,
     `Geburtsdatum: ${formatDate(application.birth_date)}`,
     `Adresse: ${formatAddress([application.street, application.postal_code, application.city])}`,

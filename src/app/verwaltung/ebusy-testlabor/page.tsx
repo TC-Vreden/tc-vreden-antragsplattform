@@ -11,7 +11,7 @@ export default function EbusyTestlaborPage() {
       <section className="card">
         <TcVredenLogo />
         <span className="eyebrow">Interner Bereich</span>
-        <h1 style={{ maxWidth: "unset", fontSize: "2.5rem" }}>eBuSy-Testlabor</h1>
+        <h1 className="page-title">eBuSy-Testlabor</h1>
         <p>
           Hier können wir kontrolliert prüfen, welche Daten tatsächlich an eBuSy gesendet werden
           und welche Werte nach dem Anlegen wieder aus eBuSy zurückkommen. Das Testlabor ist für
