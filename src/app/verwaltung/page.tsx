@@ -10,6 +10,7 @@ export default async function VerwaltungPage() {
   const diagnostics = await getEbusyDiagnostics();
   const { applications, error: applicationsError } = await getApplicationsForManagement();
   const isLiveMode = diagnostics.mode === "live";
+  const handbookRoute = "/verwaltung/handbuch" as Route;
   const testLabRoute = "/verwaltung/ebusy-testlabor" as Route;
   const confirmationPreviewRoute = "/verwaltung/bestaetigung-vorschau" as Route;
 
@@ -27,6 +28,9 @@ export default async function VerwaltungPage() {
         <div className="cta-row" style={{ marginBottom: 20 }}>
           <Link className="button secondary" href="/anmelden">
             Öffentliches Formular ansehen
+          </Link>
+          <Link className="button secondary" href={handbookRoute}>
+            Mini-Handbuch öffnen
           </Link>
           <Link className="button secondary" href={testLabRoute}>
             eBuSy-Testlabor öffnen

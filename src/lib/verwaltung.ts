@@ -632,7 +632,7 @@ async function createMultiPersonApplicationInEbusy(
   }
 
   const mainPerson = createdPeople[0];
-  const message = `${createdPeople.length} Person(en), Attribute und einfache Mitgliedschaften wurden in eBuSy angelegt. Familien-/Hauptzahlerbezug und Beitragsarten bleiben zur manuellen/fachlichen Pruefung offen.`;
+  const message = `${createdPeople.length} Person(en), Attribute und einfache Mitgliedschaften wurden in eBuSy angelegt. Die angewendete Familien- und Beitragslogik bleibt fachlich durch den Vorstand zu bestaetigen.`;
   const transferredAt = new Date().toISOString();
   const nextPayload: ApplicationMatchPayload = {
     status: "created_in_ebusy",

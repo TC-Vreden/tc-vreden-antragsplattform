@@ -116,14 +116,32 @@ function mainPersonName(application: ApplicationRow) {
   return `${application.first_name} ${application.last_name}`.trim();
 }
 
-function safeFilePart(value: string | null | undefined) {
-  return (value || "mitgliedsantrag")
-    .toLowerCase()
+function filenameDate(value: string) {
+  const parts = new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Europe/Berlin",
+    year: "2-digit"
+  }).formatToParts(new Date(value));
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("year")}${part("month")}${part("day")}`;
+}
+
+function safeFilePart(value: string | null | undefined, fallback: string) {
+  return (value?.trim() || fallback)
+    .replace(/Ä/g, "Ae")
+    .replace(/Ö/g, "Oe")
+    .replace(/Ü/g, "Ue")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^A-Za-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 48) || "mitgliedsantrag";
+    .slice(0, 56) || fallback;
 }
 
 function splitLongWord(word: string, font: PDFFont, size: number, maxWidth: number) {
@@ -252,7 +270,7 @@ class ConfirmationPdfWriter {
       this.y -= 12;
     }
 
-    this.y -= options?.highlight ? 6 : 4;
+    this.y -= options?.highlight ? 16 : 4;
   }
 
   fields(rows: FieldRow[], columns = 2) {
@@ -664,10 +682,12 @@ export async function buildApplicationConfirmationPdf(
 
   const bytes = await document.save();
   const filename = [
-    "mitgliedsantrag",
-    safeFilePart(application.last_name),
-    safeFilePart(application.first_name),
-    safeFilePart(application.id)
+    filenameDate(generatedAt),
+    safeFilePart(application.last_name, "Nachname"),
+    safeFilePart(application.first_name, "Vorname"),
+    "Mitgliedsantrag",
+    "TennisClub",
+    "Vreden"
   ]
     .filter(Boolean)
     .join("-");
