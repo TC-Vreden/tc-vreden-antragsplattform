@@ -26,6 +26,10 @@ import {
   type EbusyMultiPersonRole,
   type EbusyMultiPersonTakeoverConfig
 } from "@/lib/ebusy-takeover-config";
+import {
+  sendApplicationConfirmationEmail,
+  type ApplicationConfirmationEmailResult
+} from "@/lib/application-confirmation-email";
 
 function isStrongAutomaticMatch(candidate: { matchScore: number }) {
   return candidate.matchScore >= 98;
@@ -72,6 +76,25 @@ function getDisplayName(application: ApplicationRow) {
 
 function getPersonDisplayName(person: EbusyPerson | null | undefined, fallback: string) {
   return `${person?.firstname ?? ""} ${person?.lastname ?? ""}`.trim() || fallback;
+}
+
+function appendConfirmationEmailMessage(
+  message: string,
+  result: ApplicationConfirmationEmailResult
+) {
+  if (result.status === "sent") {
+    return `${message} Bestätigungsmail wurde gesendet.`;
+  }
+
+  if (result.status === "failed") {
+    return `${message} Achtung: Bestätigungsmail konnte nicht gesendet werden: ${
+      result.reason ?? "Unbekannter Mailfehler"
+    }.`;
+  }
+
+  return `${message} Hinweis: Bestätigungsmail wurde nicht gesendet: ${
+    result.reason ?? "Mailversand deaktiviert"
+  }.`;
 }
 
 function getCreatedPersonDetails(
@@ -610,6 +633,7 @@ async function createMultiPersonApplicationInEbusy(
 
   const mainPerson = createdPeople[0];
   const message = `${createdPeople.length} Person(en), Attribute und einfache Mitgliedschaften wurden in eBuSy angelegt. Familien-/Hauptzahlerbezug und Beitragsarten bleiben zur manuellen/fachlichen Pruefung offen.`;
+  const transferredAt = new Date().toISOString();
   const nextPayload: ApplicationMatchPayload = {
     status: "created_in_ebusy",
     source: "live",
@@ -628,7 +652,7 @@ async function createMultiPersonApplicationInEbusy(
   };
   const updateError = await updateApplicationAfterTakeover(applicationId, {
     status: "transferred_to_ebusy",
-    transferred_at: new Date().toISOString(),
+    transferred_at: transferredAt,
     ebusy_match_status: "created_in_ebusy",
     ebusy_person_id: mainPerson?.externalPersonId ?? null,
     ebusy_match_payload: nextPayload
@@ -643,9 +667,19 @@ async function createMultiPersonApplicationInEbusy(
     };
   }
 
+  const confirmationEmailResult: ApplicationConfirmationEmailResult =
+    await sendApplicationConfirmationEmail({
+      application: row,
+      transferredAt,
+      matchPayload: nextPayload
+    }).catch((error) => ({
+      status: "failed",
+      reason: error instanceof Error ? error.message : "Unbekannter Mailfehler"
+    }));
+
   return {
     status: "created_in_ebusy",
-    message,
+    message: appendConfirmationEmailMessage(message, confirmationEmailResult),
     externalPersonId: mainPerson?.externalPersonId ?? null,
     matchPayload: nextPayload
   };
@@ -800,6 +834,7 @@ export async function createApplicationPersonInEbusy(
   }
 
   const message = `Person, Attribute und Mitgliedschaft wurden in eBuSy angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`;
+  const transferredAt = new Date().toISOString();
   const nextPayload: ApplicationMatchPayload = {
     status: "created_in_ebusy",
     source: "live",
@@ -813,7 +848,7 @@ export async function createApplicationPersonInEbusy(
     .from("applications")
     .update({
       status: "transferred_to_ebusy",
-      transferred_at: new Date().toISOString(),
+      transferred_at: transferredAt,
       ebusy_match_status: "created_in_ebusy",
       ebusy_person_id: createdPerson.externalPersonId,
       ebusy_match_payload: nextPayload
@@ -842,9 +877,19 @@ export async function createApplicationPersonInEbusy(
     };
   }
 
+  const confirmationEmailResult: ApplicationConfirmationEmailResult =
+    await sendApplicationConfirmationEmail({
+      application: row,
+      transferredAt,
+      matchPayload: nextPayload
+    }).catch((error) => ({
+      status: "failed",
+      reason: error instanceof Error ? error.message : "Unbekannter Mailfehler"
+    }));
+
   return {
     status: "created_in_ebusy",
-    message,
+    message: appendConfirmationEmailMessage(message, confirmationEmailResult),
     externalPersonId: createdPerson.externalPersonId,
     matchPayload: nextPayload
   };
