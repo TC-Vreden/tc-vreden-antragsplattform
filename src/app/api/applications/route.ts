@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdminClient } from "@/lib/supabase-server";
 import { matchApplicationWithEbusy } from "@/lib/verwaltung";
+import { sendApplicationReceivedNotification } from "@/lib/application-notification-email";
 
 function normalizeIban(value: string) {
   return value.replace(/\s+/g, "").toUpperCase();
@@ -432,6 +433,33 @@ export async function POST(request: NextRequest) {
   }
 
   const matchSummary = await matchApplicationWithEbusy(data.id);
+  const notificationResult = await sendApplicationReceivedNotification({
+    applicationId: data.id,
+    createdAt: data.created_at,
+    salutation: input.salutation || null,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    birthDate: input.birthDate || null,
+    email: input.email,
+    phone: input.phone || null,
+    mobile: input.mobile || null,
+    street: input.street || null,
+    postalCode: input.postalCode || null,
+    city: input.city || null,
+    membershipKind: input.membershipKind || null,
+    familyMembers,
+    acceptsSepa: input.acceptsSepa,
+    acceptsPhotoVideo: input.acceptsPhotoVideo,
+    acceptsWhatsapp: input.acceptsWhatsapp
+  });
+
+  if (notificationResult.status === "failed") {
+    console.warn(
+      `Antrag ${data.id}: interne Eingangsmail konnte nicht versendet werden: ${
+        notificationResult.reason ?? "unbekannter Fehler"
+      }`
+    );
+  }
 
   return NextResponse.json({
     message: "Antrag gespeichert.",

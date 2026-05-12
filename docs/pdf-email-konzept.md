@@ -170,3 +170,41 @@ Technisch vorbereitet:
 - Druck-/PDF-Vorschau ueber den Browserdruck
 
 Wichtig: Beim oeffentlichen Absenden des Formulars wird weiterhin kein PDF erzeugt und keine E-Mail verschickt. Die Vorschau bildet den Zielzeitpunkt nach interner Pruefung und erfolgreicher eBuSy-Uebernahme ab.
+
+## 10. Interne Eingangsmail nach Antragstellung
+
+Stand: 12.05.2026
+
+Zusaetzlich zur spaeteren Bestaetigungsmail ist eine interne Benachrichtigung vorbereitet.
+
+Ziel:
+
+- Sobald ein Antrag erfolgreich in Supabase gespeichert wurde, kann das Vereinspostfach eine kurze E-Mail erhalten.
+- Die E-Mail weist darauf hin, dass ein neuer Antrag im Verwaltungsportal geprueft und spaeter nach eBuSy uebernommen werden muss.
+- Die E-Mail enthaelt nur eine kurze strukturierte Zusammenfassung: Vorgangs-ID, Eingang, Hauptperson, Mitgliedschaft, Kontakt, Adresse, Zusatzpersonen und Einwilligungsstatus.
+- Es wird noch kein PDF erzeugt und noch keine Bestaetigung an den Antragsteller verschickt.
+
+Technik:
+
+- Helfer: `src/lib/application-notification-email.ts`
+- Ausloesung: `src/app/api/applications/route.ts`, direkt nach erfolgreicher Speicherung und eBuSy-Erstabgleich.
+- Versandweg: Resend-HTTP-API per `fetch`, ohne zusaetzliche npm-Library.
+- Fehler beim Mailversand blockieren die Antragsspeicherung nicht. Sie werden serverseitig protokolliert.
+
+Noetige ENV-Variablen fuer Aktivierung:
+
+- `APPLICATION_NOTIFICATION_EMAIL_ENABLED=true`
+- `RESEND_API_KEY`
+- `MAIL_FROM`, z. B. `TennisClub Vreden <antrag@tennisclub-vreden.de>`
+- `MAIL_TO_CLUB`, z. B. das Vereinspostfach
+- optional `MAIL_REPLY_TO`
+- optional `ADMIN_PORTAL_URL`, z. B. `https://antrag-tennisclub-vreden.vercel.app/verwaltung`
+
+Ohne `APPLICATION_NOTIFICATION_EMAIL_ENABLED=true` bleibt die Eingangsmail absichtlich aus. Dadurch kann lokal und in Vercel weiter getestet werden, ohne versehentlich echte Mails zu versenden.
+
+Empfohlene Aktivierung:
+
+1. Absenderdomain in Resend verifizieren.
+2. ENV-Variablen in Vercel setzen.
+3. Erst mit einer Testadresse als `MAIL_TO_CLUB` pruefen.
+4. Danach `MAIL_TO_CLUB` auf das echte Vereinspostfach umstellen.
