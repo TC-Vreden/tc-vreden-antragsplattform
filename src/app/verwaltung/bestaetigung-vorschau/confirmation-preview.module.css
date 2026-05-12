@@ -35,7 +35,7 @@
 
 .documentHeader {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 230px minmax(0, 1fr);
   gap: 18px;
   align-items: center;
   border-bottom: 8px solid #ffde00;
@@ -44,7 +44,12 @@
 }
 
 .logoBox {
-  width: 76px;
+  width: 230px;
+}
+
+.logoBox :global(.brand-logo) {
+  width: 100%;
+  margin-bottom: 0;
 }
 
 .documentKicker {
@@ -285,7 +290,8 @@
   }
 
   .logoBox {
-    width: 60px;
+    width: 210px;
+    max-width: 100%;
   }
 
   .documentTitle {

@@ -1,10 +1,13 @@
 import {
   PDFDocument,
+  type PDFImage,
   StandardFonts,
   rgb,
   type PDFFont,
   type PDFPage
 } from "pdf-lib";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 import {
   getAdditionalMemberRelationLabel,
@@ -38,27 +41,19 @@ type FieldRow = {
 const pageWidth = 595.28;
 const pageHeight = 841.89;
 const margin = 42;
-const contentTop = 720;
-const footerReserve = 68;
-const headerLogoX = margin - 10;
-const headerLogoY = 744;
-const headerLogoScale = 0.12;
-const headerTextX = 112;
+const contentTop = 676;
+const footerReserve = 88;
+const headerLogoWidth = 218;
+const headerLogoHeight = headerLogoWidth / 2.5;
+const headerLogoY = 738;
+const headerTextX = margin + headerLogoWidth + 28;
+const logoFilePath = path.join(process.cwd(), "public", "brand", "tc-vreden-logo.png");
 const textColor = rgb(0.12, 0.12, 0.11);
 const mutedColor = rgb(0.37, 0.34, 0.29);
 const yellow = rgb(1, 0.86, 0);
 const softYellow = rgb(1, 0.97, 0.76);
 const borderColor = rgb(0.86, 0.80, 0.68);
 const black = rgb(0.08, 0.08, 0.07);
-
-const logoPaths = {
-  black:
-    "M150.7,286.1c6.4,0.4,9.2,0.3,16.1,0c35-1.1,57.2-15.8,81.3-47.1c16.5-21.5,28.3-46.7,41.8-70.4c19.5-34.1,38.5-68.5,57.9-102.6c9-15.9,23-24.1,41.2-24.3c29.8-0.3,59.6-0.3,89.4-0.2c9.9,0,12.2,4.7,7,14.1c-30.9,55.1-62,110.2-92.9,165.3c-47.7,84.9-95.3,169.8-143,254.8c-0.7,1.2-1.3,2.4-2,3.6c-5.8,9.7-10.3,9.8-16-0.1c-12.6-21.9-25-44-37.4-66c-17.6-31-40.3-74.1-53.1-96.2c-3.2-5.4-4-6.8-6.6-11.5c-2.6-4.7-1.5-12.2,1.7-15.2C141.9,284.8,150.7,286.1,150.7,286.1",
-  yellowOne:
-    "M127.4,133.9c24.2-25,33.3-61,24.9-93.9c-8.3,0.7-17.9,1.8-27.2,4.3C70.7,58.9,31.6,105.8,31.4,161C65.7,170,102.1,160,127.4,133.9",
-  yellowTwo:
-    "M281.8,119.4c-20.6-46.6-57.2-71.4-111.7-80c8.3,37.7-2.6,78.2-30.2,106.6c-22.4,23.1-53.1,35.5-84.2,35.5c-7.6,0-15.3-0.8-22.9-2.3c0.3,2.1,0.5,4.3,1,6.4c8.5,41.5,32.4,70.4,69.1,87.9c6.3,3.1,11.1,5.3,14.5,5.3c3.8,0,9.6-2.5,11.1-9.2c0.6-4.7-0.9-10.8-0.7-14.5c0.2-12.9,2.2-22.6,6.9-35c20.7-55.2,77.7-85.5,132.4-79.7c8.4,0.9,12.3-1.3,14.7-5C284.1,131.7,284.9,125.9,281.8,119.4"
-};
 
 function pdfText(value: string | number | boolean | null | undefined) {
   return String(value ?? "-")
@@ -200,13 +195,14 @@ class ConfirmationPdfWriter {
     private readonly document: PDFDocument,
     private readonly regularFont: PDFFont,
     private readonly boldFont: PDFFont,
-    private readonly generatedAt: string
+    private readonly generatedAt: string,
+    private readonly logoImage: PDFImage | null
   ) {
     this.page = this.addPage();
   }
 
   section(title: string) {
-    this.ensureSpace(34);
+    this.ensureSpace(72);
     this.y -= 8;
     this.page.drawText(pdfText(title), {
       x: margin,
@@ -343,30 +339,51 @@ class ConfirmationPdfWriter {
 
   drawFooters() {
     const pages = this.document.getPages();
-    const footer = `${clubContact.name} | ${clubContact.address} | ${clubContact.email} | ${clubContact.website}`;
 
     pages.forEach((page, index) => {
       page.drawRectangle({
         x: margin,
-        y: 50,
+        y: 62,
         width: pageWidth - margin * 2,
         height: 0.8,
         color: borderColor
       });
-      page.drawText(pdfText(`${footer} | Seite ${index + 1}/${pages.length}`), {
+      page.drawText(pdfText(clubContact.name), {
         x: margin,
-        y: 34,
-        size: 7.5,
+        y: 47,
+        size: 7.8,
+        font: this.boldFont,
+        color: textColor
+      });
+      page.drawText(pdfText(clubContact.address), {
+        x: margin,
+        y: 36,
+        size: 7.2,
         font: this.regularFont,
         color: mutedColor
       });
-      page.drawText(pdfText(`Erstellt: ${formatDate(this.generatedAt)}`), {
-        x: pageWidth - margin - 112,
-        y: 22,
-        size: 7,
+      page.drawText(pdfText(`${clubContact.email} | ${clubContact.website}`), {
+        x: margin,
+        y: 25,
+        size: 7.2,
         font: this.regularFont,
         color: mutedColor
       });
+      this.drawRightText(page, `Seite ${index + 1}/${pages.length}`, 47, 7.6);
+      this.drawRightText(page, `Erstellt: ${formatDate(this.generatedAt)}`, 36, 7.2);
+    });
+  }
+
+  private drawRightText(page: PDFPage, text: string, y: number, size: number) {
+    const normalized = pdfText(text);
+    const width = this.regularFont.widthOfTextAtSize(normalized, size);
+
+    page.drawText(normalized, {
+      x: pageWidth - margin - width,
+      y,
+      size,
+      font: this.regularFont,
+      color: mutedColor
     });
   }
 
@@ -384,46 +401,53 @@ class ConfirmationPdfWriter {
   }
 
   private drawHeader(page: PDFPage) {
-    page.drawSvgPath(logoPaths.yellowOne, {
-      x: headerLogoX,
-      y: headerLogoY,
-      scale: headerLogoScale,
-      color: yellow
-    });
-    page.drawSvgPath(logoPaths.yellowTwo, {
-      x: headerLogoX,
-      y: headerLogoY,
-      scale: headerLogoScale,
-      color: yellow
-    });
-    page.drawSvgPath(logoPaths.black, {
-      x: headerLogoX,
-      y: headerLogoY,
-      scale: headerLogoScale,
-      color: black
-    });
+    if (this.logoImage) {
+      page.drawImage(this.logoImage, {
+        x: margin,
+        y: headerLogoY,
+        width: headerLogoWidth,
+        height: headerLogoHeight
+      });
+    } else {
+      page.drawText("TennisClub Vreden e.V.", {
+        x: margin,
+        y: 792,
+        size: 17,
+        font: this.boldFont,
+        color: black
+      });
+    }
 
-    page.drawText("TennisClub Vreden e.V.", {
+    page.drawText("Nachweis Mitgliedsantrag", {
       x: headerTextX,
-      y: 792,
-      size: 18,
+      y: 790,
+      size: 14,
       font: this.boldFont,
       color: black
     });
-    page.drawText("Nachweis Mitgliedsantrag", {
+    page.drawText("PDF-Zusammenfassung nach interner Übernahme", {
       x: headerTextX,
-      y: 772,
-      size: 11,
+      y: 773,
+      size: 9.2,
       font: this.regularFont,
       color: mutedColor
     });
     page.drawRectangle({
       x: margin,
-      y: 736,
+      y: 716,
       width: pageWidth - margin * 2,
-      height: 5,
+      height: 4,
       color: yellow
     });
+  }
+}
+
+async function embedClubLogo(document: PDFDocument) {
+  try {
+    const bytes = await readFile(logoFilePath);
+    return await document.embedPng(bytes);
+  } catch {
+    return null;
   }
 }
 
@@ -431,7 +455,7 @@ function buildConsentRows(application: ApplicationRow): FieldRow[] {
   const confirmedBy = mainPersonName(application);
   const createdAt = formatDate(application.created_at);
 
-  return [
+  const rows: FieldRow[] = [
     {
       label: "Satzung / Beiträge / Datenschutz",
       value: `${yesNo(application.accepts_statutes)} | bestätigt am ${createdAt} durch ${confirmedBy}`
@@ -451,12 +475,26 @@ function buildConsentRows(application: ApplicationRow): FieldRow[] {
     {
       label: "WhatsApp / Mobilnummer",
       value: `${yesNo(application.accepts_whatsapp)} | bestätigt am ${createdAt} durch ${confirmedBy}`
-    },
-    {
-      label: "Gesetzliche Vertreter",
-      value: `${yesNo(application.guardian_consent)} | ${application.guardian_name ?? "Nicht erfasst"}`
     }
   ];
+
+  if (hasGuardianInformation(application)) {
+    rows.push({
+      label: "Gesetzliche Vertreter",
+      value: `${yesNo(application.guardian_consent)} | ${application.guardian_name ?? "Nicht erfasst"}`
+    });
+  }
+
+  return rows;
+}
+
+function hasGuardianInformation(application: ApplicationRow) {
+  return Boolean(
+    application.guardian_name ||
+      application.guardian_email ||
+      application.guardian_phone ||
+      application.guardian_consent
+  );
 }
 
 function ebusyPeople(matchPayload: ApplicationMatchPayload) {
@@ -517,7 +555,14 @@ export async function buildApplicationConfirmationPdf(
   const document = await PDFDocument.create();
   const regularFont = await document.embedFont(StandardFonts.Helvetica);
   const boldFont = await document.embedFont(StandardFonts.HelveticaBold);
-  const writer = new ConfirmationPdfWriter(document, regularFont, boldFont, generatedAt);
+  const logoImage = await embedClubLogo(document);
+  const writer = new ConfirmationPdfWriter(
+    document,
+    regularFont,
+    boldFont,
+    generatedAt,
+    logoImage
+  );
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
     : [];
@@ -579,13 +624,15 @@ export async function buildApplicationConfirmationPdf(
     { label: "SEPA-Mandat bestätigt", value: yesNo(application.accepts_sepa) }
   ]);
 
-  writer.section("Minderjährige / gesetzliche Vertreter");
-  writer.fields([
-    { label: "Gesetzliche Vertreter", value: application.guardian_name },
-    { label: "E-Mail", value: application.guardian_email },
-    { label: "Telefon", value: application.guardian_phone },
-    { label: "Zustimmung", value: yesNo(application.guardian_consent) }
-  ]);
+  if (hasGuardianInformation(application)) {
+    writer.section("Minderjährige / gesetzliche Vertreter");
+    writer.fields([
+      { label: "Gesetzliche Vertreter", value: application.guardian_name },
+      { label: "E-Mail", value: application.guardian_email },
+      { label: "Telefon", value: application.guardian_phone },
+      { label: "Zustimmung", value: yesNo(application.guardian_consent) }
+    ]);
+  }
 
   writer.section("Bestätigungen und Einwilligungen");
   writer.fields(buildConsentRows(application), 1);

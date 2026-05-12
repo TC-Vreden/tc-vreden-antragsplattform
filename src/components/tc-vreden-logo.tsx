@@ -32,12 +32,10 @@ export function TcVredenLogo({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <div className="brand-lockup" aria-label="Tennisclub Vreden e.V.">
-      <TcVredenLogo compact />
-      <div className="brand-wordmark">
-        <span>Tennisclub</span>
-        <strong>Vreden e.V.</strong>
-      </div>
-    </div>
+    <img
+      alt="TennisClub Vreden e.V."
+      className="brand-logo"
+      src="/brand/tc-vreden-logo.png"
+    />
   );
 }

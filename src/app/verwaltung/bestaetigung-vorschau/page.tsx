@@ -80,7 +80,7 @@ export default function ConfirmationPreviewPage() {
           <article className={styles.documentPage} aria-label="PDF-Vorschau">
             <header className={styles.documentHeader}>
               <div className={styles.logoBox}>
-                <TcVredenLogo compact />
+                <TcVredenLogo />
               </div>
               <div>
                 <span className={styles.documentKicker}>Nachweis Mitgliedsantrag</span>
