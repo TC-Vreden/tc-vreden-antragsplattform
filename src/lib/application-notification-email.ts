@@ -1,5 +1,6 @@
 import { getMembershipLabel } from "@/lib/application-options";
 import type { ApplicationAdditionalMember } from "@/lib/application-types";
+import nodemailer from "nodemailer";
 
 type NotificationStatus = "sent" | "skipped" | "failed";
 
@@ -35,6 +36,17 @@ type ResendSendResponse = {
   name?: string;
 };
 
+type MailProvider = "resend" | "smtp";
+
+type MailPayload = {
+  from: string;
+  to: string;
+  replyTo?: string;
+  subject: string;
+  html: string;
+  text: string;
+};
+
 function getEnv(name: string) {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
@@ -62,6 +74,38 @@ function getAdminPortalUrl() {
 
 function isEnabled() {
   return getEnv("APPLICATION_NOTIFICATION_EMAIL_ENABLED") === "true";
+}
+
+function getMailProvider(): MailProvider {
+  const provider = getEnv("MAIL_PROVIDER")?.toLowerCase();
+
+  if (provider === "smtp" || provider === "resend") {
+    return provider;
+  }
+
+  return getEnv("SMTP_HOST") ? "smtp" : "resend";
+}
+
+function getSmtpPort() {
+  const rawPort = getEnv("SMTP_PORT");
+
+  if (!rawPort) {
+    return 465;
+  }
+
+  const port = Number.parseInt(rawPort, 10);
+
+  return Number.isFinite(port) ? port : 465;
+}
+
+function getSmtpSecure(port: number) {
+  const rawSecure = getEnv("SMTP_SECURE")?.toLowerCase();
+
+  if (!rawSecure) {
+    return port === 465;
+  }
+
+  return ["1", "true", "yes", "ja"].includes(rawSecure);
 }
 
 function escapeHtml(value: string | number | boolean | null | undefined) {
@@ -186,38 +230,23 @@ function buildText(input: ApplicationReceivedNotificationInput, adminPortalUrl: 
   ].join("\n");
 }
 
-export async function sendApplicationReceivedNotification(
-  input: ApplicationReceivedNotificationInput
-): Promise<ApplicationNotificationResult> {
-  if (!isEnabled()) {
-    return {
-      status: "skipped",
-      reason: "APPLICATION_NOTIFICATION_EMAIL_ENABLED ist nicht true."
-    };
-  }
-
+async function sendWithResend(payload: MailPayload): Promise<ApplicationNotificationResult> {
   const apiKey = getEnv("RESEND_API_KEY");
-  const from = getEnv("MAIL_FROM");
-  const to = getEnv("MAIL_TO_CLUB");
 
-  if (!apiKey || !from || !to) {
+  if (!apiKey) {
     return {
       status: "skipped",
-      reason: "RESEND_API_KEY, MAIL_FROM oder MAIL_TO_CLUB fehlt."
+      reason: "RESEND_API_KEY fehlt."
     };
   }
 
-  const adminPortalUrl = getAdminPortalUrl();
-  const replyTo = getEnv("MAIL_REPLY_TO");
-  const subject = `Neuer Mitgliedsantrag: ${input.firstName} ${input.lastName}`.trim();
-
-  const payload = {
-    from,
-    to: [to],
-    reply_to: replyTo,
-    subject,
-    html: buildHtml(input, adminPortalUrl),
-    text: buildText(input, adminPortalUrl)
+  const responsePayload = {
+    from: payload.from,
+    to: [payload.to],
+    reply_to: payload.replyTo,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text
   };
 
   try {
@@ -227,7 +256,7 @@ export async function sendApplicationReceivedNotification(
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(responsePayload)
     });
 
     const data = (await response.json().catch(() => ({}))) as ResendSendResponse;
@@ -249,4 +278,90 @@ export async function sendApplicationReceivedNotification(
       reason: error instanceof Error ? error.message : "Unbekannter Mailfehler"
     };
   }
+}
+
+async function sendWithSmtp(payload: MailPayload): Promise<ApplicationNotificationResult> {
+  const host = getEnv("SMTP_HOST");
+  const user = getEnv("SMTP_USER");
+  const pass = getEnv("SMTP_PASSWORD");
+  const port = getSmtpPort();
+
+  if (!host || !user || !pass) {
+    return {
+      status: "skipped",
+      reason: "SMTP_HOST, SMTP_USER oder SMTP_PASSWORD fehlt."
+    };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: getSmtpSecure(port),
+    auth: {
+      user,
+      pass
+    }
+  });
+
+  try {
+    const info = await transporter.sendMail({
+      from: payload.from,
+      to: payload.to,
+      replyTo: payload.replyTo,
+      subject: payload.subject,
+      html: payload.html,
+      text: payload.text
+    });
+
+    return {
+      status: "sent",
+      messageId: info.messageId
+    };
+  } catch (error) {
+    return {
+      status: "failed",
+      reason: error instanceof Error ? error.message : "Unbekannter SMTP-Mailfehler"
+    };
+  }
+}
+
+export async function sendApplicationReceivedNotification(
+  input: ApplicationReceivedNotificationInput
+): Promise<ApplicationNotificationResult> {
+  if (!isEnabled()) {
+    return {
+      status: "skipped",
+      reason: "APPLICATION_NOTIFICATION_EMAIL_ENABLED ist nicht true."
+    };
+  }
+
+  const from = getEnv("MAIL_FROM");
+  const to = getEnv("MAIL_TO_CLUB");
+
+  if (!from || !to) {
+    return {
+      status: "skipped",
+      reason: "MAIL_FROM oder MAIL_TO_CLUB fehlt."
+    };
+  }
+
+  const adminPortalUrl = getAdminPortalUrl();
+  const replyTo = getEnv("MAIL_REPLY_TO");
+  const subject = `Neuer Mitgliedsantrag: ${input.firstName} ${input.lastName}`.trim();
+  const provider = getMailProvider();
+
+  const payload = {
+    from,
+    to,
+    replyTo,
+    subject,
+    html: buildHtml(input, adminPortalUrl),
+    text: buildText(input, adminPortalUrl)
+  };
+
+  if (provider === "smtp") {
+    return sendWithSmtp(payload);
+  }
+
+  return sendWithResend(payload);
 }

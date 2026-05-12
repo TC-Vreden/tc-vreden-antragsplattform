@@ -188,23 +188,42 @@ Technik:
 
 - Helfer: `src/lib/application-notification-email.ts`
 - Ausloesung: `src/app/api/applications/route.ts`, direkt nach erfolgreicher Speicherung und eBuSy-Erstabgleich.
-- Versandweg: Resend-HTTP-API per `fetch`, ohne zusaetzliche npm-Library.
+- Versandweg: wahlweise SMTP oder Resend.
+- Fuer die bestehende Vereins-Mailbox bei All-Inkl ist SMTP vorgesehen.
 - Fehler beim Mailversand blockieren die Antragsspeicherung nicht. Sie werden serverseitig protokolliert.
 
-Noetige ENV-Variablen fuer Aktivierung:
+Noetige ENV-Variablen fuer Aktivierung mit All-Inkl / SMTP:
 
 - `APPLICATION_NOTIFICATION_EMAIL_ENABLED=true`
-- `RESEND_API_KEY`
-- `MAIL_FROM`, z. B. `TennisClub Vreden <antrag@tennisclub-vreden.de>`
+- `MAIL_PROVIDER=smtp`
+- `SMTP_HOST`, z. B. der Servername aus All-Inkl/KAS
+- `SMTP_PORT`, meistens `465` bei SSL/TLS
+- `SMTP_SECURE=true`
+- `SMTP_USER`
+- `SMTP_PASSWORD`
+- `MAIL_FROM`, z. B. `TennisClub Vreden e.V. <mail@tennisclub-vreden.de>`
 - `MAIL_TO_CLUB`, z. B. das Vereinspostfach
 - optional `MAIL_REPLY_TO`
 - optional `ADMIN_PORTAL_URL`, z. B. `https://antrag-tennisclub-vreden.vercel.app/verwaltung`
 
+Alternative Aktivierung ueber Resend:
+
+- `APPLICATION_NOTIFICATION_EMAIL_ENABLED=true`
+- `MAIL_PROVIDER=resend`
+- `RESEND_API_KEY`
+- `MAIL_FROM`
+- `MAIL_TO_CLUB`
+- optional `MAIL_REPLY_TO`
+- optional `ADMIN_PORTAL_URL`
+
 Ohne `APPLICATION_NOTIFICATION_EMAIL_ENABLED=true` bleibt die Eingangsmail absichtlich aus. Dadurch kann lokal und in Vercel weiter getestet werden, ohne versehentlich echte Mails zu versenden.
 
-Empfohlene Aktivierung:
+Empfohlene Aktivierung mit All-Inkl:
 
-1. Absenderdomain in Resend verifizieren.
+1. SMTP-Daten im All-Inkl/KAS fuer das bestehende Vereinspostfach heraussuchen.
 2. ENV-Variablen in Vercel setzen.
 3. Erst mit einer Testadresse als `MAIL_TO_CLUB` pruefen.
 4. Danach `MAIL_TO_CLUB` auf das echte Vereinspostfach umstellen.
+5. Einen Testantrag absenden und pruefen, ob die Eingangsmail ankommt.
+
+Hinweis: IMAP ist nur fuer das Abrufen von E-Mails relevant. Fuer diese Plattform wird SMTP benoetigt, weil die Anwendung aktiv E-Mails versenden soll.
