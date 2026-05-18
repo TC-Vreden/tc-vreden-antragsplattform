@@ -20,12 +20,12 @@ export const CONTRIBUTION_ROWS = [
   { membership: "Jugendliche bis 18 Jahre", status: "aktiv", fee: "80,- EUR" },
   { membership: "Jugendliche bis 18 Jahre", status: "passiv", fee: "40,- EUR" },
   {
-    membership: "Schüler:innen / Azubis / Student:innen bis 27 Jahre",
+    membership: "Schüler:innen / Azubis / Student:innen bis 25 Jahre",
     status: "aktiv",
     fee: "100,- EUR"
   },
   {
-    membership: "Schüler:innen / Azubis / Student:innen bis 27 Jahre",
+    membership: "Schüler:innen / Azubis / Student:innen bis 25 Jahre",
     status: "passiv",
     fee: "60,- EUR"
   },

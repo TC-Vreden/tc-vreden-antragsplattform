@@ -40,6 +40,8 @@ export type EbusyPerson = {
     reference?: string | null;
     lastUsedDate?: string | null;
   } | null;
+  paidByInfo?: EbusyPaymentRelation | null;
+  paysForInfo?: EbusyPaymentRelation[];
   comment?: string | null;
   user?: {
     email?: string;
@@ -71,6 +73,21 @@ export type EbusyAttributeAssignment = {
 
 export type EbusyAttributePayload = {
   attributes: Record<string, number | string>;
+};
+
+export type EbusyPaymentRelation = {
+  id: number;
+  modules?: number[];
+  moduleIds?: number[];
+  paysForVouchersAndCoupons: boolean;
+  paysForCustomPurchases: boolean;
+};
+
+export type EbusyPaymentRelationPayload = {
+  id: number;
+  moduleIds: number[];
+  paysForVouchersAndCoupons: boolean;
+  paysForCustomPurchases: boolean;
 };
 
 export type EbusyMembership = {
@@ -174,6 +191,40 @@ async function ebusyPost<T>(path: string, payload: unknown): Promise<EbusyApiRes
 
   const response = await fetch(`${baseUrl}${path}`, {
     method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store"
+  });
+
+  const text = await response.text();
+  let body: EbusyApiResponse<T> | null = null;
+
+  try {
+    body = text ? (JSON.parse(text) as EbusyApiResponse<T>) : null;
+  } catch {
+    body = null;
+  }
+
+  if (!response.ok || body?.error) {
+    const details = body?.message || text || response.statusText || "Keine Detailmeldung";
+    throw new Error(`eBuSy-Request ${path} fehlgeschlagen: HTTP ${response.status}. ${details}`);
+  }
+
+  return body ?? { error: null, message: null };
+}
+
+async function ebusyPatch<T>(path: string, payload: unknown): Promise<EbusyApiResponse<T>> {
+  const baseUrl = process.env.EBUSY_API_BASE_URL;
+
+  if (!baseUrl) {
+    throw new Error("EBUSY_API_BASE_URL fehlt.");
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: "PATCH",
     headers: {
       ...getAuthHeaders(),
       "Content-Type": "application/json"
@@ -346,6 +397,33 @@ export function buildEbusyPersonPayloadFromApplication(application: ApplicationR
   });
 }
 
+export function buildEbusyPersonUpdatePayloadFromApplication(application: ApplicationRow) {
+  const payload = buildEbusyPersonPayloadFromApplication(application) as Record<string, unknown>;
+
+  delete payload.user;
+
+  return payload;
+}
+
+function toEbusyPaymentRelationPayload(relation: EbusyPaymentRelationPayload) {
+  return {
+    id: relation.id,
+    modules: relation.moduleIds,
+    paysForVouchersAndCoupons: relation.paysForVouchersAndCoupons,
+    paysForCustomPurchases: relation.paysForCustomPurchases
+  };
+}
+
+function sameNumberList(left: number[] | undefined, right: number[] | undefined) {
+  const normalizedLeft = [...(left ?? [])].sort((a, b) => a - b);
+  const normalizedRight = [...(right ?? [])].sort((a, b) => a - b);
+
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((value, index) => value === normalizedRight[index])
+  );
+}
+
 export function buildEbusyAttributePayload(
   assignments: EbusyAttributeAssignment[]
 ): EbusyAttributePayload {
@@ -392,6 +470,49 @@ export async function setEbusyPersonAttributes(
   await ebusyPost<null>(`/general/person/${personId}/set-attributes`, payload);
 
   return payload;
+}
+
+export async function updateEbusyPersonFromApplication(
+  personId: string | number,
+  application: ApplicationRow
+) {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+
+  if (mode !== "live") {
+    return;
+  }
+
+  await ebusyPatch<null>(
+    `/general/person/${personId}`,
+    buildEbusyPersonUpdatePayloadFromApplication(application)
+  );
+}
+
+export async function setEbusyPersonPaidBy(
+  personId: string | number,
+  relation: EbusyPaymentRelationPayload
+) {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+
+  if (mode !== "live") {
+    return;
+  }
+
+  await ebusyPatch<null>(`/general/person/${personId}`, {
+    paidByInfo: toEbusyPaymentRelationPayload(relation)
+  });
+
+  const person = await getEbusyPersonById(personId);
+  const paidByInfo = person.paidByInfo;
+
+  if (
+    paidByInfo?.id !== relation.id ||
+    !sameNumberList(paidByInfo.moduleIds ?? paidByInfo.modules, relation.moduleIds) ||
+    paidByInfo.paysForVouchersAndCoupons !== relation.paysForVouchersAndCoupons ||
+    paidByInfo.paysForCustomPurchases !== relation.paysForCustomPurchases
+  ) {
+    throw new Error("Die Hauptzahler-Verknuepfung konnte nach dem Schreiben nicht bestaetigt werden.");
+  }
 }
 
 export async function createEbusyMembership(

@@ -1,6 +1,10 @@
 import type { ApplicationRow } from "@/lib/application-types";
 import { getMembershipLabel } from "@/lib/application-options";
-import type { EbusyAttributeAssignment, EbusyMembershipPayload } from "@/lib/ebusy";
+import type {
+  EbusyAttributeAssignment,
+  EbusyMembershipPayload,
+  EbusyPaymentRelationPayload
+} from "@/lib/ebusy";
 
 export type EbusyMembershipWriteConfig = {
   moduleId: number;
@@ -30,6 +34,7 @@ export type EbusyMultiPersonMemberConfig = {
   title: string;
   attributeAssignments: EbusyAttributeAssignment[];
   membership: EbusyMembershipWriteConfig;
+  payerRelation?: EbusyPayerRelationWriteConfig;
 };
 
 export type EbusyMultiPersonTakeoverConfig = {
@@ -38,6 +43,10 @@ export type EbusyMultiPersonTakeoverConfig = {
   productionEnabled: boolean;
   memberConfigs: EbusyMultiPersonMemberConfig[];
   warnings: string[];
+};
+
+export type EbusyPayerRelationWriteConfig = Omit<EbusyPaymentRelationPayload, "id"> & {
+  payerRole: "main";
 };
 
 const activeSimpleMembership: EbusyMembershipWriteConfig = {
@@ -56,45 +65,28 @@ const passiveSimpleMembership: EbusyMembershipWriteConfig = {
   status: "ACTIVE"
 };
 
+const defaultMainPayerRelation: EbusyPayerRelationWriteConfig = {
+  payerRole: "main",
+  moduleIds: [1, 2, 3, 4],
+  paysForVouchersAndCoupons: true,
+  paysForCustomPurchases: true
+};
+
 const familyMainAttributes: EbusyAttributeAssignment[] = [
-  {
-    attributeId: 4,
-    attributeName: "Status Quo - Beitragsarten TENNIS RW",
-    valueId: 6,
-    valueName: "3 Familienbeitrag"
-  },
   {
     attributeId: 6,
     attributeName: "Mitgliedsbeitraege NEU",
     valueId: 18,
     valueName: "Familien"
-  },
-  {
-    attributeId: 7,
-    attributeName: "Status Quo TCH",
-    valueId: 32,
-    valueName: "Familienbeitrag"
   }
 ];
 
 const freeFamilyAttributes: EbusyAttributeAssignment[] = [
   {
-    attributeId: 4,
-    attributeName: "Status Quo - Beitragsarten TENNIS RW",
-    valueId: 5,
-    valueName: "9 beitragsfrei z.B. wg. Familienzugehoerigkeit"
-  },
-  {
     attributeId: 6,
     attributeName: "Mitgliedsbeitraege NEU",
     valueId: 22,
     valueName: "Beitragsfreie Familienangehoerige"
-  },
-  {
-    attributeId: 7,
-    attributeName: "Status Quo TCH",
-    valueId: 26,
-    valueName: "Beitragsfrei Familie"
   }
 ];
 
@@ -104,12 +96,6 @@ const adultChildMainAttributes: EbusyAttributeAssignment[] = [
     attributeName: "Mitgliedsbeitraege NEU",
     valueId: 20,
     valueName: "Erwachsene + 1 Kind"
-  },
-  {
-    attributeId: 7,
-    attributeName: "Status Quo TCH",
-    valueId: 23,
-    valueName: "1 Erwachsener + 1 Kind"
   }
 ];
 
@@ -119,32 +105,14 @@ const partnerActiveAttributes: EbusyAttributeAssignment[] = [
     attributeName: "Mitgliedsbeitraege NEU",
     valueId: 19,
     valueName: "Ehepaare / Lebenspartner aktiv"
-  },
-  {
-    attributeId: 7,
-    attributeName: "Status Quo TCH",
-    valueId: 29,
-    valueName: "Ehepaare / Lebenspartner"
   }
 ];
 
 const partnerPassiveAttributes: EbusyAttributeAssignment[] = [
   {
-    attributeId: 4,
-    attributeName: "Status Quo - Beitragsarten TENNIS RW",
-    valueId: 10,
-    valueName: "7 Beitrag Passiv"
-  },
-  {
     attributeId: 6,
     attributeName: "Mitgliedsbeitraege NEU",
     valueId: 33,
-    valueName: "Passiv"
-  },
-  {
-    attributeId: 7,
-    attributeName: "Status Quo TCH",
-    valueId: 31,
     valueName: "Passiv"
   }
 ];
@@ -158,22 +126,10 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     productionEnabled: true,
     attributeAssignments: [
       {
-        attributeId: 4,
-        attributeName: "Status Quo - Beitragsarten TENNIS RW",
-        valueId: 8,
-        valueName: "1 Beitrag 1. Erwachsene/r"
-      },
-      {
         attributeId: 6,
         attributeName: "Mitgliedsbeitraege NEU",
         valueId: 16,
         valueName: "Erwachsene Aktiv"
-      },
-      {
-        attributeId: 7,
-        attributeName: "Status Quo TCH",
-        valueId: 30,
-        valueName: "Erwachsene"
       }
     ],
     membership: {
@@ -192,21 +148,9 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     productionEnabled: true,
     attributeAssignments: [
       {
-        attributeId: 4,
-        attributeName: "Status Quo - Beitragsarten TENNIS RW",
-        valueId: 10,
-        valueName: "7 Beitrag Passiv"
-      },
-      {
         attributeId: 6,
         attributeName: "Mitgliedsbeitraege NEU",
         valueId: 33,
-        valueName: "Passiv"
-      },
-      {
-        attributeId: 7,
-        attributeName: "Status Quo TCH",
-        valueId: 31,
         valueName: "Passiv"
       }
     ],
@@ -226,22 +170,10 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     productionEnabled: false,
     attributeAssignments: [
       {
-        attributeId: 4,
-        attributeName: "Status Quo - Beitragsarten TENNIS RW",
-        valueId: 12,
-        valueName: "4 Beitrag Kinder, Jugendl. bis 16"
-      },
-      {
         attributeId: 6,
         attributeName: "Mitgliedsbeitraege NEU",
         valueId: 14,
         valueName: "Kinder bis 14 Jahre"
-      },
-      {
-        attributeId: 7,
-        attributeName: "Status Quo TCH",
-        valueId: 25,
-        valueName: "1. Kind/Jugendlicher bis 18 Jahre"
       }
     ],
     membership: {
@@ -260,22 +192,10 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     productionEnabled: false,
     attributeAssignments: [
       {
-        attributeId: 4,
-        attributeName: "Status Quo - Beitragsarten TENNIS RW",
-        valueId: 12,
-        valueName: "4 Beitrag Kinder, Jugendl. bis 16"
-      },
-      {
         attributeId: 6,
         attributeName: "Mitgliedsbeitraege NEU",
         valueId: 17,
         valueName: "Jugendliche bis 18 Jahre"
-      },
-      {
-        attributeId: 7,
-        attributeName: "Status Quo TCH",
-        valueId: 25,
-        valueName: "1. Kind/Jugendlicher bis 18 Jahre"
       }
     ],
     membership: {
@@ -304,24 +224,27 @@ export const ebusyMultiPersonTakeoverConfigs: EbusyMultiPersonTakeoverConfig[] =
         role: "partner",
         title: "Partner:in / Familienmitglied",
         attributeAssignments: freeFamilyAttributes,
-        membership: activeSimpleMembership
+        membership: activeSimpleMembership,
+        payerRelation: defaultMainPayerRelation
       },
       {
         role: "child",
         title: "Kind / Familienmitglied",
         attributeAssignments: freeFamilyAttributes,
-        membership: activeSimpleMembership
+        membership: activeSimpleMembership,
+        payerRelation: defaultMainPayerRelation
       },
       {
         role: "family_member",
         title: "Familienmitglied",
         attributeAssignments: freeFamilyAttributes,
-        membership: activeSimpleMembership
+        membership: activeSimpleMembership,
+        payerRelation: defaultMainPayerRelation
       }
     ],
     warnings: [
-      "Familien-/Hauptzahlerbezug wird noch nicht per API geschrieben.",
-      "Beitrags- und Attributmapping fuer Familien bleibt bis zur Vorstandsfreigabe fachlich zu bestaetigen."
+      "Hauptzahlerbezug wird fuer Zusatzpersonen per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
+      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung laeuft ueber das Attribut Mitgliedsbeitraege NEU."
     ]
   },
   {
@@ -339,18 +262,20 @@ export const ebusyMultiPersonTakeoverConfigs: EbusyMultiPersonTakeoverConfig[] =
         role: "child",
         title: "Kind",
         attributeAssignments: freeFamilyAttributes,
-        membership: activeSimpleMembership
+        membership: activeSimpleMembership,
+        payerRelation: defaultMainPayerRelation
       },
       {
         role: "family_member",
         title: "Familienmitglied",
         attributeAssignments: freeFamilyAttributes,
-        membership: activeSimpleMembership
+        membership: activeSimpleMembership,
+        payerRelation: defaultMainPayerRelation
       }
     ],
     warnings: [
-      "Das Status-Quo-TENNIS-RW-Attribut fuer Erwachsene + 1 Kind ist noch fachlich offen.",
-      "Familien-/Hauptzahlerbezug wird noch nicht per API geschrieben."
+      "Hauptzahlerbezug wird fuer Zusatzpersonen per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
+      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung laeuft ueber das Attribut Mitgliedsbeitraege NEU."
     ]
   },
   {
@@ -368,12 +293,13 @@ export const ebusyMultiPersonTakeoverConfigs: EbusyMultiPersonTakeoverConfig[] =
         role: "partner",
         title: "Partner:in",
         attributeAssignments: partnerActiveAttributes,
-        membership: activeSimpleMembership
+        membership: activeSimpleMembership,
+        payerRelation: defaultMainPayerRelation
       }
     ],
     warnings: [
-      "Das Status-Quo-TENNIS-RW-Attribut fuer Ehepartner/Lebenspartner aktiv ist noch fachlich offen.",
-      "Partner-/Haushaltsbezug wird noch nicht per API geschrieben."
+      "Hauptzahlerbezug wird fuer die zweite Person per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
+      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung laeuft ueber das Attribut Mitgliedsbeitraege NEU."
     ]
   },
   {
@@ -391,12 +317,13 @@ export const ebusyMultiPersonTakeoverConfigs: EbusyMultiPersonTakeoverConfig[] =
         role: "partner",
         title: "Partner:in",
         attributeAssignments: partnerPassiveAttributes,
-        membership: passiveSimpleMembership
+        membership: passiveSimpleMembership,
+        payerRelation: defaultMainPayerRelation
       }
     ],
     warnings: [
-      "Das genaue Partner-/Passiv-Mapping muss vom Vorstand bestaetigt werden.",
-      "Partner-/Haushaltsbezug wird noch nicht per API geschrieben."
+      "Hauptzahlerbezug wird fuer die zweite Person per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
+      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung laeuft ueber das Attribut Mitgliedsbeitraege NEU."
     ]
   }
 ];

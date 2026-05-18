@@ -2,6 +2,7 @@ import type { ApplicationRow } from "@/lib/application-types";
 import { getMembershipLabel } from "@/lib/application-options";
 import {
   buildEbusyMembershipPayloadForApplication,
+  type EbusyPayerRelationWriteConfig,
   type EbusyMembershipWriteConfig
 } from "@/lib/ebusy-takeover-config";
 import {
@@ -11,10 +12,12 @@ import {
   createEbusyPersonFromApplication,
   getEbusyMembershipsByPersonId,
   getEbusyPersonById,
+  setEbusyPersonPaidBy,
   setEbusyPersonAttributes,
   type EbusyAttributeAssignment,
   type EbusyMembership,
   type EbusyMembershipPayload,
+  type EbusyPaymentRelationPayload,
   type EbusyPerson
 } from "@/lib/ebusy";
 
@@ -32,6 +35,7 @@ export type EbusyTestScenarioMember = {
   application: ApplicationRow;
   attributeAssignments?: EbusyAttributeAssignment[];
   membershipTest?: EbusyMembershipWriteConfig;
+  payerRelation?: EbusyPayerRelationWriteConfig;
 };
 
 export type EbusySinglePersonTestScenario = {
@@ -118,6 +122,12 @@ const SIMPLE_ACTIVE_TENNIS_MEMBERSHIP: EbusyMembershipWriteConfig = {
   consideredActive: true,
   status: "ACTIVE"
 };
+const DEFAULT_MAIN_PAYER_RELATION: EbusyPayerRelationWriteConfig = {
+  payerRole: "main",
+  moduleIds: [1, 2, 3, 4],
+  paysForVouchersAndCoupons: true,
+  paysForCustomPurchases: true
+};
 
 function createBaseApplication(overrides: Partial<ApplicationRow>): ApplicationRow {
   const now = new Date().toISOString();
@@ -188,7 +198,7 @@ async function runMultiEbusyTestLabAction(
       runId,
       members: memberPayloadPreview,
       safetyNote:
-        "Mehrpersonen-Test: einfache Mitgliedschaften koennen je Person geschrieben werden. Beitragslogik und Familien-/Hauptzahlerbezug werden noch nicht geschrieben."
+        "Mehrpersonen-Test: Hauptzahlerbezug fuer Zusatzpersonen, Mitgliedsbeitraege-NEU-Attribute und einfache Mitgliedschaften koennen je Person geschrieben werden. Beitragsarten werden nicht geschrieben."
     }),
     memberAttributeAssignments
   };
@@ -235,6 +245,33 @@ async function runMultiEbusyTestLabAction(
 
       createdPersons.push(resultCreatedPerson);
       checks.push(...prefixChecks(comparePayloadWithPerson(personPayload, readBack), member.roleLabel));
+
+      if (member.payerRelation) {
+        const payer = createdPersons.find((person) => person.memberId === "family_main") ?? createdPersons[0];
+        const payerPersonId = Number(payer?.externalPersonId);
+
+        if (!payer || !Number.isInteger(payerPersonId)) {
+          throw new Error(`${member.roleLabel}: Hauptzahler wurde noch nicht angelegt.`);
+        }
+
+        const relationPayload = {
+          id: payerPersonId,
+          moduleIds: member.payerRelation.moduleIds,
+          paysForVouchersAndCoupons: member.payerRelation.paysForVouchersAndCoupons,
+          paysForCustomPurchases: member.payerRelation.paysForCustomPurchases
+        };
+
+        await setEbusyPersonPaidBy(createdPerson.externalPersonId, relationPayload);
+        readBack = await getEbusyPersonById(createdPerson.externalPersonId);
+        resultCreatedPerson.customerId = readBack.customerId;
+        resultCreatedPerson.personCode = readBack.code;
+        checks.push(
+          ...prefixChecks(
+            comparePayerRelationWithPerson(relationPayload, readBack),
+            member.roleLabel
+          )
+        );
+      }
 
       if (shouldSetAttributes && member.attributeAssignments?.length) {
         await setEbusyPersonAttributes(createdPerson.externalPersonId, member.attributeAssignments);
@@ -327,11 +364,11 @@ async function runMultiEbusyTestLabAction(
     ...baseResult,
     message: shouldCreateMembership
       ? shouldSetAttributes
-        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, vorgeschlagene Test-Attribute wurden gesetzt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Beitragslogik, Beitragsarten und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben."
-        : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Attribute, Beitragslogik, Beitragsarten und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben."
+        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Mitgliedsbeitraege-NEU-Attribute wurden gesetzt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Beitragsarten werden weiterhin nicht geschrieben."
+        : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Attribute und Beitragsarten wurden nicht geschrieben."
       : shouldSetAttributes
-        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, vorgeschlagene Test-Attribute wurden gesetzt und alle Datensaetze wurden direkt wieder ausgelesen. Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben."
-        : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt und direkt wieder ausgelesen. Attribute, Mitgliedschaften, Beitragslogik und Familien-/Hauptzahlerbezug wurden bewusst nicht geschrieben.",
+        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Mitgliedsbeitraege-NEU-Attribute wurden gesetzt und alle Datensaetze wurden direkt wieder ausgelesen. Mitgliedschaften und Beitragsarten wurden nicht geschrieben."
+        : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet und direkt wieder ausgelesen. Attribute, Mitgliedschaften und Beitragsarten wurden nicht geschrieben.",
     createdPersons,
     createdMemberships,
     checks,
@@ -395,23 +432,11 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     application: createBaseApplication({}),
     attributeAssignments: [
       {
-        attributeId: 4,
-        attributeName: "Status Quo - Beitragsarten TENNIS RW",
-        valueId: 8,
-        valueName: "1 Beitrag 1. Erwachsene/r"
-      },
-      {
         attributeId: 6,
         attributeName: "Mitgliedsbeiträge NEU",
         valueId: 16,
         valueName: "Erwachsene Aktiv"
       },
-      {
-        attributeId: 7,
-        attributeName: "Status Quo TCH",
-        valueId: 30,
-        valueName: "Erwachsene"
-      }
     ],
     membershipTest: {
       moduleId: 4,
@@ -435,23 +460,11 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     }),
     attributeAssignments: [
       {
-        attributeId: 4,
-        attributeName: "Status Quo - Beitragsarten TENNIS RW",
-        valueId: 10,
-        valueName: "7 Beitrag Passiv"
-      },
-      {
         attributeId: 6,
         attributeName: "Mitgliedsbeitraege NEU",
         valueId: 33,
         valueName: "Passiv"
       },
-      {
-        attributeId: 7,
-        attributeName: "Status Quo TCH",
-        valueId: 31,
-        valueName: "Passiv"
-      }
     ],
     membershipTest: {
       moduleId: 4,
@@ -488,23 +501,11 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     }),
     attributeAssignments: [
       {
-        attributeId: 4,
-        attributeName: "Status Quo - Beitragsarten TENNIS RW",
-        valueId: 12,
-        valueName: "4 Beitrag Kinder, Jugendl. bis 16"
-      },
-      {
         attributeId: 6,
         attributeName: "Mitgliedsbeitraege NEU",
         valueId: 14,
         valueName: "Kinder bis 14 Jahre"
       },
-      {
-        attributeId: 7,
-        attributeName: "Status Quo TCH",
-        valueId: 25,
-        valueName: "1. Kind/Jugendlicher bis 18 Jahre"
-      }
     ],
     membershipTest: {
       moduleId: 4,
@@ -541,23 +542,11 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     }),
     attributeAssignments: [
       {
-        attributeId: 4,
-        attributeName: "Status Quo - Beitragsarten TENNIS RW",
-        valueId: 12,
-        valueName: "4 Beitrag Kinder, Jugendl. bis 16"
-      },
-      {
         attributeId: 6,
         attributeName: "Mitgliedsbeitraege NEU",
         valueId: 17,
         valueName: "Jugendliche bis 18 Jahre"
       },
-      {
-        attributeId: 7,
-        attributeName: "Status Quo TCH",
-        valueId: 25,
-        valueName: "1. Kind/Jugendlicher bis 18 Jahre"
-      }
     ],
     membershipTest: {
       moduleId: 4,
@@ -572,7 +561,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "family_four_persons",
     title: "Familie mit 4 Personen",
     description:
-      "Kontrollierter Mehrpersonen-Test fuer eine Familie mit zahlender Hauptperson, Partner:in und zwei Kindern. Der Test kann Personen, vorgeschlagene Attribute und einfache Mitgliedschaften je Person schreiben; Beitragslogik und Familienverknuepfung bleiben bewusst gesperrt.",
+      "Kontrollierter Mehrpersonen-Test fuer eine Familie mit zahlender Hauptperson, Partner:in und zwei Kindern. Der Test kann Personen, Hauptzahlerbezug, Mitgliedsbeitraege-NEU-Attribute und einfache Mitgliedschaften je Person schreiben.",
     members: [
       {
         id: "family_main",
@@ -613,27 +602,15 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
               birthDate: "2010-04-04"
             }
           ],
-          notes: `${TEST_MARKER}\nFamilien-Test: zahlende Hauptperson. Familien-/Hauptzahlerbezug wird noch nicht per API geschrieben.`
+          notes: `${TEST_MARKER}\nFamilien-Test: zahlende Hauptperson mit Attribut Familien.`
         }),
         attributeAssignments: [
-          {
-            attributeId: 4,
-            attributeName: "Status Quo - Beitragsarten TENNIS RW",
-            valueId: 6,
-            valueName: "3 Familienbeitrag"
-          },
           {
             attributeId: 6,
             attributeName: "Mitgliedsbeitraege NEU",
             valueId: 18,
             valueName: "Familien"
           },
-          {
-            attributeId: 7,
-            attributeName: "Status Quo TCH",
-            valueId: 32,
-            valueName: "Familienbeitrag"
-          }
         ],
         membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP
       },
@@ -660,25 +637,14 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
         }),
         attributeAssignments: [
           {
-            attributeId: 4,
-            attributeName: "Status Quo - Beitragsarten TENNIS RW",
-            valueId: 5,
-            valueName: "9 beitragsfrei z.B. wg. Familienzugehoerigkeit"
-          },
-          {
             attributeId: 6,
             attributeName: "Mitgliedsbeitraege NEU",
             valueId: 22,
             valueName: "Beitragsfreie Familienangehoerige"
           },
-          {
-            attributeId: 7,
-            attributeName: "Status Quo TCH",
-            valueId: 26,
-            valueName: "Beitragsfrei Familie"
-          }
         ],
-        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP
+        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP,
+        payerRelation: DEFAULT_MAIN_PAYER_RELATION
       },
       {
         id: "family_child",
@@ -707,25 +673,14 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
         }),
         attributeAssignments: [
           {
-            attributeId: 4,
-            attributeName: "Status Quo - Beitragsarten TENNIS RW",
-            valueId: 5,
-            valueName: "9 beitragsfrei z.B. wg. Familienzugehoerigkeit"
-          },
-          {
             attributeId: 6,
             attributeName: "Mitgliedsbeitraege NEU",
             valueId: 22,
             valueName: "Beitragsfreie Familienangehoerige"
           },
-          {
-            attributeId: 7,
-            attributeName: "Status Quo TCH",
-            valueId: 26,
-            valueName: "Beitragsfrei Familie"
-          }
         ],
-        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP
+        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP,
+        payerRelation: DEFAULT_MAIN_PAYER_RELATION
       },
       {
         id: "family_youth",
@@ -754,25 +709,14 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
         }),
         attributeAssignments: [
           {
-            attributeId: 4,
-            attributeName: "Status Quo - Beitragsarten TENNIS RW",
-            valueId: 5,
-            valueName: "9 beitragsfrei z.B. wg. Familienzugehoerigkeit"
-          },
-          {
             attributeId: 6,
             attributeName: "Mitgliedsbeitraege NEU",
             valueId: 22,
             valueName: "Beitragsfreie Familienangehoerige"
           },
-          {
-            attributeId: 7,
-            attributeName: "Status Quo TCH",
-            valueId: 26,
-            valueName: "Beitragsfrei Familie"
-          }
         ],
-        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP
+        membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP,
+        payerRelation: DEFAULT_MAIN_PAYER_RELATION
       }
     ]
   }
@@ -885,6 +829,10 @@ function formatIdList(values: number[] | undefined) {
   return values?.length ? values.join(", ") : undefined;
 }
 
+function readRelationModules(person: EbusyPerson) {
+  return person.paidByInfo?.moduleIds ?? person.paidByInfo?.modules;
+}
+
 function formatNullableId(value: number | null | undefined) {
   return value === null ? "null" : value;
 }
@@ -978,6 +926,35 @@ function compareAttributeAssignmentsWithPerson(
   return checks;
 }
 
+function comparePayerRelationWithPerson(
+  relation: EbusyPaymentRelationPayload,
+  person: EbusyPerson
+) {
+  const checks: EbusyTestCheck[] = [];
+
+  addCheck(checks, "Hauptzahler: Personen-ID", relation.id, person.paidByInfo?.id);
+  addCheck(
+    checks,
+    "Hauptzahler: Module",
+    formatIdList(relation.moduleIds),
+    formatIdList(readRelationModules(person))
+  );
+  addCheck(
+    checks,
+    "Hauptzahler: Guthaben und Gutscheine",
+    relation.paysForVouchersAndCoupons,
+    person.paidByInfo?.paysForVouchersAndCoupons
+  );
+  addCheck(
+    checks,
+    "Hauptzahler: Manuelle Forderungen",
+    relation.paysForCustomPurchases,
+    person.paidByInfo?.paysForCustomPurchases
+  );
+
+  return checks;
+}
+
 function compareMembershipPayloadWithMembership(
   payload: EbusyMembershipPayload,
   membership: EbusyMembership
@@ -1048,12 +1025,19 @@ function buildMemberPayloadPreview(members: EbusyTestScenarioMember[]) {
     const membershipPayload = member.membershipTest
       ? buildMembershipPreviewPayload(member.application, member.membershipTest)
       : undefined;
+    const payerRelation = member.payerRelation
+      ? {
+          ...member.payerRelation,
+          payerPersonId: "<interne eBuSy-ID der Hauptperson nach Personenanlage>"
+        }
+      : undefined;
 
     return {
       id: member.id,
       role: member.roleLabel,
       description: member.description,
       person: personPayload,
+      payerRelation,
       attributes: attributePayload,
       membership: membershipPayload
     };

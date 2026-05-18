@@ -21,11 +21,11 @@ export const membershipOptions: MembershipOption[] = [
   { value: "youth_passive", label: "Jugendliche bis 18 Jahre passiv - 40 EUR/Jahr" },
   {
     value: "student_active",
-    label: "Schüler:innen / Azubis / Student:innen bis 27 Jahre aktiv - 100 EUR/Jahr"
+    label: "Schüler:innen / Azubis / Student:innen bis 25 Jahre aktiv - 100 EUR/Jahr"
   },
   {
     value: "student_passive",
-    label: "Schüler:innen / Azubis / Student:innen bis 27 Jahre passiv - 60 EUR/Jahr"
+    label: "Schüler:innen / Azubis / Student:innen bis 25 Jahre passiv - 60 EUR/Jahr"
   }
 ];
 

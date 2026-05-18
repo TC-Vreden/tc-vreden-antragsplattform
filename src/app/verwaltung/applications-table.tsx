@@ -120,10 +120,15 @@ function needsManualReview(application: ApplicationRow) {
 }
 
 function canCreateEbusyPerson(application: ApplicationRow) {
-  return (
-    !application.ebusy_person_id &&
-    ["no_match", "needs_review", "multiple_matches"].includes(application.ebusy_match_status)
-  );
+  if (isTransferredApplication(application)) {
+    return false;
+  }
+
+  if (application.ebusy_person_id) {
+    return application.ebusy_match_status === "match_found";
+  }
+
+  return ["no_match", "needs_review", "multiple_matches"].includes(application.ebusy_match_status);
 }
 
 function DetailItem({ label, value }: { label: string; value: ReactNode }) {
@@ -396,8 +401,10 @@ export function ApplicationsTable({ applications }: Props) {
 
     const multiPersonApplication = isMultiPersonApplication(application);
     const confirmMessage = multiPersonApplication
-      ? `Soll der Mehrpersonen-Antrag für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nEs werden die Hauptperson und ${application.family_members.length} Zusatzperson(en) nacheinander angelegt. Attribute und einfache Mitgliedschaften werden gesetzt. Die angewendete Familien- und Beitragslogik bleibt fachlich durch den Vorstand zu bestätigen.`
-      : `Soll für ${displayName} jetzt wirklich eine neue Person mit Attributen und einfacher Mitgliedschaft in eBuSy angelegt werden?`;
+      ? `Soll der Mehrpersonen-Antrag für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nBei einem bestehenden eBuSy-Treffer wird die Hauptperson aktualisiert. Zusatzpersonen werden angelegt, dem Hauptzahler zugeordnet und mit Attribut Mitgliedsbeiträge NEU sowie einfacher Mitgliedschaft versehen.`
+      : application.ebusy_person_id
+        ? `Soll für ${displayName} die vorhandene eBuSy-Person aktualisiert und um Attribute sowie Mitgliedschaft ergänzt werden? Es wird kein neues Benutzerkonto angelegt.`
+        : `Soll für ${displayName} jetzt wirklich eine neue Person mit Attributen und einfacher Mitgliedschaft in eBuSy angelegt werden?`;
 
     if (!window.confirm(confirmMessage)) {
       return;
@@ -732,8 +739,10 @@ export function ApplicationsTable({ applications }: Props) {
                           disabled={Boolean(localState?.loading)}
                           title={
                             multiPersonApplication
-                              ? "Übernimmt Hauptperson und Zusatzpersonen nacheinander nach eBuSy. Die Familien- und Beitragslogik bleibt fachlich vom Vorstand zu bestätigen."
-                              : "Legt aus diesem Antrag eine neue Person in eBuSy an."
+                              ? "Übernimmt Hauptperson und Zusatzpersonen nach eBuSy und setzt den Hauptzahlerbezug für Zusatzpersonen."
+                              : application.ebusy_person_id
+                                ? "Aktualisiert die vorhandene eBuSy-Person und legt Attribute sowie Mitgliedschaft an."
+                                : "Legt aus diesem Antrag eine neue Person in eBuSy an."
                           }
                           onClick={() => handleCreateEbusy(application.id)}
                           style={{ minWidth: 190 }}
@@ -742,7 +751,9 @@ export function ApplicationsTable({ applications }: Props) {
                             ? "Anlage läuft..."
                             : multiPersonApplication
                               ? "Mehrpersonen übernehmen"
-                              : "In eBuSy anlegen"}
+                              : application.ebusy_person_id
+                                ? "Treffer übernehmen"
+                                : "In eBuSy anlegen"}
                         </button>
                       ) : null}
 
@@ -814,7 +825,7 @@ export function ApplicationsTable({ applications }: Props) {
               <DetailItem label="Nachname" value={application.last_name} />
               <DetailItem label="Geburtsdatum" value={formatDate(application.birth_date)} />
               <DetailItem label="E-Mail" value={application.email} />
-              <DetailItem label="Telefon" value={displayValue(application.phone)} />
+              <DetailItem label="Festnetz" value={displayValue(application.phone)} />
               <DetailItem label="Mobil" value={displayValue(application.mobile)} />
               <DetailItem label="Adresse" value={formatAddress(application)} />
             </DetailSection>

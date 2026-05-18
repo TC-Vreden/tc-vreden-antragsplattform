@@ -15,7 +15,9 @@ import {
   getEbusyMembershipsByPersonId,
   getEbusyPersonById,
   lookupEbusyPerson,
-  setEbusyPersonAttributes
+  setEbusyPersonAttributes,
+  setEbusyPersonPaidBy,
+  updateEbusyPersonFromApplication
 } from "@/lib/ebusy";
 import { isMultiPersonMembership } from "@/lib/application-options";
 import {
@@ -112,6 +114,27 @@ function getCreatedPersonDetails(
     customerId: readBackPerson?.customerId,
     personCode: readBackPerson?.code
   };
+}
+
+function updateCreatedPersonDetails(
+  person: ApplicationCreatedEbusyPerson,
+  readBackPerson: EbusyPerson | null | undefined,
+  fallbackName: string
+) {
+  if (!readBackPerson) {
+    return;
+  }
+
+  person.customerId = readBackPerson.customerId;
+  person.personCode = readBackPerson.code;
+  person.displayName = getPersonDisplayName(readBackPerson, person.displayName ?? fallbackName);
+}
+
+function getMainPayerPerson(createdPeople: ApplicationCreatedEbusyPerson[]) {
+  return (
+    createdPeople.find((person) => person.memberId === "main") ??
+    createdPeople[0]
+  );
 }
 
 function buildAdditionalMemberApplication(
@@ -430,7 +453,16 @@ async function createMultiPersonApplicationInEbusy(
     let readBackPerson: EbusyPerson | null = null;
 
     try {
-      createdPerson = await createEbusyPersonFromApplication(member.application);
+      if (member.memberId === "main" && row.ebusy_person_id) {
+        await updateEbusyPersonFromApplication(row.ebusy_person_id, member.application);
+        createdPerson = {
+          externalPersonId: row.ebusy_person_id,
+          displayName: fallbackName
+        };
+      } else {
+        createdPerson = await createEbusyPersonFromApplication(member.application);
+      }
+
       readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
       createdPeople.push(
         getCreatedPersonDetails(
@@ -446,7 +478,10 @@ async function createMultiPersonApplicationInEbusy(
         roleLabel: member.roleLabel,
         step: "person",
         status: "success",
-        message: `Person angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`
+        message:
+          member.memberId === "main" && row.ebusy_person_id
+            ? `Vorhandene eBuSy-Person aktualisiert: ${getPersonDisplayName(readBackPerson, fallbackName)} (${createdPerson.externalPersonId}).`
+            : `Person angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`
       });
     } catch (error) {
       const reason = error instanceof Error ? error.message : "Unbekannter Personenfehler";
@@ -486,6 +521,76 @@ async function createMultiPersonApplicationInEbusy(
     }
 
     try {
+      if (member.config.payerRelation) {
+        const payer = getMainPayerPerson(createdPeople);
+        const payerPersonId = Number(payer?.externalPersonId);
+
+        if (!payer || !Number.isInteger(payerPersonId)) {
+          throw new Error("Der Hauptzahler wurde noch nicht angelegt oder konnte nicht als eBuSy-ID verarbeitet werden.");
+        }
+
+        await setEbusyPersonPaidBy(createdPerson.externalPersonId, {
+          id: payerPersonId,
+          moduleIds: member.config.payerRelation.moduleIds,
+          paysForVouchersAndCoupons: member.config.payerRelation.paysForVouchersAndCoupons,
+          paysForCustomPurchases: member.config.payerRelation.paysForCustomPurchases
+        });
+        readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
+
+        const currentPerson = createdPeople.find(
+          (person) => person.memberId === member.memberId
+        );
+
+        if (currentPerson) {
+          updateCreatedPersonDetails(currentPerson, readBackPerson, fallbackName);
+        }
+
+        takeoverSteps.push({
+          memberId: member.memberId,
+          roleLabel: member.roleLabel,
+          step: "payer",
+          status: "success",
+          message: `Hauptzahler gesetzt: ${payer.displayName ?? payer.externalPersonId}.`
+        });
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unbekannter Hauptzahlerfehler";
+      const failedPayload: ApplicationMatchPayload = {
+        status: "error",
+        source: "live",
+        message: `Mehrpersonen-Uebernahme abgebrochen: Hauptzahler fuer ${member.roleLabel} konnte nicht gesetzt werden: ${reason}`,
+        candidates: existingPayload?.candidates ?? [],
+        createdPeople,
+        createdMemberships,
+        takeoverSteps: [
+          ...takeoverSteps,
+          {
+            memberId: member.memberId,
+            roleLabel: member.roleLabel,
+            step: "payer",
+            status: "error",
+            message: reason
+          }
+        ],
+        takeoverWarnings
+      };
+
+      await updateApplicationAfterTakeover(applicationId, {
+        status: row.status,
+        ebusy_match_status: "error",
+        ebusy_person_id: createdPeople[0]?.externalPersonId ?? null,
+        ebusy_match_payload: failedPayload
+      });
+
+      return {
+        status: "error",
+        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy pruefen.`,
+        externalPersonId: createdPeople[0]?.externalPersonId ?? null,
+        matchPayload: failedPayload
+      };
+    }
+
+    try {
       if (member.config.attributeAssignments.length > 0) {
         await setEbusyPersonAttributes(
           createdPerson.externalPersonId,
@@ -497,9 +602,7 @@ async function createMultiPersonApplicationInEbusy(
         );
 
         if (currentPerson && readBackPerson) {
-          currentPerson.customerId = readBackPerson.customerId;
-          currentPerson.personCode = readBackPerson.code;
-          currentPerson.displayName = getPersonDisplayName(readBackPerson, currentPerson.displayName ?? fallbackName);
+          updateCreatedPersonDetails(currentPerson, readBackPerson, fallbackName);
         }
 
         takeoverSteps.push({
@@ -562,6 +665,19 @@ async function createMultiPersonApplicationInEbusy(
         throw new Error(
           `eBuSy-ID ${createdPerson.externalPersonId} konnte nicht als Zahl verarbeitet werden.`
         );
+      }
+
+      if (member.memberId === "main" && row.ebusy_person_id) {
+        const existingMemberships = await getEbusyMembershipsByPersonId(
+          member.config.membership.moduleId,
+          personId
+        );
+
+        if (existingMemberships.length > 0) {
+          throw new Error(
+            "Die verknuepfte Hauptperson hat bereits eine Mitgliedschaft. Bitte den Mehrpersonen-Antrag manuell pruefen, damit keine Doppelmitgliedschaft entsteht."
+          );
+        }
       }
 
       const membershipPayload = buildEbusyMembershipPayloadForApplication(
@@ -632,7 +748,7 @@ async function createMultiPersonApplicationInEbusy(
   }
 
   const mainPerson = createdPeople[0];
-  const message = `${createdPeople.length} Person(en), Attribute und einfache Mitgliedschaften wurden in eBuSy angelegt. Die angewendete Familien- und Beitragslogik bleibt fachlich durch den Vorstand zu bestaetigen.`;
+  const message = `${createdPeople.length} Person(en), Hauptzahlerbezug fuer Zusatzpersonen, Attribute und einfache Mitgliedschaften wurden in eBuSy angelegt bzw. aktualisiert.`;
   const transferredAt = new Date().toISOString();
   const nextPayload: ApplicationMatchPayload = {
     status: "created_in_ebusy",
@@ -705,21 +821,14 @@ export async function createApplicationPersonInEbusy(
 
   const row = application as ApplicationRow;
 
-  if (row.ebusy_person_id) {
-    return {
-      status: "match_found",
-      message: `Antrag ist bereits mit eBuSy-ID ${row.ebusy_person_id} verknüpft.`,
-      externalPersonId: row.ebusy_person_id
-    };
-  }
-
   if (isMultiPersonMembership(row.membership_kind)) {
     return createMultiPersonApplicationInEbusy(applicationId, row);
   }
 
-  const canCreatePerson = ["no_match", "needs_review", "multiple_matches"].includes(
-    row.ebusy_match_status
-  );
+  const existingPersonId = row.ebusy_person_id;
+  const canCreatePerson = existingPersonId
+    ? row.ebusy_match_status === "match_found"
+    : ["no_match", "needs_review", "multiple_matches"].includes(row.ebusy_match_status);
 
   if (!canCreatePerson) {
     return {
@@ -741,8 +850,18 @@ export async function createApplicationPersonInEbusy(
     };
   }
 
-  const createdPerson = await createEbusyPersonFromApplication(row);
   const existingPayload = row.ebusy_match_payload as ApplicationMatchPayload | null;
+  const createdPerson = existingPersonId
+    ? {
+        externalPersonId: existingPersonId,
+        displayName: getDisplayName(row)
+      }
+    : await createEbusyPersonFromApplication(row);
+
+  if (existingPersonId) {
+    await updateEbusyPersonFromApplication(existingPersonId, row);
+  }
+
   let readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
   const personId = Number(createdPerson.externalPersonId);
 
@@ -752,6 +871,22 @@ export async function createApplicationPersonInEbusy(
       message: `Person wurde in eBuSy angelegt (${createdPerson.externalPersonId}), aber die eBuSy-ID konnte nicht als Zahl fuer Folgeschritte verarbeitet werden. Bitte manuell pruefen.`,
       externalPersonId: createdPerson.externalPersonId
     };
+  }
+
+  if (existingPersonId) {
+    const existingMemberships = await getEbusyMembershipsByPersonId(
+      takeoverConfig.membership.moduleId,
+      personId
+    );
+
+    if (existingMemberships.length > 0) {
+      return {
+        status: "error",
+        message:
+          "Die verknuepfte eBuSy-Person hat bereits eine Mitgliedschaft. Bitte den Fall manuell pruefen, damit keine Doppelmitgliedschaft entsteht.",
+        externalPersonId: createdPerson.externalPersonId
+      };
+    }
   }
 
   try {
@@ -833,7 +968,9 @@ export async function createApplicationPersonInEbusy(
     };
   }
 
-  const message = `Person, Attribute und Mitgliedschaft wurden in eBuSy angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`;
+  const message = existingPersonId
+    ? `Vorhandene eBuSy-Person wurde aktualisiert, Attribute und Mitgliedschaft wurden angelegt: ${getPersonDisplayName(readBackPerson, createdPerson.displayName)} (${createdPerson.externalPersonId}).`
+    : `Person, Attribute und Mitgliedschaft wurden in eBuSy angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`;
   const transferredAt = new Date().toISOString();
   const nextPayload: ApplicationMatchPayload = {
     status: "created_in_ebusy",

@@ -465,8 +465,8 @@ export function ApplicationForm() {
 
       <div className="grid grid-2">
         <div className="field">
-          <label htmlFor="phone">Telefon</label>
-          <input id="phone" name="phone" />
+          <label htmlFor="phone">Festnetz*</label>
+          <input id="phone" name="phone" required />
         </div>
         <div className="field">
           <label htmlFor="mobile">Mobil*</label>

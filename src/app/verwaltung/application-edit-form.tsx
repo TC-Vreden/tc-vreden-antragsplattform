@@ -225,8 +225,8 @@ export function ApplicationEditForm({ application, onCancel, onSaved }: Props) {
           <TextField label="Nachname" required value={form.last_name} onChange={(value) => updateField("last_name", value)} />
           <TextField label="Geburtsdatum" type="date" value={form.birth_date} onChange={(value) => updateField("birth_date", value)} />
           <TextField label="E-Mail" required type="email" value={form.email} onChange={(value) => updateField("email", value)} />
-          <TextField label="Telefon" value={form.phone} onChange={(value) => updateField("phone", value)} />
-          <TextField label="Mobil" value={form.mobile} onChange={(value) => updateField("mobile", value)} />
+          <TextField label="Festnetz" required value={form.phone} onChange={(value) => updateField("phone", value)} />
+          <TextField label="Mobil" required value={form.mobile} onChange={(value) => updateField("mobile", value)} />
           <TextField label="Straße" value={form.street} onChange={(value) => updateField("street", value)} />
           <TextField label="PLZ" value={form.postal_code} onChange={(value) => updateField("postal_code", value)} />
           <TextField label="Ort" value={form.city} onChange={(value) => updateField("city", value)} />

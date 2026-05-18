@@ -111,7 +111,7 @@ export type ApplicationCreatedEbusyMembership = {
 export type ApplicationEbusyTakeoverStep = {
   memberId?: string;
   roleLabel?: string;
-  step: "person" | "attributes" | "membership";
+  step: "person" | "payer" | "attributes" | "membership";
   status: "success" | "skipped" | "error";
   message: string;
 };

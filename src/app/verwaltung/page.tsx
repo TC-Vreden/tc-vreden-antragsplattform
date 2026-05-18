@@ -84,8 +84,13 @@ export default async function VerwaltungPage() {
           </p>
           <p style={{ margin: "10px 0 0" }}>
             Einzelpersonen und Mehrpersonen-Anträge können nach eBuSy übertragen werden.
-            Mehrpersonen-Anträge werden weiterhin bewusst gekennzeichnet, weil die angewendete
-            Familien- und Beitragslogik noch fachlich durch den Vorstand bestätigt werden muss.
+            Bei bestehenden eBuSy-Treffern wird kein neues Benutzerkonto angelegt; die vorhandene
+            Person wird aktualisiert und um Attribute sowie Mitgliedschaft ergänzt.
+            Mehrpersonen-Anträge setzen bei Zusatzpersonen den Hauptzahlerbezug zur Hauptperson.
+          </p>
+          <p style={{ margin: "10px 0 0" }}>
+            Automatisch gesetzt wird nur noch das Attribut <strong>Mitgliedsbeiträge NEU</strong>.
+            Status-Quo-Attribute und Sommertraining-Gebühren bleiben unberührt.
           </p>
         </article>
 

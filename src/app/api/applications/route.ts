@@ -136,6 +136,14 @@ const applicationSchema = z
       });
     }
 
+    if (!value.phone) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["phone"],
+        message: "Die Festnetznummer fehlt."
+      });
+    }
+
     if (!value.street) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
