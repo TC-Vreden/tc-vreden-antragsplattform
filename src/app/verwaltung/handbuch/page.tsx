@@ -22,7 +22,7 @@ const functionCards = [
   {
     title: "Neue eBuSy-Person",
     text:
-      "Wenn kein Treffer gefunden wurde, wird eine neue eBuSy-Person inklusive Adresse, Kontakt, Bankkonto, SEPA-Mandat, Kommentar und technischem Benutzerkonto angelegt."
+      "Wenn kein Treffer gefunden wurde, wird eine neue eBuSy-Person inklusive Adresse, Kontakt, Bankkonto, SEPA-Mandat, Kommentar und technischem Benutzerkonto angelegt. Der Benutzername ist möglichst sprechend: vorname.nachname, bei Kollision vorname.nachname2, vorname.nachname3 usw."
   },
   {
     title: "Attribute",
@@ -37,7 +37,7 @@ const functionCards = [
   {
     title: "Familien und Mehrpersonen",
     text:
-      "Bei Familie, Erwachsene + 1 Kind sowie Partner-/Lebenspartner-Anträgen ist die Hauptperson der Beitragszahler. Zusatzpersonen werden einzeln angelegt, als beitragsfreie Familienangehörige bzw. passende Partner-Zuordnung markiert und auf die Hauptperson als Hauptzahler gesetzt."
+      "Bei Familie, Erwachsene + 1 Kind sowie Partner-/Lebenspartner-Anträgen ist die Hauptperson der Beitragszahler. Zusatzpersonen werden einzeln angelegt, als beitragsfreie Familienangehörige bzw. passende Partner-Zuordnung markiert und auf die Hauptperson als Hauptzahler gesetzt. Bankkonto und SEPA-Datum werden dabei vom Hauptzahler übernommen."
   },
   {
     title: "PDF und Bestätigung",
@@ -62,7 +62,7 @@ const workflowSteps = [
   "Die Verwaltung prüft den Antrag und führt den eBuSy-Abgleich aus.",
   "Bei einem bestehenden Treffer wird die eBuSy-Person verknüpft und später ohne neues Benutzerkonto ergänzt.",
   "Bei Neuanlage erstellt die Plattform die eBuSy-Person mit Kontakt, Bankkonto, SEPA und Benutzerkonto.",
-  "Danach werden Mitgliedsbeiträge-NEU-Attribute, einfache Mitgliedschaften und bei Mehrpersonen der Hauptzahlerbezug gesetzt.",
+  "Danach werden Mitgliedsbeiträge-NEU-Attribute, einfache Mitgliedschaften und bei Mehrpersonen Hauptzahlerbezug inklusive Bankkonto/SEPA-Kopie gesetzt.",
   "Nach erfolgreicher Übernahme werden PDF-Zusammenfassung und Bestätigungsmail erzeugt."
 ];
 
@@ -78,7 +78,7 @@ const attributeRows = [
 ];
 
 const openItems = [
-  "Hauptzahler-Patch im eBuSy-Testlabor mit echten Testpersonen kontrollieren, bevor wir ihn fachlich als final betrachten.",
+  "Der Hauptzahler-Patch inklusive Bankkonto/SEPA-Kopie wurde technisch am 19.05.2026 mit zwei eBuSy-Testpersonen geprüft. Fachlich sollte die Anzeige im Backend noch einmal kontrolliert werden.",
   "Zusatzpersonen werden aktuell noch nicht einzeln gegen vorhandene eBuSy-Benutzer geprüft. Das ist der nächste wichtige Schutz gegen Doppelanlagen bei Familien.",
   "Beitragsarten bzw. membershipFeeTypes werden weiterhin nicht direkt geschrieben; eBuSy-Zuordnung läuft über Mitgliedsbeiträge NEU und einfache Mitgliedschaft.",
   "DOSB wird noch nicht automatisch gepflegt.",

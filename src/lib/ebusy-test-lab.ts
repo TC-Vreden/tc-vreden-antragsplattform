@@ -17,6 +17,7 @@ import {
   type EbusyAttributeAssignment,
   type EbusyMembership,
   type EbusyMembershipPayload,
+  type EbusyPaymentDetailsPayload,
   type EbusyPaymentRelationPayload,
   type EbusyPerson
 } from "@/lib/ebusy";
@@ -198,7 +199,7 @@ async function runMultiEbusyTestLabAction(
       runId,
       members: memberPayloadPreview,
       safetyNote:
-        "Mehrpersonen-Test: Hauptzahlerbezug fuer Zusatzpersonen, Mitgliedsbeitraege-NEU-Attribute und einfache Mitgliedschaften koennen je Person geschrieben werden. Beitragsarten werden nicht geschrieben."
+        "Mehrpersonen-Test: Hauptzahlerbezug inklusive Bankkonto/SEPA-Kopie fuer Zusatzpersonen, Mitgliedsbeitraege-NEU-Attribute und einfache Mitgliedschaften koennen je Person geschrieben werden. Beitragsarten werden nicht geschrieben."
     }),
     memberAttributeAssignments
   };
@@ -228,11 +229,14 @@ async function runMultiEbusyTestLabAction(
   const createdPersons: EbusyTestCreatedPerson[] = [];
   const createdMemberships: EbusyTestCreatedMembership[] = [];
   const checks: EbusyTestCheck[] = [];
+  let mainPayerPaymentDetails: EbusyPaymentDetailsPayload = {};
 
   try {
     for (const member of members) {
-      const personPayload = buildEbusyPersonPayloadFromApplication(member.application);
       const createdPerson = await createEbusyPersonFromApplication(member.application);
+      const personPayload = buildEbusyPersonPayloadFromApplication(member.application, {
+        username: createdPerson.username
+      });
       let readBack = await getEbusyPersonById(createdPerson.externalPersonId);
       const resultCreatedPerson: EbusyTestCreatedPerson = {
         memberId: member.id,
@@ -245,6 +249,10 @@ async function runMultiEbusyTestLabAction(
 
       createdPersons.push(resultCreatedPerson);
       checks.push(...prefixChecks(comparePayloadWithPerson(personPayload, readBack), member.roleLabel));
+
+      if (member.id === "family_main") {
+        mainPayerPaymentDetails = getPaymentDetailsFromPerson(readBack);
+      }
 
       if (member.payerRelation) {
         const payer = createdPersons.find((person) => person.memberId === "family_main") ?? createdPersons[0];
@@ -261,13 +269,23 @@ async function runMultiEbusyTestLabAction(
           paysForCustomPurchases: member.payerRelation.paysForCustomPurchases
         };
 
-        await setEbusyPersonPaidBy(createdPerson.externalPersonId, relationPayload);
+        await setEbusyPersonPaidBy(
+          createdPerson.externalPersonId,
+          relationPayload,
+          mainPayerPaymentDetails
+        );
         readBack = await getEbusyPersonById(createdPerson.externalPersonId);
         resultCreatedPerson.customerId = readBack.customerId;
         resultCreatedPerson.personCode = readBack.code;
         checks.push(
           ...prefixChecks(
             comparePayerRelationWithPerson(relationPayload, readBack),
+            member.roleLabel
+          )
+        );
+        checks.push(
+          ...prefixChecks(
+            comparePaymentDetailsWithPerson(mainPayerPaymentDetails, readBack),
             member.roleLabel
           )
         );
@@ -364,7 +382,7 @@ async function runMultiEbusyTestLabAction(
     ...baseResult,
     message: shouldCreateMembership
       ? shouldSetAttributes
-        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Mitgliedsbeitraege-NEU-Attribute wurden gesetzt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Beitragsarten werden weiterhin nicht geschrieben."
+        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Bankkonto/SEPA wurden vom Hauptzahler uebernommen, Mitgliedsbeitraege-NEU-Attribute wurden gesetzt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Beitragsarten werden weiterhin nicht geschrieben."
         : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Attribute und Beitragsarten wurden nicht geschrieben."
       : shouldSetAttributes
         ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Mitgliedsbeitraege-NEU-Attribute wurden gesetzt und alle Datensaetze wurden direkt wieder ausgelesen. Mitgliedschaften und Beitragsarten wurden nicht geschrieben."
@@ -833,6 +851,27 @@ function readRelationModules(person: EbusyPerson) {
   return person.paidByInfo?.moduleIds ?? person.paidByInfo?.modules;
 }
 
+function getPaymentDetailsFromPerson(
+  person: EbusyPerson | null | undefined
+): EbusyPaymentDetailsPayload {
+  return {
+    bankAccount: person?.bankAccount?.number
+      ? {
+          holder: person.bankAccount.holder,
+          number: person.bankAccount.number,
+          bank: person.bankAccount.bank
+        }
+      : undefined,
+    sepaMandate: person?.sepaMandate?.date
+      ? {
+          date: person.sepaMandate.date,
+          reference: person.sepaMandate.reference,
+          lastUsedDate: person.sepaMandate.lastUsedDate
+        }
+      : undefined
+  };
+}
+
 function formatNullableId(value: number | null | undefined) {
   return value === null ? "null" : value;
 }
@@ -950,6 +989,34 @@ function comparePayerRelationWithPerson(
     "Hauptzahler: Manuelle Forderungen",
     relation.paysForCustomPurchases,
     person.paidByInfo?.paysForCustomPurchases
+  );
+
+  return checks;
+}
+
+function comparePaymentDetailsWithPerson(
+  paymentDetails: EbusyPaymentDetailsPayload,
+  person: EbusyPerson
+) {
+  const checks: EbusyTestCheck[] = [];
+
+  addCheck(
+    checks,
+    "Hauptzahler-Bankkonto: Kontoinhaber",
+    paymentDetails.bankAccount?.holder,
+    person.bankAccount?.holder
+  );
+  addCheck(
+    checks,
+    "Hauptzahler-Bankkonto: IBAN",
+    paymentDetails.bankAccount?.number,
+    person.bankAccount?.number
+  );
+  addCheck(
+    checks,
+    "Hauptzahler-Bankkonto: SEPA-Mandatsdatum",
+    paymentDetails.sepaMandate?.date,
+    person.sepaMandate?.date
   );
 
   return checks;
@@ -1105,6 +1172,9 @@ async function runSingleEbusyTestLabAction(
   }
 
   const createdPerson = await createEbusyPersonFromApplication(application);
+  const createdPersonPayload = buildEbusyPersonPayloadFromApplication(application, {
+    username: createdPerson.username
+  });
   let readBack = await getEbusyPersonById(createdPerson.externalPersonId);
   const resultCreatedPerson = {
     ...createdPerson,
@@ -1112,7 +1182,7 @@ async function runSingleEbusyTestLabAction(
     personCode: readBack.code
   };
   let createdMembership: EbusyTestLabResult["createdMembership"];
-  let checks = comparePayloadWithPerson(personPayload, readBack);
+  let checks = comparePayloadWithPerson(createdPersonPayload, readBack);
   let message =
     "Testperson wurde in eBuSy angelegt und direkt wieder ausgelesen. Bitte die Person nach dem Test manuell in eBuSy löschen, solange kein sicherer API-Löschweg bestätigt ist.";
   const shouldSetAttributes =

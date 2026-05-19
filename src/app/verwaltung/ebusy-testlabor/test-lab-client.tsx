@@ -110,7 +110,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
         action === "create_person_with_membership" ||
         action === "create_person_with_attributes_and_membership";
       const membershipConfirmationText = selectedScenarioIsMulti
-        ? "Zusaetzlich wird je Testperson eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Bei Zusatzpersonen wird der Hauptzahlerbezug zur Hauptperson gesetzt. Beitragsarten werden nicht geschrieben.\n\n"
+        ? "Zusaetzlich wird je Testperson eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Bei Zusatzpersonen werden Hauptzahlerbezug sowie Bankkonto/SEPA-Kopie zur Hauptperson gesetzt. Beitragsarten werden nicht geschrieben.\n\n"
         : "Zusaetzlich wird eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Eine Beitragsart wird noch nicht geschrieben.\n\n";
       const confirmationText =
         `Soll jetzt wirklich ${selectedScenarioIsMulti ? "mehrere eBuSy-Testpersonen" : "eine eBuSy-Testperson"} angelegt werden?\n\n` +

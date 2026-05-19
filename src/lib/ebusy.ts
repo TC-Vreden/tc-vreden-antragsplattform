@@ -90,6 +90,19 @@ export type EbusyPaymentRelationPayload = {
   paysForCustomPurchases: boolean;
 };
 
+export type EbusyPaymentDetailsPayload = {
+  bankAccount?: {
+    holder?: string | null;
+    number?: string | null;
+    bank?: string | null;
+  } | null;
+  sepaMandate?: {
+    date?: string | null;
+    reference?: string | null;
+    lastUsedDate?: string | null;
+  } | null;
+};
+
 export type EbusyMembership = {
   id?: number;
   personId?: number;
@@ -334,19 +347,65 @@ function toUsernamePart(value: string) {
     .replace(/^\.+|\.+$/g, "");
 }
 
-function buildEbusyUsername(application: ApplicationRow) {
+function buildPreferredEbusyUsername(application: ApplicationRow) {
   const firstName = toUsernamePart(application.first_name);
   const lastName = toUsernamePart(application.last_name);
+  const fallback = application.id.replace(/-/g, "").slice(0, 8);
+
+  return [firstName, lastName].filter(Boolean).join(".") || `mitglied.${fallback}`;
+}
+
+function buildFallbackEbusyUsername(application: ApplicationRow) {
+  const base = buildPreferredEbusyUsername(application);
   const suffix = application.id.replace(/-/g, "").slice(0, 8);
 
-  return [firstName, lastName, suffix].filter(Boolean).join(".");
+  return `${base}.${suffix}`;
+}
+
+async function getEbusyPersonByUsername(username: string) {
+  const query = encodeURIComponent(username);
+  const result = await ebusyGet<EbusyPerson>(`/general/person/by-username/${query}`);
+  const person = result.response ?? result.result;
+
+  if (result.error === "RESOURCE_NOT_FOUND" || !person?.id) {
+    return null;
+  }
+
+  if (result.error) {
+    throw new Error(result.message ?? `eBuSy-Benutzerpruefung fuer ${username} fehlgeschlagen.`);
+  }
+
+  return person;
+}
+
+async function buildAvailableEbusyUsername(application: ApplicationRow) {
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+  const base = buildPreferredEbusyUsername(application);
+
+  if (mode !== "live") {
+    return base;
+  }
+
+  for (let attempt = 1; attempt <= 50; attempt += 1) {
+    const candidate = attempt === 1 ? base : `${base}${attempt}`;
+    const existingPerson = await getEbusyPersonByUsername(candidate);
+
+    if (!existingPerson) {
+      return candidate;
+    }
+  }
+
+  return buildFallbackEbusyUsername(application);
 }
 
 function buildTemporaryPassword() {
   return `TCV-${randomBytes(9).toString("base64url")}-2026`;
 }
 
-export function buildEbusyPersonPayloadFromApplication(application: ApplicationRow) {
+export function buildEbusyPersonPayloadFromApplication(
+  application: ApplicationRow,
+  options: { username?: string } = {}
+) {
   const hasAddress = Boolean(application.street || application.postal_code || application.city);
   const hasContact = Boolean(application.email || application.mobile || application.phone);
   const applicantName = `${application.first_name} ${application.last_name}`.trim();
@@ -388,7 +447,7 @@ export function buildEbusyPersonPayloadFromApplication(application: ApplicationR
         }
       : undefined,
     user: {
-      name: buildEbusyUsername(application),
+      name: options.username ?? buildPreferredEbusyUsername(application),
       password: buildTemporaryPassword(),
       enabled: true,
       level: "USER"
@@ -422,6 +481,10 @@ function sameNumberList(left: number[] | undefined, right: number[] | undefined)
     normalizedLeft.length === normalizedRight.length &&
     normalizedLeft.every((value, index) => value === normalizedRight[index])
   );
+}
+
+function sameNormalizedText(left: string | null | undefined, right: string | null | undefined) {
+  return (left ?? "").replace(/\s+/g, "").trim() === (right ?? "").replace(/\s+/g, "").trim();
 }
 
 export function buildEbusyAttributePayload(
@@ -490,7 +553,8 @@ export async function updateEbusyPersonFromApplication(
 
 export async function setEbusyPersonPaidBy(
   personId: string | number,
-  relation: EbusyPaymentRelationPayload
+  relation: EbusyPaymentRelationPayload,
+  paymentDetails: EbusyPaymentDetailsPayload = {}
 ) {
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
 
@@ -498,9 +562,23 @@ export async function setEbusyPersonPaidBy(
     return;
   }
 
-  await ebusyPatch<null>(`/general/person/${personId}`, {
-    paidByInfo: toEbusyPaymentRelationPayload(relation)
-  });
+  await ebusyPatch<null>(
+    `/general/person/${personId}`,
+    pruneEmptyValues({
+      paidByInfo: toEbusyPaymentRelationPayload(relation),
+      bankAccount: paymentDetails.bankAccount
+        ? {
+            holder: paymentDetails.bankAccount.holder,
+            number: paymentDetails.bankAccount.number
+          }
+        : undefined,
+      sepaMandate: paymentDetails.sepaMandate
+        ? {
+            date: paymentDetails.sepaMandate.date
+          }
+        : undefined
+    })
+  );
 
   const person = await getEbusyPersonById(personId);
   const paidByInfo = person.paidByInfo;
@@ -512,6 +590,27 @@ export async function setEbusyPersonPaidBy(
     paidByInfo.paysForCustomPurchases !== relation.paysForCustomPurchases
   ) {
     throw new Error("Die Hauptzahler-Verknuepfung konnte nach dem Schreiben nicht bestaetigt werden.");
+  }
+
+  if (
+    paymentDetails.bankAccount?.number &&
+    !sameNormalizedText(person.bankAccount?.number, paymentDetails.bankAccount.number)
+  ) {
+    throw new Error("Das Bankkonto des Hauptzahlers konnte nach dem Schreiben nicht bestaetigt werden.");
+  }
+
+  if (
+    paymentDetails.bankAccount?.holder &&
+    !sameNormalizedText(person.bankAccount?.holder, paymentDetails.bankAccount.holder)
+  ) {
+    throw new Error("Der Kontoinhaber des Hauptzahlers konnte nach dem Schreiben nicht bestaetigt werden.");
+  }
+
+  if (
+    paymentDetails.sepaMandate?.date &&
+    !sameNormalizedText(person.sepaMandate?.date, paymentDetails.sepaMandate.date)
+  ) {
+    throw new Error("Das SEPA-Mandatsdatum des Hauptzahlers konnte nach dem Schreiben nicht bestaetigt werden.");
   }
 }
 
@@ -564,6 +663,7 @@ export async function getEbusyMembershipsByPersonId(
 export async function createEbusyPersonFromApplication(application: ApplicationRow): Promise<{
   externalPersonId: string;
   displayName: string;
+  username?: string;
 }> {
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
 
@@ -572,7 +672,8 @@ export async function createEbusyPersonFromApplication(application: ApplicationR
   }
 
   const displayName = `${application.first_name} ${application.last_name}`.trim();
-  const payload = buildEbusyPersonPayloadFromApplication(application);
+  const username = await buildAvailableEbusyUsername(application);
+  const payload = buildEbusyPersonPayloadFromApplication(application, { username });
 
   const result = await ebusyPost<EbusyCreatedPerson>("/general/person", payload);
   const createdPerson = result.response ?? result.result;
@@ -583,7 +684,8 @@ export async function createEbusyPersonFromApplication(application: ApplicationR
 
   return {
     externalPersonId: String(createdPerson.id),
-    displayName: createdPerson.name ?? displayName
+    displayName: createdPerson.name ?? displayName,
+    username
   };
 }
 

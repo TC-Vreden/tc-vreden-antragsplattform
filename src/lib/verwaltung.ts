@@ -17,7 +17,8 @@ import {
   lookupEbusyPerson,
   setEbusyPersonAttributes,
   setEbusyPersonPaidBy,
-  updateEbusyPersonFromApplication
+  updateEbusyPersonFromApplication,
+  type EbusyPaymentDetailsPayload
 } from "@/lib/ebusy";
 import { isMultiPersonMembership } from "@/lib/application-options";
 import {
@@ -135,6 +136,31 @@ function getMainPayerPerson(createdPeople: ApplicationCreatedEbusyPerson[]) {
     createdPeople.find((person) => person.memberId === "main") ??
     createdPeople[0]
   );
+}
+
+function getPaymentDetailsFromPerson(
+  person: EbusyPerson | null | undefined
+): EbusyPaymentDetailsPayload {
+  return {
+    bankAccount: person?.bankAccount?.number
+      ? {
+          holder: person.bankAccount.holder,
+          number: person.bankAccount.number,
+          bank: person.bankAccount.bank
+        }
+      : undefined,
+    sepaMandate: person?.sepaMandate?.date
+      ? {
+          date: person.sepaMandate.date,
+          reference: person.sepaMandate.reference,
+          lastUsedDate: person.sepaMandate.lastUsedDate
+        }
+      : undefined
+  };
+}
+
+function hasPaymentDetails(paymentDetails: EbusyPaymentDetailsPayload) {
+  return Boolean(paymentDetails.bankAccount?.number || paymentDetails.sepaMandate?.date);
 }
 
 function buildAdditionalMemberApplication(
@@ -446,6 +472,7 @@ async function createMultiPersonApplicationInEbusy(
   const createdMemberships: ApplicationCreatedEbusyMembership[] = [];
   const takeoverSteps: ApplicationEbusyTakeoverStep[] = [];
   const takeoverWarnings = [...takeoverConfig.warnings];
+  let mainPayerPaymentDetails: EbusyPaymentDetailsPayload = {};
 
   for (const member of plan) {
     const fallbackName = getDisplayName(member.application);
@@ -464,6 +491,9 @@ async function createMultiPersonApplicationInEbusy(
       }
 
       readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
+      if (member.memberId === "main") {
+        mainPayerPaymentDetails = getPaymentDetailsFromPerson(readBackPerson);
+      }
       createdPeople.push(
         getCreatedPersonDetails(
           member.memberId,
@@ -534,7 +564,7 @@ async function createMultiPersonApplicationInEbusy(
           moduleIds: member.config.payerRelation.moduleIds,
           paysForVouchersAndCoupons: member.config.payerRelation.paysForVouchersAndCoupons,
           paysForCustomPurchases: member.config.payerRelation.paysForCustomPurchases
-        });
+        }, mainPayerPaymentDetails);
         readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
 
         const currentPerson = createdPeople.find(
@@ -550,7 +580,9 @@ async function createMultiPersonApplicationInEbusy(
           roleLabel: member.roleLabel,
           step: "payer",
           status: "success",
-          message: `Hauptzahler gesetzt: ${payer.displayName ?? payer.externalPersonId}.`
+          message: hasPaymentDetails(mainPayerPaymentDetails)
+            ? `Hauptzahler und Bankkonto gesetzt: ${payer.displayName ?? payer.externalPersonId}.`
+            : `Hauptzahler gesetzt: ${payer.displayName ?? payer.externalPersonId}.`
         });
       }
     } catch (error) {

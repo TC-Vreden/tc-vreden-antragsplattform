@@ -86,7 +86,8 @@ export default async function VerwaltungPage() {
             Einzelpersonen und Mehrpersonen-Anträge können nach eBuSy übertragen werden.
             Bei bestehenden eBuSy-Treffern wird kein neues Benutzerkonto angelegt; die vorhandene
             Person wird aktualisiert und um Attribute sowie Mitgliedschaft ergänzt.
-            Mehrpersonen-Anträge setzen bei Zusatzpersonen den Hauptzahlerbezug zur Hauptperson.
+            Mehrpersonen-Anträge setzen bei Zusatzpersonen den Hauptzahlerbezug zur Hauptperson
+            inklusive Bankkonto/SEPA-Kopie des Hauptzahlers.
           </p>
           <p style={{ margin: "10px 0 0" }}>
             Automatisch gesetzt wird nur noch das Attribut <strong>Mitgliedsbeiträge NEU</strong>.
