@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "projectName": "TC-Vreden Antragsplattform",
+  "defaultBranch": "main",
+  "liveUrl": "https://antrag-tennisclub-vreden.vercel.app",
+  "github": {
+    "remoteName": "origin",
+    "remoteUrl": "https://github.com/TC-Vreden/tc-vreden-antragsplattform.git",
+    "releaseExcludePaths": []
+  },
+  "vercel": {
+    "projectName": "antrag-tennisclub-vreden",
+    "scope": "tc-vredens-projects",
+    "tokenEnv": "VERCEL_TOKEN"
+  },
+  "supabase": {
+    "projectRef": "xftnhnojaizyaecvtxcq",
+    "accessTokenEnv": "SUPABASE_ACCESS_TOKEN",
+    "dbPasswordEnv": "SUPABASE_DB_PASSWORD",
+    "dbUrlEnv": "SUPABASE_DB_URL"
+  },
+  "notifications": {
+    "command": "F:\\Onedrive\\Dokumente\\Codex\\scripts\\notify-phone.cmd"
+  }
+}

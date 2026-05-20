@@ -258,7 +258,8 @@ async function updateApplicationAfterTakeover(
     .eq("id", applicationId);
 
   if (updateError && isMissingColumnError(updateError)) {
-    const { transferred_at: _transferredAt, ...fallbackUpdate } = update;
+    const fallbackUpdate = { ...update };
+    delete fallbackUpdate.transferred_at;
     const retry = await supabase.from("applications").update(fallbackUpdate).eq("id", applicationId);
     updateError = retry.error;
   }

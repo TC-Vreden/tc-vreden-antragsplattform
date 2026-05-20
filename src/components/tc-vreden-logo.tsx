@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export function TcVredenLogo({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
@@ -32,10 +34,12 @@ export function TcVredenLogo({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <img
+    <Image
       alt="TennisClub Vreden e.V."
       className="brand-logo"
+      height={600}
       src="/brand/tc-vreden-logo.png"
+      width={1500}
     />
   );
 }

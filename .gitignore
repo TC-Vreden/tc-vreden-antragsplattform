@@ -4,6 +4,7 @@ node_modules
 .env.local
 .env*.local
 .env.production
+.deploy.local.ps1
 .vercel
 supabase/.temp
 *.log
