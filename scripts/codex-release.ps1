@@ -114,6 +114,36 @@ function Test-VercelProjectLinked {
   }
 }
 
+function Test-NoSecretFilesStaged {
+  $stagedFiles = @(& git diff --cached --name-only)
+  $blockedPatterns = @(
+    "^\.env$",
+    "^\.env\.local$",
+    "^\.env\.production$",
+    "^\.env\.development$",
+    "^\.env\..*\.local$",
+    "^\.deploy\.local\.ps1$",
+    "\.pem$",
+    "\.key$",
+    "\.pfx$",
+    "\.p12$"
+  )
+  $blockedFiles = New-Object System.Collections.Generic.List[string]
+
+  foreach ($file in $stagedFiles) {
+    foreach ($pattern in $blockedPatterns) {
+      if ($file -match $pattern) {
+        $blockedFiles.Add($file) | Out-Null
+        break
+      }
+    }
+  }
+
+  if ($blockedFiles.Count -gt 0) {
+    throw "Refusing to commit possible secret/local credential files: $($blockedFiles -join ', ')"
+  }
+}
+
 try {
   Invoke-Step "Project routing check" {
     $doctorArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $PSScriptRoot "codex-doctor.ps1"), "-Quiet")
@@ -169,6 +199,7 @@ try {
         & git restore --staged -- $excludedPath 2>$null
       }
 
+      Test-NoSecretFilesStaged
       $staged = & git diff --cached --name-only
 
       if ($staged) {

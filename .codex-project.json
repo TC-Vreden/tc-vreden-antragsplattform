@@ -10,6 +10,8 @@
   },
   "vercel": {
     "projectName": "antrag-tennisclub-vreden",
+    "projectId": "prj_BXNdB8jgvsSt6unrYbc9319WcNSi",
+    "orgId": "team_WY3CvMqN0FVdrjFI9EJJjHWt",
     "scope": "tc-vredens-projects",
     "tokenEnv": "VERCEL_TOKEN"
   },
@@ -18,6 +20,28 @@
     "accessTokenEnv": "SUPABASE_ACCESS_TOKEN",
     "dbPasswordEnv": "SUPABASE_DB_PASSWORD",
     "dbUrlEnv": "SUPABASE_DB_URL"
+  },
+  "runtime": {
+    "envFile": ".env.local",
+    "requiredLocalEnv": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "INTERNAL_ACCESS_USERNAME",
+      "INTERNAL_ACCESS_PASSWORD",
+      "EBUSY_API_BASE_URL",
+      "EBUSY_API_USERNAME",
+      "EBUSY_API_PASSWORD",
+      "EBUSY_MATCH_MODE"
+    ],
+    "optionalLocalEnv": [
+      "EBUSY_TEST_LAB_WRITE_ENABLED",
+      "SMTP_HOST",
+      "SMTP_PORT",
+      "SMTP_SECURE",
+      "SMTP_USER",
+      "SMTP_PASSWORD"
+    ]
   },
   "notifications": {
     "command": "F:\\Onedrive\\Dokumente\\Codex\\scripts\\notify-phone.cmd"

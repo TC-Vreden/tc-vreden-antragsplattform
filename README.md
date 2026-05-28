@@ -38,6 +38,18 @@ Diese Web-App ist der erste technische Prototyp fuer die digitale Antragsplattfo
 
 Die Dateien sind bewusst so angelegt, dass wir auch ohne freigeschaltete eBuSy-API weiterarbeiten koennen.
 
+## Codex-Projekt-Routing
+
+Dieses Repository ist strikt an das TC-Vreden-Projekt gebunden. Vor Releases oder Deployments muss der lokale Doctor gruen sein:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex-doctor.ps1
+```
+
+Die lokale Einrichtung fuer Tokens und Secrets ist hier dokumentiert:
+
+- [Codex Routing und lokale Secrets](docs/codex-routing-und-lokale-secrets.md)
+
 ## Lokale eBuSy-Zugangsdaten
 
 Lokale Zugangsdaten gehoeren in `.env.local`.
