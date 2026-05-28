@@ -18,6 +18,12 @@ import { ApplicationEditForm } from "./application-edit-form";
 
 type Props = {
   applications: ApplicationRow[];
+  permissions: {
+    canEditApplications: boolean;
+    canDeleteApplications: boolean;
+    canRunEbusyMatch: boolean;
+    canTakeoverEbusy: boolean;
+  };
 };
 
 type LocalState = {
@@ -231,7 +237,7 @@ function TakeoverDetails({ payload }: { payload: ApplicationMatchPayload | null 
   );
 }
 
-export function ApplicationsTable({ applications }: Props) {
+export function ApplicationsTable({ applications, permissions }: Props) {
   const [rows, setRows] = useState(applications);
   const [states, setStates] = useState<Record<string, LocalState>>({});
 
@@ -690,7 +696,7 @@ export function ApplicationsTable({ applications }: Props) {
                         {showDetails ? "Details ausblenden" : "Details anzeigen"}
                       </button>
 
-                      {!transferred ? (
+                      {!transferred && permissions.canEditApplications ? (
                         <button
                           className="button secondary"
                           type="button"
@@ -702,7 +708,7 @@ export function ApplicationsTable({ applications }: Props) {
                         </button>
                       ) : null}
 
-                      {!transferred ? (
+                      {!transferred && permissions.canRunEbusyMatch ? (
                         <button
                           className="button"
                           type="button"
@@ -732,7 +738,7 @@ export function ApplicationsTable({ applications }: Props) {
                         </button>
                       ) : null}
 
-                      {canCreateEbusyPerson(application) ? (
+                      {permissions.canTakeoverEbusy && canCreateEbusyPerson(application) ? (
                         <button
                           className="button secondary"
                           type="button"
@@ -757,6 +763,7 @@ export function ApplicationsTable({ applications }: Props) {
                         </button>
                       ) : null}
 
+                      {permissions.canDeleteApplications ? (
                       <button
                         className="button secondary"
                         type="button"
@@ -771,6 +778,7 @@ export function ApplicationsTable({ applications }: Props) {
                       >
                         {transferred ? "Eintrag löschen" : "Testeintrag löschen"}
                       </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -973,6 +981,7 @@ export function ApplicationsTable({ applications }: Props) {
                     <td>{candidate.membershipNumber ?? "-"}</td>
                     <td>{candidate.matchReason}</td>
                     <td>
+                      {permissions.canTakeoverEbusy ? (
                       <button
                         className="button"
                         type="button"
@@ -981,6 +990,9 @@ export function ApplicationsTable({ applications }: Props) {
                       >
                         Diesen Treffer verknüpfen
                       </button>
+                      ) : (
+                        "Keine Berechtigung"
+                      )}
                     </td>
                   </tr>
                 ))}

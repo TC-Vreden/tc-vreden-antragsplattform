@@ -11,6 +11,7 @@ import type {
 type Props = {
   scenarios: EbusyTestScenario[];
   writeEnabled: boolean;
+  canRunLiveActions: boolean;
 };
 
 function getStatusLabel(status: EbusyTestCheck["status"]) {
@@ -83,7 +84,7 @@ function scenarioSupportsMembership(scenario: EbusyTestScenario | undefined) {
   return Boolean(scenario.membershipTest);
 }
 
-export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
+export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions }: Props) {
   const [selectedScenarioId, setSelectedScenarioId] = useState(scenarios[0]?.id ?? "");
   const [loadingAction, setLoadingAction] = useState<EbusyTestAction | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
@@ -251,7 +252,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
           <button
             className="button"
             type="button"
-            disabled={isBusy}
+            disabled={isBusy || !canRunLiveActions}
             onClick={() => runAction("create_person")}
           >
             {getActionLabel("create_person", loadingAction === "create_person", selectedScenarioIsMulti)}
@@ -260,7 +261,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             <button
               className="button"
               type="button"
-              disabled={isBusy}
+              disabled={isBusy || !canRunLiveActions}
               onClick={() => runAction("create_person_with_attributes")}
             >
               {getActionLabel(
@@ -274,7 +275,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             <button
               className="button"
               type="button"
-              disabled={isBusy}
+              disabled={isBusy || !canRunLiveActions}
               onClick={() => runAction("create_person_with_membership")}
             >
               {getActionLabel(
@@ -288,7 +289,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
             <button
               className="button"
               type="button"
-              disabled={isBusy}
+              disabled={isBusy || !canRunLiveActions}
               onClick={() => runAction("create_person_with_attributes_and_membership")}
             >
               {getActionLabel(
@@ -307,6 +308,14 @@ export function EbusyTestLabClient({ scenarios, writeEnabled }: Props) {
               Der Live-Button ist absichtlich serverseitig gesperrt, bis{" "}
               <code>EBUSY_TEST_LAB_WRITE_ENABLED=true</code> gesetzt ist. Der Datenpaket-Test
               funktioniert trotzdem ohne eBuSy-Schreibzugriff.
+            </p>
+          </div>
+        ) : !canRunLiveActions ? (
+          <div className="warning-box" style={{ marginTop: 16 }}>
+            <strong>Live-Schreibtest fuer diese Rolle gesperrt</strong>
+            <p style={{ margin: "8px 0 0" }}>
+              Datenpakete koennen geprueft werden. Live-Schreibtests duerfen nur Rollen mit
+              Testlabor-Schreibrecht ausfuehren.
             </p>
           </div>
         ) : (

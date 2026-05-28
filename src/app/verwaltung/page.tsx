@@ -3,16 +3,36 @@ import type { Route } from "next";
 import { getEbusyDiagnostics } from "@/lib/ebusy";
 import { LookupForm } from "@/app/verwaltung/lookup-form";
 import { ApplicationsTable } from "@/app/verwaltung/applications-table";
+import { InternalUserBar } from "@/components/internal-user-bar";
 import { TcVredenLogo } from "@/components/tc-vreden-logo";
 import { getApplicationsForManagement } from "@/lib/verwaltung";
+import { writeInternalAuditLog } from "@/lib/internal-audit";
+import { requireInternalPagePermission } from "@/lib/internal-auth";
+import { hasInternalPermission } from "@/lib/internal-roles";
 
 export default async function VerwaltungPage() {
+  const actor = await requireInternalPagePermission("applications.read");
   const diagnostics = await getEbusyDiagnostics();
   const { applications, error: applicationsError } = await getApplicationsForManagement();
   const isLiveMode = diagnostics.mode === "live";
   const handbookRoute = "/verwaltung/handbuch" as Route;
   const testLabRoute = "/verwaltung/ebusy-testlabor" as Route;
   const confirmationPreviewRoute = "/verwaltung/bestaetigung-vorschau" as Route;
+  const usersRoute = "/verwaltung/benutzer" as Route;
+  const auditRoute = "/verwaltung/audit" as Route;
+  const canUseLookup = hasInternalPermission(actor.role, "ebusy.lookup");
+  const canReadTestLab = hasInternalPermission(actor.role, "testlab.read");
+  const canManageUsers = hasInternalPermission(actor.role, "users.manage");
+  const canReadAudit = hasInternalPermission(actor.role, "audit.read");
+
+  await writeInternalAuditLog({
+    actor,
+    action: "applications.list",
+    entityType: "application",
+    details: {
+      visibleCount: applications.length
+    }
+  });
 
   return (
     <main className="page-shell">
@@ -25,6 +45,8 @@ export default async function VerwaltungPage() {
           serverseitig abgefragt und nur in stark reduzierter Form angezeigt.
         </p>
 
+        <InternalUserBar actor={actor} />
+
         <div className="cta-row" style={{ marginBottom: 20 }}>
           <Link className="button secondary" href="/anmelden">
             Öffentliches Formular ansehen
@@ -32,12 +54,24 @@ export default async function VerwaltungPage() {
           <Link className="button secondary" href={handbookRoute}>
             Dokumentation oeffnen
           </Link>
+          {canReadTestLab ? (
           <Link className="button secondary" href={testLabRoute}>
             eBuSy-Testlabor öffnen
           </Link>
+          ) : null}
           <Link className="button secondary" href={confirmationPreviewRoute}>
             Bestätigungsvorschau öffnen
           </Link>
+          {canManageUsers ? (
+            <Link className="button secondary" href={usersRoute}>
+              Benutzer verwalten
+            </Link>
+          ) : null}
+          {canReadAudit ? (
+            <Link className="button secondary" href={auditRoute}>
+              Audit-Log
+            </Link>
+          ) : null}
         </div>
 
         <div className="grid grid-2" style={{ marginBottom: 20 }}>
@@ -95,7 +129,7 @@ export default async function VerwaltungPage() {
           </p>
         </article>
 
-        <LookupForm />
+        {canUseLookup ? <LookupForm /> : null}
 
         <article className="card" style={{ padding: 18, marginBottom: 20 }}>
           <h2 style={{ fontSize: "1.2rem" }}>Anträge verwalten</h2>
@@ -117,7 +151,15 @@ export default async function VerwaltungPage() {
           ) : applications.length === 0 ? (
             <p>Noch keine gespeicherten Anträge vorhanden.</p>
           ) : (
-            <ApplicationsTable applications={applications} />
+            <ApplicationsTable
+              applications={applications}
+              permissions={{
+                canEditApplications: hasInternalPermission(actor.role, "applications.write"),
+                canDeleteApplications: hasInternalPermission(actor.role, "applications.delete"),
+                canRunEbusyMatch: hasInternalPermission(actor.role, "ebusy.match"),
+                canTakeoverEbusy: hasInternalPermission(actor.role, "ebusy.takeover")
+              }}
+            />
           )}
         </article>
 

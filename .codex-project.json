@@ -37,6 +37,8 @@
     ],
     "optionalLocalEnv": [
       "EBUSY_TEST_LAB_WRITE_ENABLED",
+      "INTERNAL_BASIC_AUTH_FALLBACK_ENABLED",
+      "INTERNAL_BOOTSTRAP_ADMIN_EMAIL",
       "SMTP_HOST",
       "SMTP_PORT",
       "SMTP_SECURE",

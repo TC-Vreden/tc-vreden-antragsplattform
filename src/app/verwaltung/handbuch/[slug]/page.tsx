@@ -1,8 +1,10 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
+import { InternalUserBar } from "@/components/internal-user-bar";
 import { TcVredenLogo } from "@/components/tc-vreden-logo";
 import { getHandbookPage, handbookPages } from "@/app/verwaltung/handbuch/content";
+import { requireInternalPagePermission } from "@/lib/internal-auth";
 
 type Props = {
   params: Promise<{
@@ -51,6 +53,7 @@ function SectionView({
 }
 
 export default async function HandbookDetailPage({ params }: Props) {
+  const actor = await requireInternalPagePermission("docs.read");
   const { slug } = await params;
   const page = getHandbookPage(slug);
 
@@ -65,6 +68,8 @@ export default async function HandbookDetailPage({ params }: Props) {
         <span className="eyebrow">{page.audience}</span>
         <h1 className="page-title">{page.title}</h1>
         <p>{page.summary}</p>
+
+        <InternalUserBar actor={actor} />
 
         <div className="cta-row" style={{ marginBottom: 24 }}>
           <Link className="button secondary" href="/verwaltung/handbuch">

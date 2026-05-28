@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InternalUserBar } from "@/components/internal-user-bar";
 import { TcVredenLogo } from "@/components/tc-vreden-logo";
 import {
   clubContact,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/confirmation-document";
 import styles from "./confirmation-preview.module.css";
 import { PrintButton } from "./print-button";
+import { requireInternalPagePermission } from "@/lib/internal-auth";
 
 function Field({
   label,
@@ -41,7 +43,8 @@ function Field({
   );
 }
 
-export default function ConfirmationPreviewPage() {
+export default async function ConfirmationPreviewPage() {
+  const actor = await requireInternalPagePermission("docs.read");
   const application = confirmationPreviewApplication;
   const mainPersonName = `${application.mainPerson.salutation} ${application.mainPerson.firstName} ${application.mainPerson.lastName}`;
   const consentEvidence = getConfirmationConsentEvidence(application);
@@ -65,6 +68,10 @@ export default function ConfirmationPreviewPage() {
             </Link>
             <PrintButton />
           </div>
+        </div>
+
+        <div className={styles.noPrint}>
+          <InternalUserBar actor={actor} />
         </div>
 
         <article className={`hint-box ${styles.noPrint}`}>

@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-function getSupabaseUrl() {
+export function getSupabaseUrl() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   if (!url) {
@@ -10,14 +10,18 @@ function getSupabaseUrl() {
   return url;
 }
 
-export function getSupabaseInsertClient() {
+export function getSupabaseAnonKey() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!anonKey) {
     throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY fehlt.");
   }
 
-  return createClient(getSupabaseUrl(), anonKey, {
+  return anonKey;
+}
+
+export function getSupabaseInsertClient() {
+  return createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     auth: {
       persistSession: false,
       autoRefreshToken: false

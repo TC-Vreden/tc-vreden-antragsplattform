@@ -1,9 +1,13 @@
 import Link from "next/link";
 import type { Route } from "next";
+import { InternalUserBar } from "@/components/internal-user-bar";
 import { TcVredenLogo } from "@/components/tc-vreden-logo";
 import { handbookDate, handbookPages } from "@/app/verwaltung/handbuch/content";
+import { requireInternalPagePermission } from "@/lib/internal-auth";
 
-export default function VerwaltungHandbuchPage() {
+export default async function VerwaltungHandbuchPage() {
+  const actor = await requireInternalPagePermission("docs.read");
+
   return (
     <main className="page-shell">
       <section className="card">
@@ -14,6 +18,8 @@ export default function VerwaltungHandbuchPage() {
           Wissensbasis fuer Bedienung, eBuSy-Uebernahme, Betrieb und Weiterentwicklung der
           digitalen Mitgliedsantragsplattform. Stand: <strong>{handbookDate}</strong>.
         </p>
+
+        <InternalUserBar actor={actor} />
 
         <div className="cta-row" style={{ marginBottom: 24 }}>
           <Link className="button secondary" href="/verwaltung">

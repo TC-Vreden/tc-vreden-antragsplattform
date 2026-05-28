@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import {
+  internalAuthErrorResponse,
+  requireInternalApiPermission
+} from "@/lib/internal-auth";
+import { writeInternalAuditLog } from "@/lib/internal-audit";
 import { getSupabaseAdminClient } from "@/lib/supabase-server";
 
 type RouteContext = {
@@ -79,134 +84,184 @@ function isAlreadyTransferred(application: {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const { id } = await context.params;
+  try {
+    const actor = await requireInternalApiPermission("applications.write", request);
+    const { id } = await context.params;
 
-  if (!id) {
-    return NextResponse.json({ message: "Antrags-ID fehlt." }, { status: 400 });
-  }
+    if (!id) {
+      return NextResponse.json({ message: "Antrags-ID fehlt." }, { status: 400 });
+    }
 
-  const parsed = updateApplicationSchema.safeParse(await request.json());
+    const parsed = updateApplicationSchema.safeParse(await request.json());
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: "Die übermittelten Antragsdaten sind unvollständig oder ungültig.",
-        issues: parsed.error.flatten()
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          message: "Die uebermittelten Antragsdaten sind unvollstaendig oder ungueltig.",
+          issues: parsed.error.flatten()
+        },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getSupabaseAdminClient();
+    const { data: existingApplication, error: lookupError } = await supabase
+      .from("applications")
+      .select("status, transferred_at, ebusy_match_status")
+      .eq("id", id)
+      .single();
+
+    if (lookupError) {
+      return NextResponse.json({ message: lookupError.message }, { status: 500 });
+    }
+
+    if (!existingApplication) {
+      return NextResponse.json({ message: "Antrag wurde nicht gefunden." }, { status: 404 });
+    }
+
+    if (isAlreadyTransferred(existingApplication)) {
+      return NextResponse.json(
+        {
+          message:
+            "Bereits nach eBuSy uebertragene Antraege koennen hier nicht mehr veraendert werden."
+        },
+        { status: 409 }
+      );
+    }
+
+    const input = parsed.data;
+    const normalizedFamilyMembers = input.family_members.map((member) => ({
+      relation: member.relation ?? "family_member",
+      salutation: member.salutation ?? "",
+      firstName: member.firstName ?? "",
+      lastName: member.lastName ?? "",
+      birthDate: member.birthDate ?? "",
+      email: member.email ?? "",
+      mobile: member.mobile ?? "",
+      street: member.street ?? "",
+      postalCode: member.postalCode ?? "",
+      city: member.city ?? ""
+    }));
+
+    const now = new Date().toISOString();
+    const updatePayload = {
+      salutation: input.salutation,
+      first_name: input.first_name,
+      last_name: input.last_name,
+      birth_date: input.birth_date,
+      email: input.email,
+      phone: input.phone,
+      mobile: input.mobile,
+      street: input.street,
+      postal_code: input.postal_code,
+      city: input.city,
+      membership_kind: input.membership_kind,
+      student_status_until: input.student_status_until,
+      family_members: normalizedFamilyMembers,
+      accepts_statutes: input.accepts_statutes,
+      accepts_privacy: input.accepts_privacy,
+      accepts_photo_video: input.accepts_photo_video,
+      accepts_whatsapp: input.accepts_whatsapp,
+      accepts_sepa: input.accepts_sepa,
+      iban: normalizeIban(input.iban),
+      account_holder: input.account_holder,
+      account_holder_address: input.account_holder_address,
+      guardian_name: input.guardian_name,
+      guardian_email: input.guardian_email,
+      guardian_phone: input.guardian_phone,
+      guardian_consent: input.guardian_consent,
+      notes: input.notes,
+      status: "submitted",
+      ebusy_match_status: "pending",
+      ebusy_person_id: null,
+      ebusy_match_payload: {
+        status: "pending",
+        source: "manual_review",
+        message:
+          "Antrag wurde intern bearbeitet. Bitte den eBuSy-Abgleich vor der Uebernahme erneut starten.",
+        candidates: []
       },
-      { status: 400 }
-    );
-  }
+      updated_at: now
+    };
 
-  const supabase = getSupabaseAdminClient();
-  const { data: existingApplication, error: lookupError } = await supabase
-    .from("applications")
-    .select("status, transferred_at, ebusy_match_status")
-    .eq("id", id)
-    .single();
+    const { data: updatedApplication, error: updateError } = await supabase
+      .from("applications")
+      .update(updatePayload)
+      .eq("id", id)
+      .select("*")
+      .single();
 
-  if (lookupError) {
-    return NextResponse.json({ message: lookupError.message }, { status: 500 });
-  }
+    if (updateError) {
+      return NextResponse.json({ message: updateError.message }, { status: 500 });
+    }
 
-  if (!existingApplication) {
-    return NextResponse.json({ message: "Antrag wurde nicht gefunden." }, { status: 404 });
-  }
+    await writeInternalAuditLog({
+      actor,
+      action: "application.update",
+      entityType: "application",
+      entityId: id,
+      details: {
+        changedFields: Object.keys(updatePayload)
+      }
+    });
 
-  if (isAlreadyTransferred(existingApplication)) {
+    return NextResponse.json({
+      message: "Antrag gespeichert. Bitte den eBuSy-Abgleich erneut starten.",
+      application: updatedApplication
+    });
+  } catch (error) {
+    const authResponse = internalAuthErrorResponse(error);
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     return NextResponse.json(
       {
         message:
-          "Bereits nach eBuSy übertragene Anträge können hier nicht mehr verändert werden."
+          error instanceof Error ? error.message : "Antrag konnte nicht gespeichert werden."
       },
-      { status: 409 }
+      { status: 500 }
     );
   }
-
-  const input = parsed.data;
-  const normalizedFamilyMembers = input.family_members.map((member) => ({
-    relation: member.relation ?? "family_member",
-    salutation: member.salutation ?? "",
-    firstName: member.firstName ?? "",
-    lastName: member.lastName ?? "",
-    birthDate: member.birthDate ?? "",
-    email: member.email ?? "",
-    mobile: member.mobile ?? "",
-    street: member.street ?? "",
-    postalCode: member.postalCode ?? "",
-    city: member.city ?? ""
-  }));
-
-  const now = new Date().toISOString();
-  const updatePayload = {
-    salutation: input.salutation,
-    first_name: input.first_name,
-    last_name: input.last_name,
-    birth_date: input.birth_date,
-    email: input.email,
-    phone: input.phone,
-    mobile: input.mobile,
-    street: input.street,
-    postal_code: input.postal_code,
-    city: input.city,
-    membership_kind: input.membership_kind,
-    student_status_until: input.student_status_until,
-    family_members: normalizedFamilyMembers,
-    accepts_statutes: input.accepts_statutes,
-    accepts_privacy: input.accepts_privacy,
-    accepts_photo_video: input.accepts_photo_video,
-    accepts_whatsapp: input.accepts_whatsapp,
-    accepts_sepa: input.accepts_sepa,
-    iban: normalizeIban(input.iban),
-    account_holder: input.account_holder,
-    account_holder_address: input.account_holder_address,
-    guardian_name: input.guardian_name,
-    guardian_email: input.guardian_email,
-    guardian_phone: input.guardian_phone,
-    guardian_consent: input.guardian_consent,
-    notes: input.notes,
-    status: "submitted",
-    ebusy_match_status: "pending",
-    ebusy_person_id: null,
-    ebusy_match_payload: {
-      status: "pending",
-      source: "manual_review",
-      message:
-        "Antrag wurde intern bearbeitet. Bitte den eBuSy-Abgleich vor der Übernahme erneut starten.",
-      candidates: []
-    },
-    updated_at: now
-  };
-
-  const { data: updatedApplication, error: updateError } = await supabase
-    .from("applications")
-    .update(updatePayload)
-    .eq("id", id)
-    .select("*")
-    .single();
-
-  if (updateError) {
-    return NextResponse.json({ message: updateError.message }, { status: 500 });
-  }
-
-  return NextResponse.json({
-    message: "Antrag gespeichert. Bitte den eBuSy-Abgleich erneut starten.",
-    application: updatedApplication
-  });
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
-  const { id } = await context.params;
+export async function DELETE(request: Request, context: RouteContext) {
+  try {
+    const actor = await requireInternalApiPermission("applications.delete", request);
+    const { id } = await context.params;
 
-  if (!id) {
-    return NextResponse.json({ message: "Antrags-ID fehlt." }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ message: "Antrags-ID fehlt." }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase.from("applications").delete().eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ message: error.message }, { status: 500 });
+    }
+
+    await writeInternalAuditLog({
+      actor,
+      action: "application.delete",
+      entityType: "application",
+      entityId: id
+    });
+
+    return NextResponse.json({ message: "Antrag geloescht." });
+  } catch (error) {
+    const authResponse = internalAuthErrorResponse(error);
+
+    if (authResponse) {
+      return authResponse;
+    }
+
+    return NextResponse.json(
+      {
+        message: error instanceof Error ? error.message : "Antrag konnte nicht geloescht werden."
+      },
+      { status: 500 }
+    );
   }
-
-  const supabase = getSupabaseAdminClient();
-  const { error } = await supabase.from("applications").delete().eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ message: "Antrag gelöscht." });
 }

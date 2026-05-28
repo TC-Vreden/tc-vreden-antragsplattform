@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { InternalUserBar } from "@/components/internal-user-bar";
 import { TcVredenLogo } from "@/components/tc-vreden-logo";
 import { ebusyTestScenarios } from "@/lib/ebusy-test-lab";
 import { EbusyTestLabClient } from "@/app/verwaltung/ebusy-testlabor/test-lab-client";
+import { requireInternalPagePermission } from "@/lib/internal-auth";
+import { hasInternalPermission } from "@/lib/internal-roles";
 
-export default function EbusyTestlaborPage() {
+export default async function EbusyTestlaborPage() {
+  const actor = await requireInternalPagePermission("testlab.read");
   const writeEnabled = process.env.EBUSY_TEST_LAB_WRITE_ENABLED === "true";
+  const canRunLiveActions = writeEnabled && hasInternalPermission(actor.role, "testlab.write");
 
   return (
     <main className="page-shell">
@@ -17,6 +22,8 @@ export default function EbusyTestlaborPage() {
           und welche Werte nach dem Anlegen wieder aus eBuSy zurückkommen. Das Testlabor ist für
           kleine, nachvollziehbare Feldtests gedacht, nicht für produktive Mitgliedschaftsanlagen.
         </p>
+
+        <InternalUserBar actor={actor} />
 
         <div className="cta-row" style={{ marginBottom: 20 }}>
           <Link className="button secondary" href="/verwaltung">
@@ -34,7 +41,11 @@ export default function EbusyTestlaborPage() {
           </p>
         </article>
 
-        <EbusyTestLabClient scenarios={ebusyTestScenarios} writeEnabled={writeEnabled} />
+        <EbusyTestLabClient
+          scenarios={ebusyTestScenarios}
+          writeEnabled={writeEnabled}
+          canRunLiveActions={canRunLiveActions}
+        />
       </section>
     </main>
   );

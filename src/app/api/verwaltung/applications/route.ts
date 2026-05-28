@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-server";
+import {
+  internalAuthErrorResponse,
+  requireInternalApiPermission
+} from "@/lib/internal-auth";
+import { writeInternalAuditLog } from "@/lib/internal-audit";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const actor = await requireInternalApiPermission("applications.read", request);
     const supabase = getSupabaseAdminClient();
     const { data, error } = await supabase
       .from("applications")
@@ -16,10 +22,25 @@ export async function GET() {
       throw new Error(error.message);
     }
 
+    await writeInternalAuditLog({
+      actor,
+      action: "applications.api_list",
+      entityType: "application",
+      details: {
+        visibleCount: data?.length ?? 0
+      }
+    });
+
     return NextResponse.json({
       applications: data ?? []
     });
   } catch (error) {
+    const authResponse = internalAuthErrorResponse(error);
+
+    if (authResponse) {
+      return authResponse;
+    }
+
     return NextResponse.json(
       {
         message:

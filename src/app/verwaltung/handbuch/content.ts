@@ -153,7 +153,9 @@ export const handbookPages: HandbookPage[] = [
           ["application_status_history", "Statusverlauf je Antrag."],
           ["ebusy_match_candidates", "Moegliche eBuSy-Treffer je Antrag."],
           ["admin_notes", "Interne Notizen je Antrag."],
-          ["system_heartbeat", "Eine technische Zeile fuer den taeglichen Supabase-Free-Plan-Heartbeat."]
+          ["system_heartbeat", "Eine technische Zeile fuer den taeglichen Supabase-Free-Plan-Heartbeat."],
+          ["internal_user_profiles", "Interne Supabase-Auth-Benutzerprofile mit Rolle und Status."],
+          ["internal_audit_log", "Nachvollziehbarkeit fuer interne Aktionen ohne Passwoerter oder Secrets."]
         ]
       },
       {
@@ -208,32 +210,43 @@ export const handbookPages: HandbookPage[] = [
       {
         title: "Aktueller Stand",
         body: [
-          "Der interne Bereich ist aktuell ueber eine gemeinsame Basic-Auth-Kennung geschuetzt. Das ist einfach, aber noch kein echtes Rollen- und Benutzerkonzept.",
-          "Supabase Auth ist technisch vorhanden, aber es gibt noch keine interne Oberflaeche zum Anlegen, Einladen, Sperren oder Rollenverwalten von Benutzern."
+          "Der interne Bereich nutzt jetzt persoenliche Supabase-Auth-Zugaenge mit Profilen in internal_user_profiles. Die Middleware akzeptiert eine gueltige Supabase-Session und prueft die konkreten Rechte danach serverseitig in Seiten und API-Routen.",
+          "Die bisherige Basic-Auth-Kennung bleibt als Uebergangs- und Bootstrap-Zugang aktiv, solange INTERNAL_BASIC_AUTH_FALLBACK_ENABLED nicht auf false gesetzt ist. Dieser Zugang gilt intern als Admin und sollte nach dem Anlegen des ersten Admins deaktiviert werden."
         ]
       },
       {
-        title: "Zielbild",
+        title: "Benutzer und Passwortprozess",
         bullets: [
-          "Interne Benutzer koennen in der App angelegt und eingeladen werden.",
-          "Benutzer setzen ihr Passwort selbst oder nutzen Passwort-zuruecksetzen.",
-          "Rollen steuern, wer lesen, bearbeiten, eBuSy uebernehmen, Testlabor nutzen, Benutzer verwalten oder technische Einstellungen sehen darf.",
-          "Wichtige Aktionen werden mit Benutzer, Zeitpunkt und Aktion im Audit-Log gespeichert."
+          "Admins verwalten Benutzer unter /verwaltung/benutzer.",
+          "Fuer den ersten Admin kann /verwaltung/benutzer?legacy=1 den alten Basic-Auth-Dialog ausloesen, solange der Fallback aktiv ist.",
+          "Neue Benutzer werden per E-Mail eingeladen oder bekommen erneut einen Passwortlink.",
+          "Benutzer setzen ihr Passwort ueber /verwaltung/passwort-neu selbst.",
+          "Vergessene Passwoerter koennen ueber /verwaltung/passwort-zuruecksetzen neu angefordert werden.",
+          "Optional kann INTERNAL_BOOTSTRAP_ADMIN_EMAIL gesetzt werden, damit ein bereits vorhandener Supabase-Auth-Benutzer beim ersten Login automatisch Admin wird."
         ]
       },
       {
-        title: "Empfohlene Rollen",
+        title: "Rollen",
         rows: [
-          ["admin", "Benutzer, Rollen, technische Einstellungen und alle Antraege verwalten."],
-          ["verwaltung", "Antraege bearbeiten, eBuSy-Abgleich und Uebernahme ausfuehren."],
-          ["vorstand_lesen", "Antraege und Status einsehen, aber nichts uebertragen."],
-          ["technik", "Systemstatus, Testlabor und Betriebsdokumentation einsehen."]
+          ["admin", "Alle Rechte: Antraege, eBuSy, Testlabor-Liveaktionen, Benutzerverwaltung, Audit und Technik."],
+          ["verwaltung", "Antraege lesen/bearbeiten/loeschen, eBuSy suchen, abgleichen und uebernehmen."],
+          ["vorstand_lesen", "Antraege und Status einsehen, aber nichts bearbeiten oder uebertragen."],
+          ["technik", "Systemstatus, Testlabor-Datenpakete, Audit und Betriebsdokumentation einsehen; keine eBuSy-Live-Schreibtests."]
         ]
       },
       {
-        title: "Umsetzung als eigener Block",
+        title: "Audit-Log",
         body: [
-          "Dieses Thema sollte als separater Implementierungsblock geplant werden, weil es Datenbanktabellen, Supabase Auth, Einladungsmails, Passwortprozesse, Middleware und Audit-Logging betrifft."
+          "Wichtige interne Aktionen werden in internal_audit_log gespeichert. Dazu gehoeren Antragsliste, Bearbeitung, Loeschen, eBuSy-Abgleich, manuelle Kandidatenauswahl, eBuSy-Uebernahme, Testlabor-Aktionen sowie Benutzer- und Passwortlink-Aktionen.",
+          "Audit-Details werden bewusst sparsam protokolliert. Passwoerter, Tokens, Secrets, Keys und IBAN-Werte werden vor dem Speichern redigiert."
+        ]
+      },
+      {
+        title: "Sicherheit",
+        bullets: [
+          "Direkter Data-API-Zugriff fuer authenticated auf bestehende Antragsdaten wurde entfernt; die App nutzt fuer interne Daten serverseitige Service-Role-Routen mit Rollencheck.",
+          "Gesperrte Profile bleiben in Supabase Auth vorhanden, werden aber durch Profilstatus und serverseitige Rechtechecks blockiert.",
+          "Nach erfolgreichem Admin-Bootstrap sollte INTERNAL_BASIC_AUTH_FALLBACK_ENABLED=false gesetzt werden."
         ]
       }
     ]
