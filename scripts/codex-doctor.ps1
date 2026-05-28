@@ -271,6 +271,7 @@ $filterMatches = New-Object System.Collections.Generic.List[string]
 $allowedFilterReferenceFiles = @(
   "AGENTS.md",
   "docs/codex-routing-und-lokale-secrets.md",
+  "docs/handover-rechte-rollensystem-thread.md",
   "scripts/codex-doctor.ps1"
 )
 
