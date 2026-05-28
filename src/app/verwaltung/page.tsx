@@ -30,7 +30,7 @@ export default async function VerwaltungPage() {
             Öffentliches Formular ansehen
           </Link>
           <Link className="button secondary" href={handbookRoute}>
-            Mini-Handbuch öffnen
+            Dokumentation oeffnen
           </Link>
           <Link className="button secondary" href={testLabRoute}>
             eBuSy-Testlabor öffnen

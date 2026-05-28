@@ -32,3 +32,9 @@ Expected routing:
 - Never edit, commit, push, deploy, or read credentials from the Filter.Shop Cockpit project in this thread.
 - Do not copy Filter.Shop variables, Supabase refs, Vercel project IDs, scripts, routes, or documentation into this project unless Alexander explicitly asks for a comparison.
 - If any Git, Vercel, Supabase, or local path points away from this TC-Vreden folder, stop and report the mismatch.
+
+## Documentation Rule
+
+- Keep the internal documentation under `/verwaltung/handbuch` in sync with every meaningful feature, workflow, operations, eBuSy, PDF/email, database, release, or permission change.
+- When adding or changing behavior, update the user-facing documentation and, when relevant, the technical/operations documentation in the same commit.
+- If a feature is intentionally not documented yet, mention that as an open documentation item before finishing the task.
