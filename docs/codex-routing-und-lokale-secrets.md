@@ -78,6 +78,7 @@ Diese Werte muessen lokal vorhanden sein, damit Codex die Verwaltungsfunktionen 
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `INTERNAL_ACCESS_USERNAME`
 - `INTERNAL_ACCESS_PASSWORD`
+- `CRON_SECRET`
 - `EBUSY_API_BASE_URL`
 - `EBUSY_API_USERNAME`
 - `EBUSY_API_PASSWORD`

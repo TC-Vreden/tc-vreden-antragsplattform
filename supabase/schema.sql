@@ -69,6 +69,15 @@ create table if not exists public.admin_notes (
   note text not null
 );
 
+create table if not exists public.system_heartbeat (
+  id text primary key,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  source text not null default 'vercel-cron',
+  last_result text not null default 'ok',
+  details jsonb not null default '{}'::jsonb
+);
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -89,6 +98,7 @@ alter table public.applications enable row level security;
 alter table public.application_status_history enable row level security;
 alter table public.ebusy_match_candidates enable row level security;
 alter table public.admin_notes enable row level security;
+alter table public.system_heartbeat enable row level security;
 
 drop policy if exists "public_can_insert_applications" on public.applications;
 create policy "public_can_insert_applications"
@@ -153,3 +163,7 @@ on public.admin_notes
 for insert
 to authenticated
 with check (true);
+
+revoke all on table public.system_heartbeat from anon, authenticated;
+grant usage on schema public to service_role;
+grant select, insert, update on table public.system_heartbeat to service_role;

@@ -49,6 +49,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex-doctor.ps1
 Die lokale Einrichtung fuer Tokens und Secrets ist hier dokumentiert:
 
 - [Codex Routing und lokale Secrets](docs/codex-routing-und-lokale-secrets.md)
+- [Supabase Heartbeat Cron](docs/supabase-heartbeat-cron.md)
 
 ## Lokale eBuSy-Zugangsdaten
 
