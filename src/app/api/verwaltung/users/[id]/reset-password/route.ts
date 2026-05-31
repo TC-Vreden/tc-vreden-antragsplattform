@@ -3,6 +3,7 @@ import {
   internalAuthErrorResponse,
   requireInternalApiPermission
 } from "@/lib/internal-auth";
+import { getAuthMailErrorMessage } from "@/lib/auth-mail-errors";
 import { writeInternalAuditLog } from "@/lib/internal-audit";
 import { getSupabaseAdminClient } from "@/lib/supabase-server";
 
@@ -30,7 +31,7 @@ export async function POST(request: Request, context: RouteContext) {
     const supabase = getSupabaseAdminClient();
     const { data: profile, error: profileError } = await supabase
       .from("internal_user_profiles")
-      .select("id, email")
+      .select("id, email, status, accepted_at")
       .eq("id", id)
       .single();
 
@@ -57,7 +58,10 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({
-      message: "Passwortlink wurde angefordert."
+      message:
+        profile.status === "invited" && !profile.accepted_at
+          ? `Ein neuer Einrichtungslink wurde an ${profile.email} versendet.`
+          : `Ein Passwortlink wurde an ${profile.email} versendet.`
     });
   } catch (error) {
     const authResponse = internalAuthErrorResponse(error);
@@ -66,12 +70,16 @@ export async function POST(request: Request, context: RouteContext) {
       return authResponse;
     }
 
+    const mailError = getAuthMailErrorMessage(
+      error,
+      "Passwortlink konnte nicht gesendet werden."
+    );
+
     return NextResponse.json(
       {
-        message:
-          error instanceof Error ? error.message : "Passwortlink konnte nicht gesendet werden."
+        message: mailError.message
       },
-      { status: 500 }
+      { status: mailError.status }
     );
   }
 }

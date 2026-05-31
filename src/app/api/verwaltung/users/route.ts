@@ -5,6 +5,7 @@ import {
   requireInternalApiPermission,
   type InternalUserProfile
 } from "@/lib/internal-auth";
+import { getAuthMailErrorMessage } from "@/lib/auth-mail-errors";
 import { writeInternalAuditLog } from "@/lib/internal-audit";
 import { getSupabaseAdminClient } from "@/lib/supabase-server";
 import { internalRoleIds } from "@/lib/internal-roles";
@@ -164,7 +165,10 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      user: profile
+      user: profile,
+      message: userAlreadyExisted
+        ? `Fuer ${email} gab es bereits einen Zugang. Ein neuer Passwortlink wurde versendet.`
+        : `Einladung wurde an ${email} versendet.`
     });
   } catch (error) {
     const authResponse = internalAuthErrorResponse(error);
@@ -173,12 +177,16 @@ export async function POST(request: Request) {
       return authResponse;
     }
 
+    const mailError = getAuthMailErrorMessage(
+      error,
+      "Benutzer konnte nicht eingeladen werden."
+    );
+
     return NextResponse.json(
       {
-        message:
-          error instanceof Error ? error.message : "Benutzer konnte nicht eingeladen werden."
+        message: mailError.message
       },
-      { status: 500 }
+      { status: mailError.status }
     );
   }
 }

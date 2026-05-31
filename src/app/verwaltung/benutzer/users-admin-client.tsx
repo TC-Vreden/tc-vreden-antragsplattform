@@ -97,7 +97,7 @@ export function UsersAdminClient({ initialUsers }: Props) {
       setEmail("");
       setDisplayName("");
       setRole("verwaltung");
-      setFeedback("Einladung oder Passwortlink wurde versendet.");
+      setFeedback(payload.message ?? "Einladung wurde versendet.");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Benutzer konnte nicht eingeladen werden."
@@ -253,6 +253,10 @@ export function UsersAdminClient({ initialUsers }: Props) {
               {users.map((user) => {
                 const draft = drafts[user.id] ?? createDraft(user);
                 const isLoading = loadingId === user.id;
+                const linkButtonLabel =
+                  user.status === "invited" && !user.accepted_at
+                    ? "Link erneut senden"
+                    : "Passwortlink";
 
                 return (
                   <tr key={user.id}>
@@ -327,7 +331,7 @@ export function UsersAdminClient({ initialUsers }: Props) {
                           disabled={isLoading}
                           onClick={() => sendPasswordReset(user.id)}
                         >
-                          Passwortlink
+                          {linkButtonLabel}
                         </button>
                       </div>
                     </td>
