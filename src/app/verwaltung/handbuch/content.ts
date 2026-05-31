@@ -224,6 +224,7 @@ export const handbookPages: HandbookPage[] = [
           "Neue Benutzer werden per E-Mail eingeladen oder bekommen erneut einen Passwortlink.",
           "Benutzer setzen ihr Passwort ueber /verwaltung/passwort-neu selbst.",
           "Einladungs- und Passwortlinks fuehren direkt auf /verwaltung/passwort-neu, weil Supabase diese Mail-Links mit Browser-Session-Tokens ausliefert.",
+          "Die Passwortseite uebernimmt diese Session-Tokens beim Laden und entfernt sie danach aus der Browser-Adresszeile.",
           "Vergessene Passwoerter koennen ueber /verwaltung/passwort-zuruecksetzen neu angefordert werden.",
           "Optional kann INTERNAL_BOOTSTRAP_ADMIN_EMAIL gesetzt werden, damit ein bereits vorhandener Supabase-Auth-Benutzer beim ersten Login automatisch Admin wird."
         ]

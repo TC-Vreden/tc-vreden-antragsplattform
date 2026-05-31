@@ -19,7 +19,50 @@ export function PasswordUpdateForm() {
     let isMounted = true;
     const supabase = getSupabaseBrowserClient();
 
-    supabase.auth.getSession().then(({ data, error }) => {
+    async function initializeSession() {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/u, ""));
+      const hashError = hashParams.get("error_description") ?? hashParams.get("error");
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (hashError) {
+        setErrorMessage(hashError);
+        setHasSession(false);
+        setCheckingSession(false);
+        return;
+      }
+
+      if (accessToken && refreshToken) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+
+        window.history.replaceState(
+          null,
+          document.title,
+          `${window.location.pathname}${window.location.search}`
+        );
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (error) {
+          setErrorMessage(error.message);
+        }
+
+        setHasSession(Boolean(data.session));
+        setCheckingSession(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.getSession();
+
       if (!isMounted) {
         return;
       }
@@ -30,7 +73,7 @@ export function PasswordUpdateForm() {
 
       setHasSession(Boolean(data.session));
       setCheckingSession(false);
-    });
+    }
 
     const {
       data: { subscription }
@@ -42,6 +85,8 @@ export function PasswordUpdateForm() {
       setHasSession(Boolean(session));
       setCheckingSession(false);
     });
+
+    initializeSession();
 
     return () => {
       isMounted = false;
