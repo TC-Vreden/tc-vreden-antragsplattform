@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
@@ -11,11 +11,54 @@ export function PasswordUpdateForm() {
   const [password, setPassword] = useState("");
   const [passwordRepeat, setPasswordRepeat] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const supabase = getSupabaseBrowserClient();
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (error) {
+        setErrorMessage(error.message);
+      }
+
+      setHasSession(Boolean(data.session));
+      setCheckingSession(false);
+    });
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setHasSession(Boolean(session));
+      setCheckingSession(false);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
+
+    if (!hasSession) {
+      setErrorMessage(
+        "Der Passwortlink ist nicht aktiv. Bitte den Link aus der E-Mail neu oeffnen."
+      );
+      return;
+    }
 
     if (password.length < 8) {
       setErrorMessage("Das Passwort muss mindestens 8 Zeichen haben.");
@@ -78,9 +121,22 @@ export function PasswordUpdateForm() {
         </div>
       ) : null}
 
+      {!checkingSession && !hasSession && !errorMessage ? (
+        <div className="warning-box">
+          <strong>Passwortlink fehlt</strong>
+          <p style={{ margin: "8px 0 0" }}>
+            Bitte diese Seite ueber den Link aus der E-Mail oeffnen.
+          </p>
+        </div>
+      ) : null}
+
       <div className="cta-row">
-        <button className="button" type="submit" disabled={loading}>
-          {loading ? "Passwort wird gespeichert..." : "Passwort speichern"}
+        <button className="button" type="submit" disabled={loading || checkingSession || !hasSession}>
+          {checkingSession
+            ? "Link wird geprueft..."
+            : loading
+              ? "Passwort wird gespeichert..."
+              : "Passwort speichern"}
         </button>
         <Link className="button secondary" href={"/verwaltung/login" as Route}>
           Zum Login

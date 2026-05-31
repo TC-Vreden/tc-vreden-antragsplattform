@@ -15,7 +15,7 @@ type RouteContext = {
 function getAuthRedirectUrl(request: Request) {
   const origin = new URL(request.url).origin;
 
-  return `${origin}/auth/callback?next=/verwaltung/passwort-neu`;
+  return `${origin}/verwaltung/passwort-neu`;
 }
 
 export async function POST(request: Request, context: RouteContext) {

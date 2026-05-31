@@ -18,7 +18,7 @@ export function PasswordResetRequestForm() {
     setErrorMessage(null);
 
     const supabase = getSupabaseBrowserClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/verwaltung/passwort-neu`;
+    const redirectTo = `${window.location.origin}/verwaltung/passwort-neu`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo
     });
