@@ -1,6 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  createLegacyBasicAuthCookieValue,
+  isLegacyBasicAuthCookieValueValid,
+  LEGACY_BASIC_AUTH_COOKIE_MAX_AGE_SECONDS,
+  LEGACY_BASIC_AUTH_COOKIE_NAME
+} from "@/lib/legacy-basic-auth-cookie";
 
 const PUBLIC_INTERNAL_PATHS = [
   "/verwaltung/login",
@@ -100,6 +106,47 @@ function hasValidBasicAuth(request: NextRequest) {
   }
 }
 
+async function hasValidLegacyBasicAuthCookie(request: NextRequest) {
+  if (!isLegacyBasicAuthFallbackEnabled()) {
+    return false;
+  }
+
+  const username = process.env.INTERNAL_ACCESS_USERNAME;
+  const password = process.env.INTERNAL_ACCESS_PASSWORD;
+
+  if (!username || !password) {
+    return false;
+  }
+
+  return isLegacyBasicAuthCookieValueValid(
+    request.cookies.get(LEGACY_BASIC_AUTH_COOKIE_NAME)?.value,
+    username,
+    password
+  );
+}
+
+async function legacyBasicAuthResponse(request: NextRequest) {
+  const username = process.env.INTERNAL_ACCESS_USERNAME;
+  const password = process.env.INTERNAL_ACCESS_PASSWORD;
+  const response = NextResponse.next();
+
+  if (username && password) {
+    response.cookies.set(
+      LEGACY_BASIC_AUTH_COOKIE_NAME,
+      await createLegacyBasicAuthCookieValue(username, password),
+      {
+        httpOnly: true,
+        maxAge: LEGACY_BASIC_AUTH_COOKIE_MAX_AGE_SECONDS,
+        path: "/",
+        sameSite: "lax",
+        secure: request.nextUrl.protocol === "https:"
+      }
+    );
+  }
+
+  return response;
+}
+
 function isProtectedPath(pathname: string) {
   return (
     pathname.startsWith("/verwaltung") ||
@@ -182,8 +229,12 @@ export async function middleware(request: NextRequest) {
     return session.response;
   }
 
-  if (hasValidBasicAuth(request)) {
+  if (await hasValidLegacyBasicAuthCookie(request)) {
     return NextResponse.next();
+  }
+
+  if (hasValidBasicAuth(request)) {
+    return legacyBasicAuthResponse(request);
   }
 
   if (

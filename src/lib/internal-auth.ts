@@ -11,6 +11,10 @@ import {
   type InternalPermission,
   type InternalRole
 } from "@/lib/internal-roles";
+import {
+  isLegacyBasicAuthCookieValueValid,
+  LEGACY_BASIC_AUTH_COOKIE_NAME
+} from "@/lib/legacy-basic-auth-cookie";
 
 export type InternalUserStatus = "invited" | "active" | "disabled";
 
@@ -130,7 +134,10 @@ function decodeBasicAuthHeaderCandidates(authHeader: string | null | undefined) 
   }
 }
 
-function getLegacyBasicAuthActor(authHeader: string | null | undefined): InternalActor | null {
+async function getLegacyBasicAuthActor(
+  authHeader: string | null | undefined,
+  legacyCookieValue: string | null | undefined
+): Promise<InternalActor | null> {
   if (!isLegacyBasicAuthFallbackEnabled()) {
     return null;
   }
@@ -147,8 +154,13 @@ function getLegacyBasicAuthActor(authHeader: string | null | undefined): Interna
     (candidate) =>
       candidate.username === expectedUsername && candidate.password === expectedPassword
   );
+  const hasMatchingCookie = await isLegacyBasicAuthCookieValueValid(
+    legacyCookieValue,
+    expectedUsername,
+    expectedPassword
+  );
 
-  if (!hasMatchingCredentials) {
+  if (!hasMatchingCredentials && !hasMatchingCookie) {
     return null;
   }
 
@@ -304,8 +316,9 @@ export async function getCurrentInternalActor(options?: {
 
   const authHeader =
     options?.authorizationHeader ?? (await headers()).get("authorization");
+  const legacyCookieValue = (await cookies()).get(LEGACY_BASIC_AUTH_COOKIE_NAME)?.value;
 
-  return getLegacyBasicAuthActor(authHeader);
+  return getLegacyBasicAuthActor(authHeader, legacyCookieValue);
 }
 
 export async function requireInternalPagePermission(permission: InternalPermission) {
