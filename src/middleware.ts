@@ -36,14 +36,17 @@ function basicAuthChallengeResponse() {
   return new NextResponse("Unauthorized", {
     status: 401,
     headers: {
-      "WWW-Authenticate": 'Basic realm="TC Vreden Intern"'
+      "WWW-Authenticate": 'Basic realm="TC Vreden Intern", charset="UTF-8"'
     }
   });
 }
 
 function decodeBase64(value: string) {
   if (typeof atob === "function") {
-    return atob(value);
+    const binary = atob(value);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+
+    return new TextDecoder().decode(bytes);
   }
 
   return Buffer.from(value, "base64").toString("utf8");
