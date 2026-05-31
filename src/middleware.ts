@@ -41,15 +41,25 @@ function basicAuthChallengeResponse() {
   });
 }
 
-function decodeBase64(value: string) {
+function getBase64Bytes(value: string) {
   if (typeof atob === "function") {
     const binary = atob(value);
-    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
 
-    return new TextDecoder().decode(bytes);
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
   }
 
-  return Buffer.from(value, "base64").toString("utf8");
+  return Uint8Array.from(Buffer.from(value, "base64"));
+}
+
+function decodeBase64Candidates(value: string) {
+  const bytes = getBase64Bytes(value);
+  const candidates = [
+    new TextDecoder("utf-8").decode(bytes),
+    new TextDecoder("windows-1252").decode(bytes),
+    new TextDecoder("iso-8859-1").decode(bytes)
+  ];
+
+  return Array.from(new Set(candidates));
 }
 
 function hasValidBasicAuth(request: NextRequest) {
@@ -71,11 +81,20 @@ function hasValidBasicAuth(request: NextRequest) {
   }
 
   try {
-    const decoded = decodeBase64(authHeader.slice(6));
-    const [providedUsername, ...passwordParts] = decoded.split(":");
-    const providedPassword = passwordParts.join(":");
+    const decodedCandidates = decodeBase64Candidates(authHeader.slice(6));
 
-    return providedUsername === username && providedPassword === password;
+    return decodedCandidates.some((decoded) => {
+      const separatorIndex = decoded.indexOf(":");
+
+      if (separatorIndex < 0) {
+        return false;
+      }
+
+      const providedUsername = decoded.slice(0, separatorIndex);
+      const providedPassword = decoded.slice(separatorIndex + 1);
+
+      return providedUsername === username && providedPassword === password;
+    });
   } catch {
     return false;
   }

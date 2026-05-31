@@ -219,6 +219,7 @@ export const handbookPages: HandbookPage[] = [
         bullets: [
           "Admins verwalten Benutzer unter /verwaltung/benutzer.",
           "Fuer den ersten Admin kann /verwaltung/benutzer?legacy=1 den alten Basic-Auth-Dialog ausloesen, solange der Fallback aktiv ist.",
+          "Der Legacy-Dialog akzeptiert uebliche Browser-Codierungen fuer Basic Auth, damit bestehende Passwoerter mit Sonderzeichen waehrend des Bootstraps funktionieren.",
           "Neue Benutzer werden per E-Mail eingeladen oder bekommen erneut einen Passwortlink.",
           "Benutzer setzen ihr Passwort ueber /verwaltung/passwort-neu selbst.",
           "Vergessene Passwoerter koennen ueber /verwaltung/passwort-zuruecksetzen neu angefordert werden.",
