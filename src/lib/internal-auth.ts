@@ -95,21 +95,38 @@ function isLegacyBasicAuthFallbackEnabled() {
   return process.env.INTERNAL_BASIC_AUTH_FALLBACK_ENABLED !== "false";
 }
 
-function decodeBasicAuthHeader(authHeader: string | null | undefined) {
+function decodeBasicAuthHeaderCandidates(authHeader: string | null | undefined) {
   if (!authHeader?.startsWith("Basic ")) {
-    return null;
+    return [];
   }
 
   try {
-    const decoded = Buffer.from(authHeader.slice(6), "base64").toString("utf8");
-    const [username, ...passwordParts] = decoded.split(":");
+    const bytes = Buffer.from(authHeader.slice(6), "base64");
+    const decodedCandidates = [
+      new TextDecoder("utf-8").decode(bytes),
+      new TextDecoder("windows-1252").decode(bytes),
+      new TextDecoder("iso-8859-1").decode(bytes)
+    ];
 
-    return {
-      username,
-      password: passwordParts.join(":")
-    };
+    return Array.from(new Set(decodedCandidates))
+      .map((decoded) => {
+        const separatorIndex = decoded.indexOf(":");
+
+        if (separatorIndex < 0) {
+          return null;
+        }
+
+        return {
+          username: decoded.slice(0, separatorIndex),
+          password: decoded.slice(separatorIndex + 1)
+        };
+      })
+      .filter(
+        (credentials): credentials is { username: string; password: string } =>
+          Boolean(credentials)
+      );
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -125,12 +142,13 @@ function getLegacyBasicAuthActor(authHeader: string | null | undefined): Interna
     return null;
   }
 
-  const credentials = decodeBasicAuthHeader(authHeader);
+  const credentials = decodeBasicAuthHeaderCandidates(authHeader);
+  const hasMatchingCredentials = credentials.some(
+    (candidate) =>
+      candidate.username === expectedUsername && candidate.password === expectedPassword
+  );
 
-  if (
-    credentials?.username !== expectedUsername ||
-    credentials.password !== expectedPassword
-  ) {
+  if (!hasMatchingCredentials) {
     return null;
   }
 
