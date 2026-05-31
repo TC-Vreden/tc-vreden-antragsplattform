@@ -124,7 +124,8 @@ export const handbookPages: HandbookPage[] = [
         bullets: [
           "Die Bestaetigungsmail wird nach interner Uebernahme vorbereitet bzw. versendet, sofern Mailversand aktiv ist.",
           "SMTP-Konfiguration liegt als Vercel-/Runtime-Variable vor.",
-          "Die Vorschau ist unter /verwaltung/bestaetigung-vorschau erreichbar."
+          "Die Vorschau ist unter /verwaltung/bestaetigung-vorschau erreichbar.",
+          "Supabase-Auth-Mails fuer Einladung, Passwortlink und Passwort-geaendert-Hinweis nutzen ein TC-Vreden-Template mit Logo, gelbem Aktionsbutton und deutschem Text. Der technische Absender bleibt ohne Custom-SMTP weiterhin die Supabase-Standardadresse."
         ]
       }
     ]
@@ -225,6 +226,7 @@ export const handbookPages: HandbookPage[] = [
           "Benutzer setzen ihr Passwort ueber /verwaltung/passwort-neu selbst.",
           "Einladungs- und Passwortlinks fuehren direkt auf /verwaltung/passwort-neu, weil Supabase diese Mail-Links mit Browser-Session-Tokens ausliefert.",
           "Die Passwortseite uebernimmt diese Session-Tokens beim Laden und entfernt sie danach aus der Browser-Adresszeile.",
+          "Die zugehoerigen Supabase-Auth-Mails sind im TC-Vreden-Branding gestaltet. Betroffen sind Einladung, Passwortlink und Passwort-geaendert-Hinweis.",
           "Vergessene Passwoerter koennen ueber /verwaltung/passwort-zuruecksetzen neu angefordert werden.",
           "Optional kann INTERNAL_BOOTSTRAP_ADMIN_EMAIL gesetzt werden, damit ein bereits vorhandener Supabase-Auth-Benutzer beim ersten Login automatisch Admin wird."
         ]
