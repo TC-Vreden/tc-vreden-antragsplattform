@@ -15,15 +15,8 @@ export default async function VerwaltungPage() {
   const diagnostics = await getEbusyDiagnostics();
   const { applications, error: applicationsError } = await getApplicationsForManagement();
   const isLiveMode = diagnostics.mode === "live";
-  const handbookRoute = "/verwaltung/handbuch" as Route;
-  const testLabRoute = "/verwaltung/ebusy-testlabor" as Route;
   const confirmationPreviewRoute = "/verwaltung/bestaetigung-vorschau" as Route;
-  const usersRoute = "/verwaltung/benutzer" as Route;
-  const auditRoute = "/verwaltung/audit" as Route;
   const canUseLookup = hasInternalPermission(actor.role, "ebusy.lookup");
-  const canReadTestLab = hasInternalPermission(actor.role, "testlab.read");
-  const canManageUsers = hasInternalPermission(actor.role, "users.manage");
-  const canReadAudit = hasInternalPermission(actor.role, "audit.read");
 
   await writeInternalAuditLog({
     actor,
@@ -47,31 +40,13 @@ export default async function VerwaltungPage() {
 
         <InternalUserBar actor={actor} />
 
-        <div className="cta-row" style={{ marginBottom: 20 }}>
+        <div className="dashboard-actions" style={{ marginBottom: 20 }}>
           <Link className="button secondary" href="/anmelden">
             Öffentliches Formular ansehen
           </Link>
-          <Link className="button secondary" href={handbookRoute}>
-            Dokumentation oeffnen
-          </Link>
-          {canReadTestLab ? (
-          <Link className="button secondary" href={testLabRoute}>
-            eBuSy-Testlabor öffnen
-          </Link>
-          ) : null}
           <Link className="button secondary" href={confirmationPreviewRoute}>
             Bestätigungsvorschau öffnen
           </Link>
-          {canManageUsers ? (
-            <Link className="button secondary" href={usersRoute}>
-              Benutzer verwalten
-            </Link>
-          ) : null}
-          {canReadAudit ? (
-            <Link className="button secondary" href={auditRoute}>
-              Audit-Log
-            </Link>
-          ) : null}
         </div>
 
         <div className="grid grid-2" style={{ marginBottom: 20 }}>

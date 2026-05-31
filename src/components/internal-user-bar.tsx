@@ -15,7 +15,7 @@ export function InternalUserBar({ actor }: Props) {
 
   return (
     <div
-      className="hint-box"
+      className="hint-box internal-user-bar"
       style={{
         alignItems: "center",
         display: "flex",
@@ -32,38 +32,38 @@ export function InternalUserBar({ actor }: Props) {
           {actor.authMode === "basic" ? " (Uebergangs-Zugang)" : ""}
         </p>
       </div>
-      <div className="cta-row" style={{ marginTop: 0 }}>
-        <Link className="button secondary" href={"/verwaltung" as Route}>
+      <nav className="internal-nav" aria-label="Interne Navigation">
+        <Link className="internal-nav-link" href={"/verwaltung" as Route}>
           Verwaltung
         </Link>
         {canReadDocs ? (
-          <Link className="button secondary" href={"/verwaltung/handbuch" as Route}>
+          <Link className="internal-nav-link" href={"/verwaltung/handbuch" as Route}>
             Handbuch
           </Link>
         ) : null}
         {canReadTestLab ? (
-          <Link className="button secondary" href={"/verwaltung/ebusy-testlabor" as Route}>
+          <Link className="internal-nav-link" href={"/verwaltung/ebusy-testlabor" as Route}>
             Testlabor
           </Link>
         ) : null}
         {canManageUsers ? (
-          <Link className="button secondary" href={"/verwaltung/benutzer" as Route}>
+          <Link className="internal-nav-link" href={"/verwaltung/benutzer" as Route}>
             Benutzer
           </Link>
         ) : null}
         {canReadAudit ? (
-          <Link className="button secondary" href={"/verwaltung/audit" as Route}>
+          <Link className="internal-nav-link" href={"/verwaltung/audit" as Route}>
             Audit
           </Link>
         ) : null}
         {actor.authMode === "supabase" ? (
           <form action="/auth/sign-out" method="post">
-            <button className="button secondary" type="submit">
+            <button className="internal-nav-link internal-nav-button" type="submit">
               Logout
             </button>
           </form>
         ) : null}
-      </div>
+      </nav>
     </div>
   );
 }
