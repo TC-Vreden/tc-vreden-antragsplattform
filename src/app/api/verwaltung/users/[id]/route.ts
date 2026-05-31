@@ -111,3 +111,70 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 }
+
+export async function DELETE(request: Request, context: RouteContext) {
+  try {
+    const actor = await requireInternalApiPermission("users.manage", request);
+    const { id } = await context.params;
+
+    if (!id) {
+      return NextResponse.json({ message: "Benutzer-ID fehlt." }, { status: 400 });
+    }
+
+    if (actor.userId === id) {
+      return NextResponse.json(
+        {
+          message: "Der eigene Admin-Zugang kann nicht geloescht werden."
+        },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getSupabaseAdminClient();
+    const { data: profile, error: profileError } = await supabase
+      .from("internal_user_profiles")
+      .select("id, email, role, status")
+      .eq("id", id)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error(profileError?.message ?? "Benutzerprofil wurde nicht gefunden.");
+    }
+
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(id);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+
+    await writeInternalAuditLog({
+      actor,
+      action: "internal_user.delete",
+      entityType: "internal_user",
+      entityId: id,
+      details: {
+        email: profile.email,
+        role: profile.role,
+        status: profile.status
+      }
+    });
+
+    return NextResponse.json({
+      message: `Benutzer ${profile.email} wurde geloescht.`
+    });
+  } catch (error) {
+    const authResponse = internalAuthErrorResponse(error);
+
+    if (authResponse) {
+      return authResponse;
+    }
+
+    return NextResponse.json(
+      {
+        message:
+          error instanceof Error ? error.message : "Benutzer konnte nicht geloescht werden."
+      },
+      { status: 500 }
+    );
+  }
+}

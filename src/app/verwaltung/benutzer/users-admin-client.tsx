@@ -181,6 +181,47 @@ export function UsersAdminClient({ initialUsers }: Props) {
     }
   }
 
+  async function deleteUser(user: InternalUserProfile) {
+    const confirmed = window.confirm(
+      `Soll der interne Benutzer ${user.email} wirklich geloescht werden?\n\nDer Zugang wird aus Supabase Auth entfernt.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setLoadingId(user.id);
+    setFeedback(null);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/verwaltung/users/${user.id}`, {
+        method: "DELETE"
+      });
+      const payload = (await response.json()) as {
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.message || `HTTP ${response.status}`);
+      }
+
+      setUsers((current) => current.filter((currentUser) => currentUser.id !== user.id));
+      setDrafts((current) => {
+        const next = { ...current };
+        delete next[user.id];
+        return next;
+      });
+      setFeedback(payload.message ?? "Benutzer wurde geloescht.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Benutzer konnte nicht geloescht werden."
+      );
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
   return (
     <div style={{ display: "grid", gap: 20 }}>
       <article className="card" style={{ padding: 18 }}>
@@ -239,7 +280,8 @@ export function UsersAdminClient({ initialUsers }: Props) {
         {users.length === 0 ? (
           <p>Noch keine internen Benutzerprofile vorhanden.</p>
         ) : (
-          <table className="table">
+          <div className="table-scroll">
+            <table className="table users-table">
             <thead>
               <tr>
                 <th>Benutzer</th>
@@ -260,10 +302,11 @@ export function UsersAdminClient({ initialUsers }: Props) {
 
                 return (
                   <tr key={user.id}>
-                    <td>
+                    <td className="users-table-user">
                       <label className="field">
-                        <span>{user.email}</span>
+                        <span className="users-table-email">{user.email}</span>
                         <input
+                          aria-label={`Name fuer ${user.email}`}
                           value={draft.displayName}
                           placeholder="Name"
                           onChange={(event) =>
@@ -274,10 +317,12 @@ export function UsersAdminClient({ initialUsers }: Props) {
                         />
                       </label>
                     </td>
-                    <td>
-                      <label className="field">
-                        <span>{getInternalRoleDescription(draft.role)}</span>
+                    <td className="users-table-role">
+                      <label className="field compact-field">
+                        <span className="sr-only">Rolle fuer {user.email}</span>
                         <select
+                          aria-label={`Rolle fuer ${user.email}`}
+                          title={getInternalRoleDescription(draft.role)}
                           value={draft.role}
                           onChange={(event) =>
                             updateDraft(user.id, {
@@ -293,10 +338,11 @@ export function UsersAdminClient({ initialUsers }: Props) {
                         </select>
                       </label>
                     </td>
-                    <td>
-                      <label className="field">
-                        <span>Status</span>
+                    <td className="users-table-status">
+                      <label className="field compact-field">
+                        <span className="sr-only">Status fuer {user.email}</span>
                         <select
+                          aria-label={`Status fuer ${user.email}`}
                           value={draft.status}
                           onChange={(event) =>
                             updateDraft(user.id, {
@@ -310,15 +356,24 @@ export function UsersAdminClient({ initialUsers }: Props) {
                         </select>
                       </label>
                     </td>
-                    <td>
-                      <div>Erstellt: {formatDateTime(user.created_at)}</div>
-                      <div>Angenommen: {formatDateTime(user.accepted_at)}</div>
-                      <div>Zuletzt: {formatDateTime(user.last_seen_at)}</div>
+                    <td className="users-table-activity">
+                      <div className="activity-line">
+                        <span>Erstellt</span>
+                        <strong>{formatDateTime(user.created_at)}</strong>
+                      </div>
+                      <div className="activity-line">
+                        <span>Angenommen</span>
+                        <strong>{formatDateTime(user.accepted_at)}</strong>
+                      </div>
+                      <div className="activity-line">
+                        <span>Zuletzt</span>
+                        <strong>{formatDateTime(user.last_seen_at)}</strong>
+                      </div>
                     </td>
-                    <td>
-                      <div style={{ display: "grid", gap: 8 }}>
+                    <td className="users-table-actions">
+                      <div className="user-action-list">
                         <button
-                          className="button"
+                          className="button user-action-button"
                           type="button"
                           disabled={isLoading}
                           onClick={() => saveUser(user.id)}
@@ -326,12 +381,20 @@ export function UsersAdminClient({ initialUsers }: Props) {
                           {isLoading ? "Speichern..." : "Speichern"}
                         </button>
                         <button
-                          className="button secondary"
+                          className="button secondary user-action-button"
                           type="button"
                           disabled={isLoading}
                           onClick={() => sendPasswordReset(user.id)}
                         >
                           {linkButtonLabel}
+                        </button>
+                        <button
+                          className="button danger user-action-button"
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => deleteUser(user)}
+                        >
+                          Loeschen
                         </button>
                       </div>
                     </td>
@@ -339,7 +402,8 @@ export function UsersAdminClient({ initialUsers }: Props) {
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </article>
     </div>
