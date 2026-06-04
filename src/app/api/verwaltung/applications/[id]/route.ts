@@ -34,7 +34,8 @@ const familyMemberSchema = z.object({
   mobile: nullableTextSchema,
   street: nullableTextSchema,
   postalCode: nullableTextSchema,
-  city: nullableTextSchema
+  city: nullableTextSchema,
+  legalRepresentative: nullableTextSchema
 });
 
 const updateApplicationSchema = z.object({
@@ -140,7 +141,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       mobile: member.mobile ?? "",
       street: member.street ?? "",
       postalCode: member.postalCode ?? "",
-      city: member.city ?? ""
+      city: member.city ?? "",
+      legalRepresentative: member.legalRepresentative ?? ""
     }));
 
     const now = new Date().toISOString();

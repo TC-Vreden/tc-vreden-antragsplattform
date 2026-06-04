@@ -190,12 +190,34 @@ function buildAdditionalMemberApplication(
   };
 }
 
+function isMinorByBirthDate(value: string | null | undefined) {
+  const birthDateValue = getStringValue(value);
+
+  if (!birthDateValue) {
+    return false;
+  }
+
+  const birthDate = new Date(`${birthDateValue}T00:00:00`);
+
+  if (Number.isNaN(birthDate.getTime())) {
+    return false;
+  }
+
+  const eighteenthBirthday = new Date(birthDate);
+  eighteenthBirthday.setFullYear(eighteenthBirthday.getFullYear() + 18);
+
+  return eighteenthBirthday > new Date();
+}
+
 function validateAdditionalMember(member: ApplicationAdditionalMember, index: number) {
   const missingFields = [
     ["Anrede", member.salutation],
     ["Vorname", member.firstName],
     ["Nachname", member.lastName],
-    ["Geburtsdatum", member.birthDate]
+    ["Geburtsdatum", member.birthDate],
+    ...(member.relation === "child" || isMinorByBirthDate(member.birthDate)
+      ? [["Gesetzliche Vertreter", member.legalRepresentative]]
+      : [])
   ]
     .filter(([, value]) => !getStringValue(value))
     .map(([label]) => label);

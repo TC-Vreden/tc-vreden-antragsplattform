@@ -1,3 +1,12 @@
+import {
+  MINOR_CONSENT_TEXT,
+  PHOTO_VIDEO_CONSENT_TEXT,
+  PRIVACY_SECTIONS,
+  SEPA_MANDATE_TEXT,
+  STATUTES_CONFIRMATION_TEXT,
+  WHATSAPP_CONSENT_TEXT
+} from "@/lib/application-legal-content";
+
 export type ConfirmationPerson = {
   salutation: "Herr" | "Frau";
   firstName: string;
@@ -66,8 +75,18 @@ export const clubContact = {
   address: "Ottensteiner Str. 59, 48691 Vreden",
   email: "mail@tennisclub-vreden.de",
   website: "www.tennisclub-vreden.de",
-  statutesUrl: "https://tennisclub-vreden.de/wp-content/uploads/2024/04/TennisClubVreden-Satzung.pdf"
+  statutesUrl: "/docs/tcv-satzung.pdf"
 };
+
+function textBlock(paragraphs: string[]) {
+  return paragraphs.join("\n\n");
+}
+
+function privacyTextBlock() {
+  return PRIVACY_SECTIONS.map(
+    (section) => `${section.title}\n${section.paragraphs.join("\n\n")}`
+  ).join("\n\n");
+}
 
 export const confirmationPreviewApplication: ConfirmationApplicationPreview = {
   processId: "tcv-demo-2026-0001",
@@ -158,34 +177,28 @@ export const confirmationPreviewApplication: ConfirmationApplicationPreview = {
 
 export const confirmationLegalSections: ConfirmationSection[] = [
   {
-    title: "Satzung, Beiträge, Platzpflege und Datenschutz",
-    text:
-      "Die antragstellende Person bestätigt, dass Satzung, Beitragsordnung, Platzpflegeordnung und Datenschutzbestimmungen des TennisClub Vreden e.V. als verbindlich anerkannt werden. Die Satzung wird im digitalen Prozess verlinkt; Beiträge und Hinweise stammen aus den vorliegenden Vereinsunterlagen 2026."
+    title: "Satzung, Beitragsordnung und Platzpflegeordnung",
+    text: textBlock(STATUTES_CONFIRMATION_TEXT)
   },
   {
     title: "SEPA-Lastschriftmandat",
-    text:
-      "Der TennisClub Vreden e.V. wird ermächtigt, fällige Mitgliedsbeiträge und sonstige satzungsgemäße Forderungen per SEPA-Lastschrift einzuziehen. Die Mandatsreferenz wird durch den Verein bzw. eBuSy vergeben. Die Bankdaten werden zur Beitragsabrechnung verwendet."
+    text: textBlock(SEPA_MANDATE_TEXT)
   },
   {
     title: "Minderjährige und gesetzliche Vertreter",
-    text:
-      "Bei minderjährigen Mitgliedern bestätigen die gesetzlichen Vertreter den Eintritt und die daraus entstehenden Verpflichtungen aus Mitgliedschaft und Spielbetrieb. Im digitalen Prozess werden diese Daten im Antrag und in der PDF-Zusammenfassung dokumentiert."
+    text: textBlock(MINOR_CONSENT_TEXT)
   },
   {
     title: "Foto- und Videoeinwilligung",
-    text:
-      "Die Einwilligung zur Nutzung von Foto- und Videoaufnahmen für Vereinszwecke, Internetseite, soziale Medien und Printmedien ist freiwillig und kann mit Wirkung für die Zukunft widerrufen werden. Sie gilt nicht als Voraussetzung für die Mitgliedschaft."
+    text: textBlock(PHOTO_VIDEO_CONSENT_TEXT)
   },
   {
     title: "WhatsApp- und Kommunikationshinweise",
-    text:
-      "Die Mobilnummer darf für vereinsbezogene WhatsApp-Gruppen und organisatorische Kommunikation genutzt werden. Die Einwilligung ist freiwillig und widerrufbar; innerhalb von WhatsApp-Gruppen kann die Nummer für andere Gruppenmitglieder sichtbar sein."
+    text: textBlock(WHATSAPP_CONSENT_TEXT)
   },
   {
-    title: "Datenschutz / DSGVO",
-    text:
-      "Personenbezogene Daten werden zur Bearbeitung des Mitgliedsantrags, zur Mitgliederverwaltung, zur Beitragsabrechnung, zur Sportorganisation und zur Vereinskommunikation verarbeitet. Betroffene Personen haben insbesondere Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch und Beschwerde bei einer Aufsichtsbehörde."
+    title: "Datenschutzerklärung nach DSGVO",
+    text: privacyTextBlock()
   }
 ];
 
@@ -235,21 +248,20 @@ export function getConfirmationConsentEvidence(
   return [
     {
       key: "statutes-and-rules",
-      title: "Satzung / Beiträge / Datenschutz",
+      title: "Satzung / Beitragsordnung / Platzpflegeordnung",
       checked: application.consent.statutesAndRules,
       confirmedAt: application.consent.statutesAndRules ? confirmedAt : null,
       confirmedBy,
       text:
-        "Satzung, Beitragsinformationen, Vereins-/Platzregeln und Datenschutzbestimmungen wurden gelesen und als verbindlich anerkannt."
+        "Satzung, Beitragsordnung, Platzpflegeordnung und Beitragsinformationen wurden gelesen und als verbindlich anerkannt."
     },
     {
       key: "privacy",
-      title: "Datenschutz- und DSGVO-Hinweise",
+      title: "Datenschutzerklärung nach DSGVO",
       checked: application.consent.privacy,
       confirmedAt: application.consent.privacy ? confirmedAt : null,
       confirmedBy,
-      text:
-        "Die Hinweise zur Verarbeitung der Antrags- und Mitgliedsdaten wurden gelesen und verstanden."
+      text: "Die Datenschutzerklärung nach DSGVO wurde zur Kenntnis genommen."
     },
     {
       key: "sepa",

@@ -232,8 +232,9 @@ Diese Gegenüberstellung ist ein Vorschlag und sollte vom Vorstand/Kassenwart be
 
 Offene fachliche Unstimmigkeit:
 
-- Im Formular bzw. Beitragsdokument gibt es Altersgrenzen, in eBuSy stehen teilweise andere Texte, z. B. `ab 18 - 30J` gegenüber `18 bis 25J`.
-- Das muss fachlich geklärt werden, bevor wir diese Fälle vollautomatisch setzen.
+- Vereinsentscheid vom 04.06.2026: Onlineformular und alle aktuellen Online-Texte verwenden für Schüler:innen, Azubis und Student:innen die Altersgrenze bis 27 Jahre.
+- In eBuSy stehen teilweise noch abweichende bzw. alte Label, z. B. `ab 18 - 30J` oder `18 bis 25J`. Diese Tabellenwerte dokumentieren die vorgefundenen eBuSy-Bezeichnungen und sind kein aktueller Online-Beitragstext.
+- Vor einer vollautomatischen produktiven Übernahme dieser reduzierten Beiträge muss bestätigt werden, welcher eBuSy-Wert trotz abweichendem Label fachlich der 27-Jahre-Regel entspricht.
 
 ## Hauptzahler / Familienbezug
 

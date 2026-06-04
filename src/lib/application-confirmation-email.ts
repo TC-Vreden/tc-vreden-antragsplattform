@@ -108,6 +108,27 @@ function detailRow(label: string, value: string | number | boolean | null | unde
   return `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value ?? "-")}</td></tr>`;
 }
 
+function renderParagraphs(text: string) {
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`)
+    .join("");
+}
+
+function renderLegalSectionsHtml() {
+  return confirmationLegalSections
+    .map(
+      (section) => `
+        <section class="legal-section">
+          <h3>${escapeHtml(section.title)}</h3>
+          ${renderParagraphs(section.text)}
+        </section>`
+    )
+    .join("");
+}
+
 function renderAdditionalMembers(members: ApplicationAdditionalMember[]) {
   if (members.length === 0) {
     return "<p class=\"muted\">Keine Zusatzpersonen erfasst.</p>";
@@ -125,6 +146,7 @@ function renderAdditionalMembers(members: ApplicationAdditionalMember[]) {
             ${detailRow("Geburtsdatum", formatDate(member.birthDate))}
             ${detailRow("E-Mail", member.email)}
             ${detailRow("Mobil", member.mobile)}
+            ${detailRow("Gesetzliche Vertreter", member.legalRepresentative)}
             ${detailRow("Adresse", formatAddress([member.street, member.postalCode, member.city]))}
           </tbody>
         </table>`;
@@ -195,9 +217,7 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
         formatDate(application.student_status_until)
       )
     : "";
-  const legalNotice = confirmationLegalSections
-    .map((section) => `<li><strong>${escapeHtml(section.title)}:</strong> ${escapeHtml(section.text)}</li>`)
-    .join("");
+  const legalNotice = renderLegalSectionsHtml();
 
   return `<!doctype html>
 <html lang="de">
@@ -218,6 +238,8 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
       .details th { width: 230px; color: #4d4636; }
       .muted { color: #655f52; }
       .notice { background: #fff7bf; border: 1px solid #ffd800; border-radius: 8px; padding: 12px 14px; }
+      .legal-section { margin: 16px 0; padding-top: 6px; border-top: 1px solid #eadfc7; }
+      .legal-section p { margin: 8px 0; }
       .footer { padding: 18px 24px; background: #1f1f1d; color: #ffffff; font-size: 13px; }
       a { color: #0b5f8a; }
     </style>
@@ -266,14 +288,15 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
               ${detailRow("IBAN", formatIban(application.iban))}
               ${detailRow("Anschrift Kontoinhaber", application.account_holder_address)}
               ${detailRow("SEPA-Mandat bestätigt", yesNo(application.accepts_sepa))}
+              ${detailRow("SEPA-Mandatsdatum / digital bestätigt am", formatDate(application.created_at))}
             </tbody>
           </table>
 
           <h2>Einwilligungen</h2>
           <table class="details">
             <tbody>
-              ${detailRow("Satzung / Beiträge / Datenschutz", yesNo(application.accepts_statutes))}
-              ${detailRow("Datenschutz separat bestätigt", yesNo(application.accepts_privacy))}
+              ${detailRow("Satzung / Beitragsordnung / Platzpflegeordnung", yesNo(application.accepts_statutes))}
+              ${detailRow("Datenschutzerklärung nach DSGVO", yesNo(application.accepts_privacy))}
               ${detailRow("Foto / Video", yesNo(application.accepts_photo_video))}
               ${detailRow("WhatsApp", yesNo(application.accepts_whatsapp))}
               ${detailRow("Gesetzliche Vertreter", application.guardian_name)}
@@ -284,7 +307,7 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
           ${renderEbusySummary(matchPayload)}
 
           <h2>Hinweise</h2>
-          <ul>${legalNotice}</ul>
+          ${legalNotice}
           <p>${escapeHtml(confirmationMailPreview.revocationNote)}</p>
           <p>Viele Grüße<br />${escapeHtml(clubContact.name)}</p>
         </div>
@@ -316,6 +339,11 @@ function buildText(input: ApplicationConfirmationEmailInput) {
           }
         ]
       : [];
+  const legalText = confirmationLegalSections.flatMap((section) => [
+    section.title,
+    section.text,
+    ""
+  ]);
 
   return [
     `Hallo ${applicantName},`,
@@ -329,6 +357,7 @@ function buildText(input: ApplicationConfirmationEmailInput) {
     `Geburtsdatum: ${formatDate(application.birth_date)}`,
     `Adresse: ${formatAddress([application.street, application.postal_code, application.city])}`,
     `SEPA-Mandat bestätigt: ${yesNo(application.accepts_sepa)}`,
+    `SEPA-Mandatsdatum / digital bestätigt am: ${formatDate(application.created_at)}`,
     `IBAN: ${formatIban(application.iban)}`,
     "",
     "Zusatzpersonen:",
@@ -338,7 +367,11 @@ function buildText(input: ApplicationConfirmationEmailInput) {
             (member) =>
               `- ${getAdditionalMemberRelationLabel(member.relation)}: ${member.firstName ?? ""} ${
                 member.lastName ?? ""
-              } (${formatDate(member.birthDate)})`
+              } (${formatDate(member.birthDate)})${
+                member.legalRepresentative
+                  ? `, gesetzliche Vertreter: ${member.legalRepresentative}`
+                  : ""
+              }`
           )
           .join("\n")
       : "- Keine Zusatzpersonen erfasst.",
@@ -353,6 +386,8 @@ function buildText(input: ApplicationConfirmationEmailInput) {
           .join("\n")
       : "- Keine eBuSy-Person in der Rückmeldung enthalten.",
     "",
+    "Hinweise:",
+    ...legalText,
     confirmationMailPreview.revocationNote,
     "",
     `Viele Grüße`,

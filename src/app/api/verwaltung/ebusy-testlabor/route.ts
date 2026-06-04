@@ -16,6 +16,7 @@ type TestLabRequest = {
 
 const allowedActions: EbusyTestAction[] = [
   "dry_run",
+  "create_management_application",
   "create_person",
   "create_person_with_attributes",
   "create_person_with_membership",

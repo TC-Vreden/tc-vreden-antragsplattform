@@ -1,8 +1,8 @@
 # PDF- und E-Mail-Konzept
 
-Stand: 06.05.2026
+Stand: 04.06.2026
 
-Dieses Dokument beschreibt die vorbereitete Zielrichtung. Im aktuellen Prototyp werden noch kein PDF erzeugt und keine E-Mail versendet.
+Dieses Dokument beschreibt die Zielrichtung und den aktuellen Umsetzungsstand. Der Code erzeugt inzwischen nach erfolgreicher eBuSy-Uebernahme eine PDF-Zusammenfassung und eine Bestaetigungs-E-Mail, wenn die Mail-ENV aktiv ist. Beim oeffentlichen Absenden wird weiterhin keine Antragsteller-Bestaetigung verschickt; optional ist dort nur eine interne Eingangsmail an das Vereinspostfach vorgesehen.
 
 ## 1. Gewuenschter Ausloesepunkt
 
@@ -33,7 +33,7 @@ Enthalten sein sollten:
 - Nachweisdatum fuer Schueler / Azubi / Student, falls angegeben
 - Familienangehoerige / Familienbezug
 - gesetzliche Vertreter und Minderjaehrigen-Zustimmung, falls betroffen
-- SEPA-Daten soweit sinnvoll, z. B. Kontoinhaber, IBAN maskiert, Mandatszustimmung
+- SEPA-Daten, z. B. Kontoinhaber, IBAN, Mandatszustimmung und digitales Mandatsdatum
 - bestaetigte Pflichttexte mit Textversion
 - Foto-/Videoeinwilligung ja/nein
 - WhatsApp-/Kommunikationseinwilligung ja/nein
@@ -41,7 +41,7 @@ Enthalten sein sollten:
 - eBuSy-Personen-ID nach Uebernahme
 - Hinweis, dass die Mitgliedschafts- und Beitragsdaten in eBuSy bzw. durch die Vereinsverwaltung final gepflegt werden
 
-IBAN sollte in der PDF fuer E-Mail-Anhaenge vorzugsweise maskiert werden, z. B. nur Laenderkennung, Pruefziffer und die letzten vier Zeichen sichtbar. Vollstaendige Bankdaten koennen intern in Supabase/eBuSy vorliegen, sollten aber nicht unnoetig per E-Mail verteilt werden.
+Datenschutzabwaegung: Eine maskierte IBAN reduziert das Risiko bei weitergeleiteten oder dauerhaft gespeicherten E-Mail-Anhaengen. Fachliche Entscheidung vom 04.06.2026: Die PDF-/Mail-Zusammenfassung an Antragsteller und Verein darf die vollstaendige IBAN zeigen, weil sie als Nachweisdokument fuer die selbst angegebenen Bankdaten dient. Der Versand muss deshalb als sensibler Mailversand behandelt werden: korrekter Empfaenger, begrenztes BCC, TLS-faehiger Provider und keine unnoetige Weiterleitung.
 
 ## 3. Vereinsdesign fuer PDF und Mail
 
@@ -140,14 +140,13 @@ Empfohlene Behandlung:
 - Wenn PDF erzeugt wurde, aber E-Mail scheitert, PDF-Pfad behalten und nur E-Mail erneut versuchen.
 - BCC-Versand an Vereinsadresse als Teil der gleichen Mail pruefen; bei Mailfehler gesamtes Mailereignis als fehlgeschlagen protokollieren.
 
-## 8. Noch offen vor Umsetzung
+## 8. Noch offen vor Produktiv-Abnahme
 
 - finale Vereinsadresse fuer BCC
 - Absenderadresse und Reply-To
 - Entscheidung Resend/API-Maildienst oder SMTP
-- finales PDF-Layout mit Logo/Briefkopf
+- Testadresse und echter Mailprovider in Vercel abnehmen
 - rechtliche Freigabe der Pflichttexte und der digitalen Bestaetigungsstrecke
-- Entscheidung, ob die vollstaendige oder maskierte IBAN in das PDF fuer den Antragsteller aufgenommen wird
 - Entscheidung, wie eBuSy-Benutzerpasswoerter spaeter an Mitglieder kommuniziert oder zurueckgesetzt werden
 
 ## 9. Optische Vorschau im Prototyp
@@ -169,7 +168,7 @@ Technisch vorbereitet:
 - interne Vorschauseite in `src/app/verwaltung/bestaetigung-vorschau/page.tsx`
 - Druck-/PDF-Vorschau ueber den Browserdruck
 
-Wichtig: Beim oeffentlichen Absenden des Formulars wird weiterhin kein PDF erzeugt und keine E-Mail verschickt. Die Vorschau bildet den Zielzeitpunkt nach interner Pruefung und erfolgreicher eBuSy-Uebernahme ab.
+Wichtig: Beim oeffentlichen Absenden des Formulars wird weiterhin kein Antragsteller-PDF erzeugt und keine Antragsteller-Bestaetigung verschickt. Die Vorschau und der echte Versand bilden den Zielzeitpunkt nach interner Pruefung und erfolgreicher eBuSy-Uebernahme ab.
 
 ## 10. Interne Eingangsmail nach Antragstellung
 
@@ -182,7 +181,7 @@ Ziel:
 - Sobald ein Antrag erfolgreich in Supabase gespeichert wurde, kann das Vereinspostfach eine kurze E-Mail erhalten.
 - Die E-Mail weist darauf hin, dass ein neuer Antrag im Verwaltungsportal geprueft und spaeter nach eBuSy uebernommen werden muss.
 - Die E-Mail enthaelt nur eine kurze strukturierte Zusammenfassung: Vorgangs-ID, Eingang, Hauptperson, Mitgliedschaft, Kontakt, Adresse, Zusatzpersonen und Einwilligungsstatus.
-- Es wird noch kein PDF erzeugt und noch keine Bestaetigung an den Antragsteller verschickt.
+- Es wird dabei kein PDF erzeugt und keine Bestaetigung an den Antragsteller verschickt.
 
 Technik:
 
@@ -227,3 +226,29 @@ Empfohlene Aktivierung mit All-Inkl:
 5. Einen Testantrag absenden und pruefen, ob die Eingangsmail ankommt.
 
 Hinweis: IMAP ist nur fuer das Abrufen von E-Mails relevant. Fuer diese Plattform wird SMTP benoetigt, weil die Anwendung aktiv E-Mails versenden soll.
+
+## 11. Bestaetigungsmail nach eBuSy-Uebernahme
+
+Stand: 04.06.2026
+
+Die Bestaetigungsmail an den Antragsteller wird nicht beim oeffentlichen Absenden versendet, sondern nach erfolgreicher interner eBuSy-Uebernahme. Sie enthaelt eine freundliche Du-Form-Mail und die erzeugte PDF-Zusammenfassung als Anhang.
+
+Technik:
+
+- Helfer: `src/lib/application-confirmation-email.ts`
+- PDF: `src/lib/application-confirmation-pdf.ts`
+- Ausloesung: erfolgreicher Uebernahmepfad in `src/lib/verwaltung.ts`
+- Empfaenger: Antragsteller-E-Mail aus dem Antrag
+- BCC: `MAIL_CONFIRMATION_BCC`, sonst `MAIL_TO_CLUB`, sonst Vereinskontakt
+
+Noetige ENV-Variablen:
+
+- `APPLICATION_CONFIRMATION_EMAIL_ENABLED=true`
+- `MAIL_PROVIDER=smtp` oder `MAIL_PROVIDER=resend`
+- `MAIL_FROM`
+- bei SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE`
+- bei Resend: `RESEND_API_KEY`
+- optional `MAIL_REPLY_TO`
+- optional `MAIL_CONFIRMATION_BCC`
+
+Wenn `APPLICATION_CONFIRMATION_EMAIL_ENABLED` nicht gesetzt ist, faellt der Code derzeit auf `APPLICATION_NOTIFICATION_EMAIL_ENABLED` zurueck. Fuer den Produktivbetrieb sollte die Bestaetigungsmail trotzdem bewusst separat aktiviert und getestet werden.

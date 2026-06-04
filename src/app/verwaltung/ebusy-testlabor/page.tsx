@@ -10,6 +10,7 @@ export default async function EbusyTestlaborPage() {
   const actor = await requireInternalPagePermission("testlab.read");
   const writeEnabled = process.env.EBUSY_TEST_LAB_WRITE_ENABLED === "true";
   const canRunLiveActions = writeEnabled && hasInternalPermission(actor.role, "testlab.write");
+  const canCreateManagementApplication = hasInternalPermission(actor.role, "testlab.write");
 
   return (
     <main className="page-shell">
@@ -45,6 +46,7 @@ export default async function EbusyTestlaborPage() {
           scenarios={ebusyTestScenarios}
           writeEnabled={writeEnabled}
           canRunLiveActions={canRunLiveActions}
+          canCreateManagementApplication={canCreateManagementApplication}
         />
       </section>
     </main>

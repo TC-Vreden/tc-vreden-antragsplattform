@@ -26,8 +26,8 @@ export const handbookPages: HandbookPage[] = [
       {
         title: "Öffentliches Formular",
         body: [
-          "Neue Mitglieder nutzen /anmelden. Pflicht sind Mitgliedschaftsart, Stammdaten, E-Mail, Festnetz, Mobil, Adresse, SEPA-Zustimmung, IBAN, Kontoinhaber, Satzung/Beiträge und Datenschutz.",
-          "Bei Minderjährigen prüft das Formular zusätzlich die Vertreterdaten. Mehrpersonen-Anträge erfassen Zusatzpersonen in einer strukturierten Liste."
+          "Neue Mitglieder nutzen /anmelden. Pflicht sind Mitgliedschaftsart, Stammdaten, E-Mail, Festnetz, Mobil, Adresse, SEPA-Zustimmung, IBAN, Kontoinhaber, Satzung/Beitragsordnung/Platzpflegeordnung und Datenschutzerklärung nach DSGVO.",
+          "Bei minderjährigen Hauptpersonen prüft das Formular zusätzlich die Vertreterdaten. Bei minderjährigen Zusatzpersonen wird die zuerst erfasste erwachsene Hauptperson als gesetzlicher Vertreter vorbelegt und kann geändert werden."
         ]
       },
       {
@@ -35,7 +35,8 @@ export const handbookPages: HandbookPage[] = [
         bullets: [
           "Neue Anträge erscheinen in /verwaltung als offene Vorgänge.",
           "Die Verwaltung prüft Details, führt den eBuSy-Abgleich aus und entscheidet bei unsicheren Treffern manuell.",
-          "Erfolgreich übertragene Anträge bleiben nachvollziehbar, verschwinden aber aus der offenen Bearbeitung."
+          "Erfolgreich übertragene Anträge bleiben nachvollziehbar, verschwinden aber aus der offenen Bearbeitung.",
+          "Im eBuSy-Testlabor kann über `Testantrag in Verwaltung anlegen` ein kompletter Verwaltungs-Testfall angelegt werden, ohne sofort nach eBuSy zu schreiben."
         ]
       },
       {

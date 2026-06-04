@@ -2,7 +2,9 @@
 
 Stand: 28.05.2026
 
-Diese Datei ist der Startpunkt fuer einen neuen Codex-Thread zum Baustein **Rechte- und Rollensystem** der digitalen Mitgliedsantragsplattform des TennisClub Vreden.
+Hinweis vom 04.06.2026: Dieses Handover ist historisch. Das Rechte- und Rollensystem mit Supabase Auth, internen Benutzern, Rollen/Rechten und Audit-Log ist inzwischen umgesetzt. Der gemeinsame Basic-Auth-Zugang ist nur noch als Bootstrap-/Fallback vorgesehen und sollte nach erfolgreichem Admin-Bootstrap mit `INTERNAL_BASIC_AUTH_FALLBACK_ENABLED=false` deaktiviert werden.
+
+Diese Datei war der Startpunkt fuer einen neuen Codex-Thread zum Baustein **Rechte- und Rollensystem** der digitalen Mitgliedsantragsplattform des TennisClub Vreden.
 
 ## Kopierfertiger Starttext fuer den neuen Thread
 

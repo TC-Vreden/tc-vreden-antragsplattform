@@ -8,10 +8,12 @@ import {
   salutationOptions
 } from "@/lib/application-options";
 import {
+  CONTRIBUTIONS_URL,
   CONTRIBUTION_NOTES,
   CONTRIBUTION_ROWS,
   JUNIOR_TRAINING_NOTES,
   MINOR_CONSENT_TEXT,
+  PLACE_CARE_RULES_URL,
   PHOTO_VIDEO_CONSENT_TEXT,
   PRIVACY_SECTIONS,
   SEPA_MANDATE_TEXT,
@@ -40,6 +42,7 @@ type AdditionalMember = {
   street: string;
   postalCode: string;
   city: string;
+  legalRepresentative: string;
 };
 
 type MainContactDefaults = Pick<
@@ -47,12 +50,22 @@ type MainContactDefaults = Pick<
   "email" | "mobile" | "street" | "postalCode" | "city"
 >;
 
+type MainApplicantDefaults = {
+  firstName: string;
+  lastName: string;
+};
+
 const emptyMainContactDefaults: MainContactDefaults = {
   email: "",
   mobile: "",
   street: "",
   postalCode: "",
   city: ""
+};
+
+const emptyMainApplicantDefaults: MainApplicantDefaults = {
+  firstName: "",
+  lastName: ""
 };
 
 function normalizeIban(value: string) {
@@ -97,10 +110,18 @@ function shouldShowJuniorTrainingNotice(value: string) {
   );
 }
 
+function getMainApplicantDisplayName(defaults: MainApplicantDefaults) {
+  return [defaults.firstName.trim(), defaults.lastName.trim()].filter(Boolean).join(" ");
+}
+
 function createAdditionalMember(
   relation: AdditionalMemberRelation,
-  defaults: MainContactDefaults = emptyMainContactDefaults
+  defaults: MainContactDefaults = emptyMainContactDefaults,
+  mainApplicantDefaults: MainApplicantDefaults = emptyMainApplicantDefaults
 ): AdditionalMember {
+  const defaultLegalRepresentative =
+    relation === "partner" ? "" : getMainApplicantDisplayName(mainApplicantDefaults);
+
   return {
     id:
       globalThis.crypto?.randomUUID?.() ??
@@ -114,7 +135,8 @@ function createAdditionalMember(
     mobile: defaults.mobile,
     street: defaults.street,
     postalCode: defaults.postalCode,
-    city: defaults.city
+    city: defaults.city,
+    legalRepresentative: defaultLegalRepresentative
   };
 }
 
@@ -164,6 +186,8 @@ export function ApplicationForm() {
   const [additionalMembers, setAdditionalMembers] = useState<AdditionalMember[]>([]);
   const [mainContactDefaults, setMainContactDefaults] =
     useState<MainContactDefaults>(emptyMainContactDefaults);
+  const [mainApplicantDefaults, setMainApplicantDefaults] =
+    useState<MainApplicantDefaults>(emptyMainApplicantDefaults);
   const [reducedContributionMode, setReducedContributionMode] = useState(false);
   const [iban, setIban] = useState("");
   const [acceptsSepa, setAcceptsSepa] = useState(false);
@@ -191,7 +215,11 @@ export function ApplicationForm() {
 
       return [
         ...current,
-        createAdditionalMember(additionalMemberConfig.relation, mainContactDefaults)
+        createAdditionalMember(
+          additionalMemberConfig.relation,
+          mainContactDefaults,
+          mainApplicantDefaults
+        )
       ];
     });
   }
@@ -219,6 +247,13 @@ export function ApplicationForm() {
 
   function updateMainContactDefault(field: keyof MainContactDefaults, value: string) {
     setMainContactDefaults((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  function updateMainApplicantDefault(field: keyof MainApplicantDefaults, value: string) {
+    setMainApplicantDefaults((current) => ({
       ...current,
       [field]: value
     }));
@@ -254,7 +289,8 @@ export function ApplicationForm() {
       mobile: member.mobile.trim(),
       street: member.street.trim(),
       postalCode: member.postalCode.trim(),
-      city: member.city.trim()
+      city: member.city.trim(),
+      legalRepresentative: member.legalRepresentative.trim()
     }));
 
     const street = String(formData.get("street") || "").trim();
@@ -438,11 +474,21 @@ export function ApplicationForm() {
       <div className="grid grid-2">
         <div className="field">
           <label htmlFor="firstName">Vorname*</label>
-          <input id="firstName" name="firstName" required />
+          <input
+            id="firstName"
+            name="firstName"
+            required
+            onChange={(event) => updateMainApplicantDefault("firstName", event.target.value)}
+          />
         </div>
         <div className="field">
           <label htmlFor="lastName">Nachname*</label>
-          <input id="lastName" name="lastName" required />
+          <input
+            id="lastName"
+            name="lastName"
+            required
+            onChange={(event) => updateMainApplicantDefault("lastName", event.target.value)}
+          />
         </div>
       </div>
 
@@ -481,7 +527,7 @@ export function ApplicationForm() {
 
       <div className="grid grid-2">
         <div className="field">
-          <label htmlFor="street">Strasse*</label>
+          <label htmlFor="street">Straße*</label>
           <input
             id="street"
             name="street"
@@ -699,7 +745,21 @@ export function ApplicationForm() {
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor={`${member.id}-street`}>Strasse</label>
+                  <label htmlFor={`${member.id}-legalRepresentative`}>
+                    Gesetzliche Vertreter (falls minderjährig)
+                  </label>
+                  <input
+                    id={`${member.id}-legalRepresentative`}
+                    value={member.legalRepresentative}
+                    onChange={(event) =>
+                      updateAdditionalMember(member.id, "legalRepresentative", event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-2">
+                <div className="field">
+                  <label htmlFor={`${member.id}-street`}>Straße</label>
                   <input
                     id={`${member.id}-street`}
                     value={member.street}
@@ -796,13 +856,13 @@ export function ApplicationForm() {
           <label className="checkbox">
             <input type="checkbox" name="acceptsStatutes" required />
             <span>
-              Ich habe Satzung, Beitragsinformationen 2026 und Datenschutzbestimmungen zur
-              Kenntnis genommen und erkenne diese als verbindlich an.*
+              Ich habe Satzung, Beitragsordnung, Platzpflegeordnung und Beitragsinformationen
+              2026 zur Kenntnis genommen und erkenne diese als verbindlich an.*
             </span>
           </label>
           <details style={{ margin: "-4px 0 8px 34px" }}>
             <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-              Satzung, Beiträge und Vereinsregeln anzeigen
+              Satzung, Beitragsordnung und Platzpflegeordnung anzeigen
             </summary>
             <div style={{ marginTop: 10, color: "var(--muted)" }}>
               {STATUTES_CONFIRMATION_TEXT.map((paragraph) => (
@@ -811,18 +871,30 @@ export function ApplicationForm() {
               <p>
                 Satzung:{" "}
                 <a href={STATUTES_URL} rel="noreferrer" target="_blank">
-                  PDF der Vereinssatzung öffnen
+                  vollständiges PDF öffnen
+                </a>
+              </p>
+              <p>
+                Beitragsübersicht 2026:{" "}
+                <a href={CONTRIBUTIONS_URL} rel="noreferrer" target="_blank">
+                  vollständiges PDF öffnen
+                </a>
+              </p>
+              <p>
+                Platzpflegeordnung 2026:{" "}
+                <a href={PLACE_CARE_RULES_URL} rel="noreferrer" target="_blank">
+                  vollständiges PDF öffnen
                 </a>
               </p>
             </div>
           </details>
           <label className="checkbox">
             <input type="checkbox" name="acceptsPrivacy" required />
-            <span>Ich habe die Datenschutzhinweise zur Kenntnis genommen.*</span>
+            <span>Ich habe die Datenschutzerklärung nach DSGVO zur Kenntnis genommen.*</span>
           </label>
           <details style={{ margin: "-4px 0 8px 34px" }}>
             <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-              Datenschutzhinweise anzeigen
+              Datenschutzerklärung nach DSGVO anzeigen
             </summary>
             <div style={{ marginTop: 10, color: "var(--muted)" }}>
               {PRIVACY_SECTIONS.map((section) => (
@@ -837,7 +909,10 @@ export function ApplicationForm() {
           </details>
           <label className="checkbox">
             <input type="checkbox" name="acceptsPhotoVideo" />
-            <span>Ich willige in Foto- und Videoaufnahmen ein.</span>
+            <span>
+              Ich willige freiwillig in die Anfertigung und Veröffentlichung von Foto- und
+              Videoaufnahmen ein.
+            </span>
           </label>
           <details style={{ margin: "-4px 0 8px 34px" }}>
             <summary style={{ cursor: "pointer", fontWeight: 700 }}>
@@ -851,7 +926,10 @@ export function ApplicationForm() {
           </details>
           <label className="checkbox">
             <input type="checkbox" name="acceptsWhatsapp" />
-            <span>Ich möchte in vereinsbezogene WhatsApp-Gruppen aufgenommen werden.</span>
+            <span>
+              Ich willige freiwillig in die Nutzung meiner Mobilfunknummer für vereinsbezogene
+              WhatsApp-Gruppen ein.
+            </span>
           </label>
           <details style={{ margin: "-4px 0 0 34px" }}>
             <summary style={{ cursor: "pointer", fontWeight: 700 }}>

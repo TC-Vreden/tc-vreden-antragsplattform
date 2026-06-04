@@ -478,11 +478,11 @@ function buildConsentRows(application: ApplicationRow): FieldRow[] {
 
   const rows: FieldRow[] = [
     {
-      label: "Satzung / Beiträge / Datenschutz",
+      label: "Satzung / Beitragsordnung / Platzpflegeordnung",
       value: `${yesNo(application.accepts_statutes)} | bestätigt am ${createdAt} durch ${confirmedBy}`
     },
     {
-      label: "Datenschutz separat",
+      label: "Datenschutzerklärung nach DSGVO",
       value: `${yesNo(application.accepts_privacy)} | bestätigt am ${createdAt} durch ${confirmedBy}`
     },
     {
@@ -564,6 +564,7 @@ function addAdditionalMember(writer: ConfirmationPdfWriter, member: ApplicationA
     { label: "Geburtsdatum", value: formatDate(member.birthDate) },
     { label: "E-Mail", value: member.email },
     { label: "Mobil", value: member.mobile },
+    { label: "Gesetzliche Vertreter", value: member.legalRepresentative },
     { label: "Adresse", value: address([member.street, member.postalCode, member.city]) }
   ]);
 }
@@ -642,7 +643,8 @@ export async function buildApplicationConfirmationPdf(
     { label: "Kontoinhaber", value: application.account_holder },
     { label: "IBAN", value: formatIban(application.iban) },
     { label: "Anschrift Kontoinhaber", value: application.account_holder_address },
-    { label: "SEPA-Mandat bestätigt", value: yesNo(application.accepts_sepa) }
+    { label: "SEPA-Mandat bestätigt", value: yesNo(application.accepts_sepa) },
+    { label: "SEPA-Mandatsdatum / digital bestätigt am", value: formatDate(application.created_at) }
   ]);
 
   if (hasGuardianInformation(application)) {

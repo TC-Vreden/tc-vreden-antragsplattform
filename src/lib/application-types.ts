@@ -152,4 +152,5 @@ export type ApplicationAdditionalMember = {
   street?: string;
   postalCode?: string;
   city?: string;
+  legalRepresentative?: string;
 };

@@ -160,8 +160,11 @@ function buildAdditionalMembersSummary(familyMembers: ApplicationAdditionalMembe
       const name = [member.firstName, member.lastName].filter(Boolean).join(" ");
       const birthDate = member.birthDate ? `, geb. ${formatDate(member.birthDate)}` : "";
       const relation = member.relation ? ` (${member.relation})` : "";
+      const legalRepresentative = member.legalRepresentative
+        ? `, gesetzliche Vertreter: ${member.legalRepresentative}`
+        : "";
 
-      return `${index + 1}. ${name || "Zusatzperson"}${relation}${birthDate}`;
+      return `${index + 1}. ${name || "Zusatzperson"}${relation}${birthDate}${legalRepresentative}`;
     })
     .join("\n");
 }

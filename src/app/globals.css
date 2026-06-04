@@ -411,6 +411,29 @@ p {
   color: #7a2929;
 }
 
+.public-form-footer {
+  max-width: 920px;
+  margin: 18px auto 0;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.public-form-footer span {
+  color: #a09a8f;
+  margin: 0 6px;
+}
+
+.public-form-footer a {
+  color: var(--brand-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
 .warning-box {
   padding: 16px 18px;
   border: 1px solid rgba(168, 78, 78, 0.28);
@@ -692,6 +715,10 @@ p {
 
   .brand-wordmark strong {
     font-size: 1.05rem;
+  }
+
+  .public-form-footer {
+    font-size: 0.9rem;
   }
 }
 

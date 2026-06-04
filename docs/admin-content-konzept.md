@@ -38,7 +38,7 @@ Formulartexte:
 - Hilfetexte an Feldern
 - Akkordeontexte fuer Beitraege, SEPA, Satzung, Datenschutz, Foto/Video, WhatsApp
 - Hinweise zum Jugendtraining
-- Hinweis zur Platzpflegeordnung, sobald URL oder Text final vorliegt
+- Hinweis zur Platzpflegeordnung; aktueller Link im Formular: `/docs/tcv-platzpflegeordnung-2026.pdf`
 
 Recht / Nachweis:
 

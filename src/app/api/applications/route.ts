@@ -42,7 +42,8 @@ const familyMemberSchema = z.object({
   mobile: z.string().trim().optional(),
   street: z.string().trim().optional(),
   postalCode: z.string().trim().optional(),
-  city: z.string().trim().optional()
+  city: z.string().trim().optional(),
+  legalRepresentative: z.string().trim().optional()
 });
 
 function getAdditionalMemberRequirement(membershipKind: string | undefined) {
@@ -67,6 +68,28 @@ function isMinorMainApplicantMembership(membershipKind: string | undefined) {
     membershipKind === "youth_active" ||
     membershipKind === "youth_passive"
   );
+}
+
+function isMinorByBirthDate(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  const birthDate = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(birthDate.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  const eighteenthBirthday = new Date(birthDate);
+  eighteenthBirthday.setFullYear(eighteenthBirthday.getFullYear() + 18);
+
+  return eighteenthBirthday > today;
+}
+
+function needsAdditionalMemberLegalRepresentative(member: z.infer<typeof familyMemberSchema>) {
+  return member.relation === "child" || isMinorByBirthDate(member.birthDate);
 }
 
 function isMissingColumnError(error: { message?: string } | null) {
@@ -148,7 +171,7 @@ const applicationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["street"],
-        message: "Die Strasse fehlt."
+        message: "Die Straße fehlt."
       });
     }
 
@@ -172,7 +195,7 @@ const applicationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["acceptsStatutes"],
-        message: "Satzung und Vereinsregeln müssen bestätigt werden."
+        message: "Satzung, Beitragsordnung und Platzpflegeordnung müssen bestätigt werden."
       });
     }
 
@@ -180,7 +203,7 @@ const applicationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["acceptsPrivacy"],
-        message: "Die Datenschutzhinweise müssen bestätigt werden."
+        message: "Die Datenschutzerklärung nach DSGVO muss bestätigt werden."
       });
     }
 
@@ -292,6 +315,14 @@ const applicationSchema = z
           message: "Geburtsdatum der Zusatzperson fehlt."
         });
       }
+
+      if (needsAdditionalMemberLegalRepresentative(member) && !member.legalRepresentative) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["familyMembers", index, "legalRepresentative"],
+          message: "Gesetzliche Vertreter der minderjährigen Zusatzperson fehlen."
+        });
+      }
     });
   });
 
@@ -349,7 +380,8 @@ export async function POST(request: NextRequest) {
     mobile: member.mobile || input.mobile || "",
     street: member.street || input.street || "",
     postalCode: member.postalCode || input.postalCode || "",
-    city: member.city || input.city || ""
+    city: member.city || input.city || "",
+    legalRepresentative: member.legalRepresentative || ""
   }));
   let supabase;
 

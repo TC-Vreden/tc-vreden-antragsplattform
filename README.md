@@ -1,42 +1,26 @@
 # Webapp-Prototyp
 
-Diese Web-App ist der erste technische Prototyp fuer die digitale Antragsplattform des TC Vreden.
+Diese Web-App ist die digitale Antragsplattform des TC Vreden fuer Mitgliedsantraege, interne Pruefung und eBuSy-Uebernahme.
 
-## Ziel der Version 1
+## Aktueller Stand
 
 - digitale Neuanmeldung
 - Speicherung in Supabase
-- Vorstands-Cockpit
-- eBuSy-Abgleich zunaechst im Mock-Modus
+- interne Verwaltung mit Supabase-Benutzern, Rollen und Rechten
+- eBuSy-Abgleich und kontrollierte eBuSy-Uebernahme
+- PDF-Zusammenfassung und Bestaetigungs-E-Mail nach erfolgreicher eBuSy-Uebernahme
+- optional interne Eingangsmail nach oeffentlicher Antragstellung
 
-## Was schon vorbereitet ist
-
-- Next.js-Projektstruktur
-- Umgebungsvariablen als Vorlage
-- Supabase-Schema unter `supabase/schema.sql`
-- oeffentliche Startseite
-- Formular-Skelett fuer Neuanmeldung
-- interner Verwaltungsbereich
-- serverseitiger eBuSy-Client mit Diagnostics und Fallback
-
-## Was noch fehlt, bevor die App laeuft
+## Vor dem lokalen Start
 
 - Dependencies installieren
 - `.env.local` auf Basis von `.env.example` anlegen
-- Supabase-Tabellen mit `supabase/schema.sql` einrichten
-- spaeter eBuSy-API-Zugang eintragen
-
-## Geplanter Ablauf
-
-1. Supabase verbinden
-2. Formular an Datenbank anbinden
-3. Cockpit mit echten Daten fuellen
-4. Mock-eBuSy-Abgleich einbauen
-5. spaeter echten eBuSy-Abgleich anschliessen
+- Supabase-, eBuSy- und Mail-ENV passend zum freigegebenen Projekt setzen
+- vor Deployments den lokalen Doctor ausfuehren
 
 ## Hinweis
 
-Die Dateien sind bewusst so angelegt, dass wir auch ohne freigeschaltete eBuSy-API weiterarbeiten koennen.
+Die Dateien sind bewusst so angelegt, dass Test-/Pruefstrecken und produktive eBuSy-Schreibzugriffe getrennt bleiben.
 
 ## Codex-Projekt-Routing
 
@@ -59,14 +43,18 @@ Diese Datei ist durch `.gitignore` vom Repository ausgeschlossen und soll nicht 
 
 ## Schutz interner Bereiche
 
-Interne Seiten und API-Endpunkte sollen nicht oeffentlich offen bleiben.
+Interne Seiten werden primaer ueber Supabase Auth, interne Benutzerrollen und Berechtigungen geschuetzt.
 
-Dafuer werden folgende Umgebungsvariablen verwendet:
+Der fruehere gemeinsame Basic-Auth-Zugang ist nur noch als Bootstrap-/Fallback vorgesehen. Nach erfolgreichem Admin-Bootstrap sollte in Vercel und lokal gesetzt werden:
+
+- `INTERNAL_BASIC_AUTH_FALLBACK_ENABLED=false`
+
+Nur solange der Fallback bewusst aktiv bleiben soll, werden zusaetzlich verwendet:
 
 - `INTERNAL_ACCESS_USERNAME`
 - `INTERNAL_ACCESS_PASSWORD`
 
-Diese Basic-Auth-Sperre schuetzt:
+Der interne Schutz betrifft insbesondere:
 
 - `/verwaltung`
 - `/api/ebusy/*`

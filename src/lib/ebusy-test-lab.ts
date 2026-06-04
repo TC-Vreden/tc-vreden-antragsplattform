@@ -1,5 +1,9 @@
 import type { ApplicationRow } from "@/lib/application-types";
 import { getMembershipLabel } from "@/lib/application-options";
+import { sendApplicationReceivedNotification } from "@/lib/application-notification-email";
+import { getMailEnv } from "@/lib/mail";
+import { getSupabaseAdminClient } from "@/lib/supabase-server";
+import { matchApplicationWithEbusy } from "@/lib/verwaltung";
 import {
   buildEbusyMembershipPayloadForApplication,
   type EbusyPayerRelationWriteConfig,
@@ -24,6 +28,7 @@ import {
 
 export type EbusyTestAction =
   | "dry_run"
+  | "create_management_application"
   | "create_person"
   | "create_person_with_attributes"
   | "create_person_with_membership"
@@ -110,6 +115,16 @@ export type EbusyTestLabResult = {
   }>;
   checks: EbusyTestCheck[];
   cleanupHint?: string;
+  managementApplication?: {
+    id: string;
+    createdAt: string;
+    managementUrl: string;
+    applicantEmail: string;
+    matchStatus: string;
+    matchMessage: string;
+    notificationStatus: string;
+    notificationReason?: string;
+  };
 };
 
 type EbusyTestCreatedPerson = NonNullable<EbusyTestLabResult["createdPersons"]>[number];
@@ -404,11 +419,181 @@ export async function runEbusyTestLabAction(input: {
     throw new Error("Testszenario wurde nicht gefunden.");
   }
 
+  if (input.action === "create_management_application") {
+    return createManagementApplicationTest(input, scenario);
+  }
+
   if (scenario.kind === "multi") {
     return runMultiEbusyTestLabAction(input, scenario);
   }
 
   return runSingleEbusyTestLabAction(input, scenario);
+}
+
+function getManagementApplicationForScenario(scenario: EbusyTestScenario, runId: string) {
+  if (scenario.kind === "multi") {
+    return createRunApplication(scenario.members[0].application, runId);
+  }
+
+  return createRunApplication(scenario.application, runId);
+}
+
+function getTestApplicantEmail(runId: string, fallback: string) {
+  return (
+    getMailEnv("TEST_LAB_APPLICATION_EMAIL") ??
+    getMailEnv("MAIL_TEST_RECIPIENT") ??
+    getMailEnv("MAIL_TO_CLUB") ??
+    fallback.replace("@example.com", `+${runId}@example.com`)
+  );
+}
+
+function normalizeFamilyMembersForManagement(application: ApplicationRow) {
+  const mainApplicantName = `${application.first_name} ${application.last_name}`.trim();
+
+  return (application.family_members ?? []).map((member) => ({
+    relation: member.relation ?? "family_member",
+    salutation: member.salutation ?? "",
+    firstName: member.firstName ?? "",
+    lastName: member.lastName ?? "",
+    birthDate: member.birthDate ?? "",
+    email: member.email || application.email,
+    mobile: member.mobile || application.mobile || "",
+    street: member.street || application.street || "",
+    postalCode: member.postalCode || application.postal_code || "",
+    city: member.city || application.city || "",
+    legalRepresentative:
+      member.legalRepresentative || (member.relation === "child" ? mainApplicantName : "")
+  }));
+}
+
+async function createManagementApplicationTest(
+  input: {
+    scenarioId: string;
+    action: EbusyTestAction;
+  },
+  scenario: EbusyTestScenario
+): Promise<EbusyTestLabResult> {
+  const runId = createTestRunId();
+  const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
+  const application = getManagementApplicationForScenario(scenario, runId);
+  const applicantEmail = getTestApplicantEmail(runId, application.email);
+  const familyMembers = normalizeFamilyMembersForManagement({
+    ...application,
+    email: applicantEmail
+  });
+  const managementUrl = getMailEnv("ADMIN_PORTAL_URL") ?? "/verwaltung";
+  const supabase = getSupabaseAdminClient();
+  const insertPayload = {
+    source: "test_lab",
+    request_type: "new_membership",
+    status: "submitted",
+    salutation: application.salutation,
+    first_name: application.first_name,
+    last_name: application.last_name,
+    birth_date: application.birth_date,
+    email: applicantEmail,
+    phone: application.phone,
+    mobile: application.mobile,
+    street: application.street,
+    postal_code: application.postal_code,
+    city: application.city,
+    membership_kind: application.membership_kind,
+    student_status_until: application.student_status_until,
+    family_members: familyMembers,
+    accepts_statutes: application.accepts_statutes,
+    accepts_privacy: application.accepts_privacy,
+    accepts_photo_video: application.accepts_photo_video,
+    accepts_whatsapp: application.accepts_whatsapp,
+    accepts_sepa: application.accepts_sepa,
+    iban: application.iban?.replace(/\s+/g, "").toUpperCase() ?? null,
+    account_holder: application.account_holder,
+    account_holder_address:
+      application.account_holder_address ||
+      [application.street, application.postal_code, application.city].filter(Boolean).join(", "),
+    guardian_name: application.guardian_name,
+    guardian_email: application.guardian_email,
+    guardian_phone: application.guardian_phone,
+    guardian_consent: application.guardian_consent,
+    notes: [
+      application.notes,
+      `Testlabor-Verwaltungsworkflow ${runId}: Antrag wurde absichtlich nur bis zur Verwaltungsoberfläche angelegt. Nach Prüfung kann er dort nach eBuSy übernommen werden.`
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    ebusy_match_status: "pending",
+    ebusy_person_id: null,
+    ebusy_match_payload: {
+      status: "pending",
+      source: "test_lab",
+      message:
+        "Testantrag wurde im eBuSy-Testlabor angelegt. Bitte den automatischen Abgleich prüfen.",
+      candidates: []
+    }
+  };
+
+  const { data, error } = await supabase
+    .from("applications")
+    .insert(insertPayload)
+    .select("id, created_at")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Supabase hat keinen Testantrag zurückgegeben.");
+  }
+
+  const matchSummary = await matchApplicationWithEbusy(data.id);
+  const notificationResult = await sendApplicationReceivedNotification({
+    applicationId: data.id,
+    createdAt: data.created_at,
+    salutation: application.salutation,
+    firstName: application.first_name,
+    lastName: application.last_name,
+    birthDate: application.birth_date,
+    email: applicantEmail,
+    phone: application.phone,
+    mobile: application.mobile,
+    street: application.street,
+    postalCode: application.postal_code,
+    city: application.city,
+    membershipKind: application.membership_kind,
+    familyMembers,
+    acceptsSepa: application.accepts_sepa,
+    acceptsPhotoVideo: application.accepts_photo_video,
+    acceptsWhatsapp: application.accepts_whatsapp
+  });
+
+  return {
+    action: input.action,
+    mode,
+    writeEnabled: process.env.EBUSY_TEST_LAB_WRITE_ENABLED === "true",
+    scenario: {
+      id: scenario.id,
+      title: scenario.title,
+      membershipLabel: getScenarioMembershipLabel(scenario),
+      kind: scenario.kind
+    },
+    message:
+      "Testantrag wurde in Supabase angelegt, in der Verwaltung sichtbar gemacht und per normalem eBuSy-Abgleich geprüft. Es wurde keine Person in eBuSy angelegt.",
+    payload: sanitizePayload({
+      runId,
+      insertPayload,
+      matchSummary,
+      notificationResult
+    }),
+    checks: [],
+    cleanupHint:
+      "Der Testantrag kann in der Verwaltung bearbeitet, erneut abgeglichen, nach eBuSy übernommen und danach aus der Verwaltung gelöscht werden. In eBuSy angelegte Testpersonen müssen separat geprüft und ggf. manuell entfernt werden.",
+    managementApplication: {
+      id: data.id,
+      createdAt: data.created_at,
+      managementUrl,
+      applicantEmail,
+      matchStatus: matchSummary.status,
+      matchMessage: matchSummary.message,
+      notificationStatus: notificationResult.status,
+      notificationReason: notificationResult.reason
+    }
+  };
 }
 
 function createTestRunId() {
@@ -610,14 +795,16 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
               salutation: "FEMALE",
               firstName: "TCV Testfamilie",
               lastName: "Kind",
-              birthDate: "2016-03-03"
+              birthDate: "2016-03-03",
+              legalRepresentative: "TCV Testfamilie Hauptperson"
             },
             {
               relation: "child",
               salutation: "MALE",
               firstName: "TCV Testfamilie",
               lastName: "Jugend",
-              birthDate: "2010-04-04"
+              birthDate: "2010-04-04",
+              legalRepresentative: "TCV Testfamilie Hauptperson"
             }
           ],
           notes: `${TEST_MARKER}\nFamilien-Test: zahlende Hauptperson mit Attribut Familien.`

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type {
   EbusyTestAction,
   EbusyTestCheck,
@@ -12,6 +13,7 @@ type Props = {
   scenarios: EbusyTestScenario[];
   writeEnabled: boolean;
   canRunLiveActions: boolean;
+  canCreateManagementApplication: boolean;
 };
 
 function getStatusLabel(status: EbusyTestCheck["status"]) {
@@ -30,6 +32,12 @@ function getStatusLabel(status: EbusyTestCheck["status"]) {
 function getActionLabel(action: EbusyTestAction, isLoading: boolean, isMultiPerson = false) {
   if (action === "dry_run") {
     return isLoading ? "Datenpaket wird geprüft..." : "Datenpaket prüfen";
+  }
+
+  if (action === "create_management_application") {
+    return isLoading
+      ? "Testantrag wird angelegt..."
+      : "Testantrag in Verwaltung anlegen";
   }
 
   if (action === "create_person_with_attributes") {
@@ -84,7 +92,12 @@ function scenarioSupportsMembership(scenario: EbusyTestScenario | undefined) {
   return Boolean(scenario.membershipTest);
 }
 
-export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions }: Props) {
+export function EbusyTestLabClient({
+  scenarios,
+  writeEnabled,
+  canRunLiveActions,
+  canCreateManagementApplication
+}: Props) {
   const [selectedScenarioId, setSelectedScenarioId] = useState(scenarios[0]?.id ?? "");
   const [loadingAction, setLoadingAction] = useState<EbusyTestAction | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
@@ -103,7 +116,16 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
       return;
     }
 
-    if (action !== "dry_run") {
+    if (action === "create_management_application") {
+      const confirmationText =
+        "Soll jetzt ein Testantrag in Supabase angelegt werden?\n\n" +
+        "Der Antrag erscheint danach in der Verwaltung, der normale eBuSy-Abgleich läuft, und die interne Eingangsmail wird ausgelöst, sofern die Mail-ENV aktiv ist.\n\n" +
+        "Es wird dadurch noch keine Person in eBuSy angelegt.";
+
+      if (!window.confirm(confirmationText)) {
+        return;
+      }
+    } else if (action !== "dry_run") {
       const writesAttributes =
         action === "create_person_with_attributes" ||
         action === "create_person_with_attributes_and_membership";
@@ -248,6 +270,17 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
             onClick={runAllDryRuns}
           >
             {batchLoading ? "Alle Datenpakete werden geprüft..." : "Alle Datenpakete prüfen"}
+          </button>
+          <button
+            className="button secondary"
+            type="button"
+            disabled={isBusy || !canCreateManagementApplication}
+            onClick={() => runAction("create_management_application")}
+          >
+            {getActionLabel(
+              "create_management_application",
+              loadingAction === "create_management_application"
+            )}
           </button>
           <button
             className="button"
@@ -397,6 +430,22 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
             <li>Live-Schreibtest freigeschaltet: {result.writeEnabled ? "Ja" : "Nein"}</li>
             <li>Testszenario: {result.scenario.title}</li>
             <li>Mitgliedschaft: {result.scenario.membershipLabel}</li>
+            {result.managementApplication ? (
+              <>
+                <li>Testantrag: {result.managementApplication.id}</li>
+                <li>Antragsteller-Mail: {result.managementApplication.applicantEmail}</li>
+                <li>
+                  Eingangsmail: {result.managementApplication.notificationStatus}
+                  {result.managementApplication.notificationReason
+                    ? ` (${result.managementApplication.notificationReason})`
+                    : ""}
+                </li>
+                <li>
+                  eBuSy-Abgleich: {result.managementApplication.matchStatus} -{" "}
+                  {result.managementApplication.matchMessage}
+                </li>
+              </>
+            ) : null}
             {result.createdPerson ? (
               <li>
                 eBuSy-Testperson: {result.createdPerson.displayName} (interne eBuSy-ID:{" "}
@@ -417,6 +466,14 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
               </li>
             ) : null}
           </ul>
+
+          {result.managementApplication ? (
+            <div className="cta-row" style={{ marginTop: 16 }}>
+              <Link className="button secondary" href="/verwaltung">
+                Testantrag in der Verwaltung prüfen
+              </Link>
+            </div>
+          ) : null}
 
           {result.createdPersons?.length ? (
             <div className="hint-box" style={{ marginTop: 16 }}>

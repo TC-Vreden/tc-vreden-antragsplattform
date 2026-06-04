@@ -881,6 +881,10 @@ export function ApplicationsTable({ applications, permissions }: Props) {
                         <DetailItem label="E-Mail" value={displayValue(member.email)} />
                         <DetailItem label="Mobil" value={displayValue(member.mobile)} />
                         <DetailItem
+                          label="Gesetzliche Vertreter"
+                          value={displayValue(member.legalRepresentative)}
+                        />
+                        <DetailItem
                           label="Adresse"
                           value={
                             [member.street, member.postalCode, member.city]
@@ -917,12 +921,15 @@ export function ApplicationsTable({ applications, permissions }: Props) {
 
             <DetailSection title="Einwilligungen">
               <DetailItem
-                label="Satzung / Beiträge / Datenschutz"
-                value={yesNo(application.accepts_statutes && application.accepts_privacy)}
+                label="Satzung / Beitragsordnung / Platzpflegeordnung"
+                value={yesNo(application.accepts_statutes)}
+              />
+              <DetailItem
+                label="Datenschutzerklärung nach DSGVO"
+                value={yesNo(application.accepts_privacy)}
               />
               <DetailItem label="Foto / Video" value={yesNo(application.accepts_photo_video)} />
               <DetailItem label="WhatsApp" value={yesNo(application.accepts_whatsapp)} />
-              <DetailItem label="Datenschutz separat bestätigt" value={yesNo(application.accepts_privacy)} />
               <DetailItem label="Hinweise" value={displayValue(application.notes)} />
             </DetailSection>
 

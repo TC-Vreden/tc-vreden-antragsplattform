@@ -11,7 +11,7 @@ import {
 
 type EditableFamilyMember = Required<Pick<
   ApplicationAdditionalMember,
-  "relation" | "salutation" | "firstName" | "lastName" | "birthDate" | "email" | "mobile" | "street" | "postalCode" | "city"
+  "relation" | "salutation" | "firstName" | "lastName" | "birthDate" | "email" | "mobile" | "street" | "postalCode" | "city" | "legalRepresentative"
 >>;
 
 type ApplicationEditPayload = {
@@ -70,7 +70,8 @@ function createEmptyFamilyMember(): EditableFamilyMember {
     mobile: "",
     street: "",
     postalCode: "",
-    city: ""
+    city: "",
+    legalRepresentative: ""
   };
 }
 
@@ -85,7 +86,8 @@ function normalizeFamilyMember(member: ApplicationAdditionalMember): EditableFam
     mobile: textValue(member.mobile),
     street: textValue(member.street),
     postalCode: textValue(member.postalCode),
-    city: textValue(member.city)
+    city: textValue(member.city),
+    legalRepresentative: textValue(member.legalRepresentative)
   };
 }
 
@@ -287,6 +289,7 @@ export function ApplicationEditForm({ application, onCancel, onSaved }: Props) {
                   <TextField label="Geburtsdatum" type="date" value={member.birthDate} onChange={(value) => updateFamilyMember(index, "birthDate", value)} />
                   <TextField label="E-Mail" type="email" value={member.email} onChange={(value) => updateFamilyMember(index, "email", value)} />
                   <TextField label="Mobil" value={member.mobile} onChange={(value) => updateFamilyMember(index, "mobile", value)} />
+                  <TextField label="Gesetzliche Vertreter (falls minderjährig)" value={member.legalRepresentative} onChange={(value) => updateFamilyMember(index, "legalRepresentative", value)} />
                   <TextField label="Straße" value={member.street} onChange={(value) => updateFamilyMember(index, "street", value)} />
                   <TextField label="PLZ" value={member.postalCode} onChange={(value) => updateFamilyMember(index, "postalCode", value)} />
                   <TextField label="Ort" value={member.city} onChange={(value) => updateFamilyMember(index, "city", value)} />
@@ -324,8 +327,8 @@ export function ApplicationEditForm({ application, onCancel, onSaved }: Props) {
       <fieldset style={fieldsetStyle}>
         <legend style={legendStyle}>Einwilligungen und Hinweise</legend>
         <div className="grid grid-2">
-          <CheckboxField label="Satzung / Beiträge bestätigt" checked={form.accepts_statutes} onChange={(checked) => updateField("accepts_statutes", checked)} />
-          <CheckboxField label="Datenschutz bestätigt" checked={form.accepts_privacy} onChange={(checked) => updateField("accepts_privacy", checked)} />
+          <CheckboxField label="Satzung / Beitragsordnung / Platzpflegeordnung bestätigt" checked={form.accepts_statutes} onChange={(checked) => updateField("accepts_statutes", checked)} />
+          <CheckboxField label="Datenschutzerklärung nach DSGVO bestätigt" checked={form.accepts_privacy} onChange={(checked) => updateField("accepts_privacy", checked)} />
           <CheckboxField label="Foto-/Videoeinwilligung" checked={form.accepts_photo_video} onChange={(checked) => updateField("accepts_photo_video", checked)} />
           <CheckboxField label="WhatsApp-/Kommunikationseinwilligung" checked={form.accepts_whatsapp} onChange={(checked) => updateField("accepts_whatsapp", checked)} />
         </div>

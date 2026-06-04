@@ -10,6 +10,10 @@ export default function AnmeldenPage() {
         <h1 className="page-title">Neuanmeldung</h1>
         <ApplicationForm />
       </section>
+      <footer className="public-form-footer">
+        TennisClub Vreden e.V. <span>|</span> Ottensteiner Str. 59 <span>|</span> 48691 Vreden{" "}
+        <span>|</span> <a href="mailto:mail@tennisclub-vreden.de">mail@tennisclub-vreden.de</a>
+      </footer>
     </main>
   );
 }

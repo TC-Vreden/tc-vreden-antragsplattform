@@ -1,6 +1,6 @@
 # Bedienung aktueller Prototyp
 
-Stand: 08.05.2026
+Stand: 04.06.2026
 
 Zweck dieser Datei:
 
@@ -18,14 +18,13 @@ Zweck dieser Datei:
 
 ## 3. Zugang zur Verwaltung
 
-Die Verwaltungsseite ist per Basic Auth geschuetzt.
+Die Verwaltungsseite ist primaer ueber Supabase Auth mit internen Benutzerrollen geschuetzt.
 
-Es werden benoetigt:
+Der alte gemeinsame Basic-Auth-Zugang ist nur noch ein Bootstrap-/Fallback. Nach erfolgreichem Admin-Bootstrap sollte gesetzt sein:
 
-- `INTERNAL_ACCESS_USERNAME`
-- `INTERNAL_ACCESS_PASSWORD`
+- `INTERNAL_BASIC_AUTH_FALLBACK_ENABLED=false`
 
-Diese Werte liegen in Vercel bzw. lokal in den Projekt-Umgebungen vor.
+Nur wenn dieser Fallback bewusst aktiv bleiben soll, werden zusaetzlich `INTERNAL_ACCESS_USERNAME` und `INTERNAL_ACCESS_PASSWORD` benoetigt.
 
 ## 4. Aktueller Test-Ablauf
 
@@ -124,14 +123,18 @@ weiter nachvollziehbar angezeigt.
 - legt aus dem Antrag eine neue Person in eBuSy an
 - speichert die neue eBuSy-ID am Antrag
 - markiert den Antrag als nach eBuSy uebertragen
-- legt noch keine Mitgliedschaft in eBuSy an
+- setzt fuer freigegebene Mitgliedschaftsarten Attribute und eine einfache Mitgliedschaft in eBuSy
+- schreibt weiterhin keine Beitragsart direkt; die Beitragszuordnung laeuft ueber das Attribut `Mitgliedsbeitraege NEU`
+- erzeugt nach erfolgreicher Uebernahme die PDF-Zusammenfassung und versendet die Bestaetigungsmail, wenn die Mail-ENV aktiv ist
 - erzeugt aktuell ein technisches temporaeres Benutzerkonto-Passwort fuer eBuSy; vor Produktivbetrieb muss der Verein festlegen, ob Mitglieder ihr Passwort selbst setzen, ein Reset-Link genutzt wird oder ein Passwort manuell vergeben wird
 
-### `Mehrpersonen-Anlage vorbereiten`
+### Mehrpersonen-Uebernahme
 
-- erscheint bei Familie, Ehepartner/Lebenspartner und `Erwachsene + 1 Kind`
-- ist aktuell bewusst gesperrt
-- verhindert, dass nur die Hauptperson angelegt wird, obwohl der Antrag mehrere Personen enthaelt
+- fuer Familie, Ehepartner/Lebenspartner und `Erwachsene + 1 Kind` ist die produktive Uebernahme freigegeben
+- die Plattform legt Hauptperson und Zusatzpersonen nacheinander an oder aktualisiert die verknuepfte Hauptperson
+- Zusatzpersonen erhalten Hauptzahlerbezug zur Hauptperson, Attribute und einfache Mitgliedschaften
+- Beitragsarten werden weiterhin nicht direkt geschrieben; die fachliche Beitragslogik laeuft ueber das Attribut `Mitgliedsbeitraege NEU`
+- bei Teilfehlern bleibt im Antrag nachvollziehbar, welche Schritte bereits erfolgreich waren
 
 ### `Testeintrag loeschen`
 
@@ -169,6 +172,25 @@ Aktuell erfolgreich getestet:
 - `/general/persons`
 - `/member/modules/4/memberships`
 
+## 8a. eBuSy-Testlabor
+
+Das Testlabor hat zwei getrennte Testarten:
+
+- `Datenpaket prüfen`: zeigt nur, welche Daten vorbereitet würden; kein Supabase-Schreiben und kein eBuSy-Schreiben.
+- `Testantrag in Verwaltung anlegen`: legt einen echten Testantrag in Supabase an, startet den normalen eBuSy-Abgleich und löst die interne Eingangsmail aus, sofern die Mail-ENV aktiv ist. Es wird noch keine Person in eBuSy angelegt.
+- Gelbe Live-Buttons: legen direkt Testpersonen in eBuSy an und sind nur für kontrollierte API-Feldtests gedacht.
+
+Der neue Verwaltungs-Testpfad ist für den Produktablauf gedacht:
+
+1. Testszenario wählen.
+2. `Testantrag in Verwaltung anlegen` drücken.
+3. In `/verwaltung` den Antrag prüfen und bei Bedarf bearbeiten.
+4. eBuSy-Abgleich prüfen bzw. erneut ausführen.
+5. Erst dann über den Verwaltungsbutton nach eBuSy übernehmen.
+6. Danach muss die Bestätigungsmail mit PDF an den Antragsteller und die Vereinskopie ausgelöst werden, wenn `APPLICATION_CONFIRMATION_EMAIL_ENABLED=true` und Mailversand korrekt gesetzt sind.
+
+Optional kann `TEST_LAB_APPLICATION_EMAIL` gesetzt werden. Dann verwendet der Testantrag diese Adresse als Antragsteller-E-Mail. Ohne diese ENV nutzt der Testpfad `MAIL_TO_CLUB`, falls gesetzt, sonst die Testadresse aus dem Szenario.
+
 ## 9. Was aktuell schon funktioniert
 
 - Formularspeicherung nach Supabase
@@ -182,29 +204,31 @@ Aktuell erfolgreich getestet:
 - strukturierte Detailansicht in der Verwaltung
 - Trennung offener und bereits uebertragener Antraege
 - Anrede-Erfassung und Uebergabe an eBuSy fuer Einzelpersonen
-- Sperre der blinden eBuSy-Anlage bei Mehrpersonen-Antraegen
+- Mehrpersonen-Uebernahme fuer Familie, Erwachsene + 1 Kind und Partner-/Lebenspartner-Antraege
+- Testlabor-Button fuer einen echten Supabase-Testantrag bis zur Verwaltungsoberflaeche
+- PDF-Zusammenfassung und Bestaetigungsmail nach erfolgreicher eBuSy-Uebernahme, sofern die Mail-ENV aktiv ist
+- optionale interne Eingangsmail nach oeffentlicher Antragstellung
 
 ## 10. Bekannte Luecken im Prototyp
 
-- automatische Mitgliedschaftsanlage in eBuSy fehlt noch
-- finale Zuordnung der Mitgliedschaftsarten / Beitragsarten in eBuSy fehlt noch
+- Beitragsarten werden in eBuSy noch nicht direkt geschrieben; die aktuelle Zuordnung laeuft ueber das Attribut `Mitgliedsbeitraege NEU`
+- produktive Minderjaehrigen-Uebernahme fuer Einzelantraege `Kind` und `Jugendliche:r` ist noch gesperrt, bis Vertreter-/Nachweislogik final abgenommen ist
 - Einwilligungs- und DSGVO-Texte sind deutlich naeher an den PDF-Inhalten, sollten aber vor Live-Freigabe final fachlich/rechtlich gegengeprueft werden
-- Platzpflegeordnung ist im Formular noch nicht verlinkt, weil im aktuellen Material keine oeffentliche URL hinterlegt ist
-- E-Mail-Versand fehlt
-- PDF-Zusammenfassung fehlt
-- digitale Unterschrift fehlt
+- Mailversand ist nur aktiv, wenn die Mail-ENV in Vercel bzw. lokal gesetzt ist
+- digitale Unterschrift wird aktuell als aktive Checkbox-/Zeitstempel-Bestaetigung dokumentiert; eine handschriftliche Signatur wird nicht erfasst
 - WordPress-Einbindung fehlt
 
 ## 10a. PDF und E-Mail
 
-Im aktuellen Prototyp wird beim oeffentlichen Absenden noch kein PDF erzeugt und keine Bestaetigungsmail verschickt.
+Beim oeffentlichen Absenden wird weiterhin keine Bestaetigungsmail an Antragsteller verschickt. Optional kann nur eine interne Eingangsmail an das Vereinspostfach versendet werden.
 
-Geplanter spaeterer Ablauf:
+Aktueller Ablauf fuer die Bestaetigung:
 
 1. Antrag wird oeffentlich ausgefuellt und intern gespeichert
 2. Verwaltung prueft den Antrag
 3. Verwaltung uebernimmt bzw. gibt den Antrag frei
 4. erst danach werden PDF-Zusammenfassung und Bestaetigungs-E-Mail erzeugt
+5. der Versand haengt von `APPLICATION_CONFIRMATION_EMAIL_ENABLED`, `MAIL_FROM` und dem konfigurierten Mailprovider ab
 
 Das Konzept liegt in `docs/pdf-email-konzept.md`.
 
@@ -232,8 +256,9 @@ Mehrpersonen-Sperre liegt in `docs/ebusy-anrede-email-mehrpersonen.md`.
 
 - Mitgliedschaftsanlage / Beitragsart-Mapping in eBuSy klaeren
 - Familien- und Kinderlogik mit Hauptzahler sauber modellieren
-- PDF-Zusammenfassung und E-Mail-Versand vorbereiten
-- digitale Unterschrift pruefen
+- Mail-Absender, Reply-To/BCC, SMTP/Resend und Testadresse final abnehmen
+- Pflichttexte rechtlich/fachlich final abnehmen
+- digitale Checkbox-/Zeitstempel-Bestaetigung gegen Vereinsanforderung pruefen
 - WordPress-Einbindung spaeter planen
 
 ## 12. Empfohlener Test nach Wiederaufnahme im neuen Pro-Konto
