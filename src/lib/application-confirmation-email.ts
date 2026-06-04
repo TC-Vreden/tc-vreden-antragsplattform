@@ -1,7 +1,11 @@
 import {
-  getMembershipLabel,
   isReducedContributionMembership
 } from "@/lib/application-options";
+import {
+  getApplicationFormContent,
+  getMembershipLabelFromContent,
+  type ApplicationFormContent
+} from "@/lib/application-content";
 import type {
   ApplicationMatchPayload,
   ApplicationRow
@@ -98,7 +102,7 @@ function detailRow(label: string, value: string | number | boolean | null | unde
     </tr>`;
 }
 
-function buildHtml(input: ApplicationConfirmationEmailInput) {
+function buildHtml(input: ApplicationConfirmationEmailInput, formContent: ApplicationFormContent) {
   const { application, transferredAt } = input;
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
@@ -142,7 +146,10 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin:0 0 18px;">
                   <tbody>
                     ${detailRow("Name", applicantName)}
-                    ${detailRow("Mitgliedschaft", getMembershipLabel(application.membership_kind))}
+                    ${detailRow(
+                      "Mitgliedschaft",
+                      getMembershipLabelFromContent(application.membership_kind, formContent)
+                    )}
                     ${reducedProofRow}
                     ${detailRow("Zusatzpersonen", additionalMemberSummary)}
                     ${detailRow("Bestätigt am", formatDate(transferredAt))}
@@ -168,7 +175,7 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
 </html>`;
 }
 
-function buildText(input: ApplicationConfirmationEmailInput) {
+function buildText(input: ApplicationConfirmationEmailInput, formContent: ApplicationFormContent) {
   const { application, transferredAt } = input;
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
@@ -184,7 +191,7 @@ function buildText(input: ApplicationConfirmationEmailInput) {
     confirmationMailPreview.intro,
     confirmationMailPreview.attachmentNote,
     "",
-    `Mitgliedschaft: ${getMembershipLabel(application.membership_kind)}`,
+    `Mitgliedschaft: ${getMembershipLabelFromContent(application.membership_kind, formContent)}`,
     ...reducedProofLine,
     `Bestätigt am: ${formatDate(transferredAt)}`,
     `Zusatzpersonen: ${additionalMembers.length || "keine"}`,
@@ -227,6 +234,7 @@ export async function sendApplicationConfirmationEmail(
   }
 
   const pdfAttachment = await buildApplicationConfirmationPdf(input);
+  const formContent = await getApplicationFormContent();
 
   return sendConfiguredMail({
     from,
@@ -234,8 +242,8 @@ export async function sendApplicationConfirmationEmail(
     bcc,
     replyTo,
     subject: confirmationMailPreview.subject,
-    html: buildHtml(input),
-    text: buildText(input),
+    html: buildHtml(input, formContent),
+    text: buildText(input, formContent),
     attachments: [pdfAttachment]
   });
 }

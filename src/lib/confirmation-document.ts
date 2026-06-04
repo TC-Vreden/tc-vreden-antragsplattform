@@ -1,15 +1,16 @@
 import {
-  CONTRIBUTIONS_URL,
   MINOR_CONSENT_TEXT,
   PHOTO_VIDEO_CONSENT_TEXT,
-  PLACE_CARE_RULES_URL,
   PRIVACY_SECTIONS,
   SEPA_MANDATE_TEXT,
   STATUTES_URL,
   STATUTES_CONFIRMATION_TEXT,
-  WHATSAPP_CONSENT_TEXT,
-  YOUTH_RULES_URL
+  WHATSAPP_CONSENT_TEXT
 } from "@/lib/application-legal-content";
+import {
+  defaultApplicationDocumentLinks,
+  type ApplicationFormContent
+} from "@/lib/application-content";
 
 export type ConfirmationPerson = {
   salutation: "Herr" | "Frau";
@@ -83,10 +84,7 @@ export const clubContact = {
 };
 
 export const confirmationDocumentLinks = [
-  { label: "Satzung", url: STATUTES_URL },
-  { label: "Beitragsübersicht", url: CONTRIBUTIONS_URL },
-  { label: "Platzpflegeordnung", url: PLACE_CARE_RULES_URL },
-  { label: "Jugendordnung", url: YOUTH_RULES_URL }
+  ...defaultApplicationDocumentLinks
 ];
 
 function textBlock(paragraphs: string[]) {
@@ -186,32 +184,40 @@ export const confirmationPreviewApplication: ConfirmationApplicationPreview = {
     "Demo mit vollständig ausgefüllten Testdaten für die optische Prüfung der späteren PDF- und E-Mail-Bestätigung."
 };
 
-export const confirmationLegalSections: ConfirmationSection[] = [
-  {
-    title: "Satzung, Beitragsordnung, Platzpflegeordnung und Jugendordnung",
-    text: textBlock(STATUTES_CONFIRMATION_TEXT)
-  },
-  {
-    title: "SEPA-Lastschriftmandat",
-    text: textBlock(SEPA_MANDATE_TEXT)
-  },
-  {
-    title: "Minderjährige und gesetzliche Vertreter",
-    text: textBlock(MINOR_CONSENT_TEXT)
-  },
-  {
-    title: "Foto- und Videoeinwilligung",
-    text: textBlock(PHOTO_VIDEO_CONSENT_TEXT)
-  },
-  {
-    title: "WhatsApp- und Kommunikationshinweise",
-    text: textBlock(WHATSAPP_CONSENT_TEXT)
-  },
-  {
-    title: "Datenschutzerklärung nach DSGVO",
-    text: privacyTextBlock()
-  }
-];
+export function getConfirmationDocumentLinks(content?: ApplicationFormContent) {
+  return content?.documentLinks ?? confirmationDocumentLinks;
+}
+
+export function getConfirmationLegalSections(content?: ApplicationFormContent): ConfirmationSection[] {
+  return [
+    {
+      title: "Satzung, Beitragsordnung, Platzpflegeordnung und Jugendordnung",
+      text: textBlock(content?.statutesConfirmationText ?? STATUTES_CONFIRMATION_TEXT)
+    },
+    {
+      title: "SEPA-Lastschriftmandat",
+      text: textBlock(SEPA_MANDATE_TEXT)
+    },
+    {
+      title: "Minderjährige und gesetzliche Vertreter",
+      text: textBlock(MINOR_CONSENT_TEXT)
+    },
+    {
+      title: "Foto- und Videoeinwilligung",
+      text: textBlock(PHOTO_VIDEO_CONSENT_TEXT)
+    },
+    {
+      title: "WhatsApp- und Kommunikationshinweise",
+      text: textBlock(WHATSAPP_CONSENT_TEXT)
+    },
+    {
+      title: "Datenschutzerklärung nach DSGVO",
+      text: privacyTextBlock()
+    }
+  ];
+}
+
+export const confirmationLegalSections: ConfirmationSection[] = getConfirmationLegalSections();
 
 export const confirmationMailPreview = {
   subject: "Bestätigung deiner Mitgliedschaft beim TennisClub Vreden e.V.",

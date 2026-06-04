@@ -9,6 +9,7 @@ type Props = {
 
 export function InternalUserBar({ actor }: Props) {
   const canManageUsers = hasInternalPermission(actor.role, "users.manage");
+  const canManageContent = hasInternalPermission(actor.role, "content.manage");
   const canReadAudit = hasInternalPermission(actor.role, "audit.read");
   const canReadDocs = hasInternalPermission(actor.role, "docs.read");
   const canReadTestLab = hasInternalPermission(actor.role, "testlab.read");
@@ -49,6 +50,11 @@ export function InternalUserBar({ actor }: Props) {
         {canManageUsers ? (
           <Link className="internal-nav-link" href={"/verwaltung/benutzer" as Route}>
             Benutzer
+          </Link>
+        ) : null}
+        {canManageContent ? (
+          <Link className="internal-nav-link" href={"/verwaltung/formular" as Route}>
+            Formulartexte
           </Link>
         ) : null}
         {canReadAudit ? (

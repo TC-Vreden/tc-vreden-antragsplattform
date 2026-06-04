@@ -71,10 +71,10 @@ export const SEPA_MANDATE_TEXT = [
 ];
 
 export const STATUTES_CONFIRMATION_TEXT = [
-  "Mit der Pflichtbestätigung wird bestätigt, dass die Satzung, die Beitragsordnung, die Platzpflegeordnung und die Beitragsinformationen zur Kenntnis genommen wurden und als verbindlich anerkannt werden.",
-  "Satzung, Beitragsübersicht und Platzpflegeordnung sind im digitalen Formular als vollständige PDF-Dokumente der Vereinswebsite verlinkt.",
-  "Für Kinder, Jugendliche und Familien ist zusätzlich die Jugendordnung als PDF-Dokument der Vereinswebsite verlinkt.",
-  "Die Beitragsinformationen wurden zusätzlich als Tabelle in das Formular übernommen, damit die Beitragshöhen vor dem Absenden direkt sichtbar sind."
+  "Bitte lies die verlinkten Vereinsdokumente vor dem Absenden sorgfältig durch.",
+  "Mit deiner Bestätigung erkennst du die Satzung, die Beitragsordnung, die Platzpflegeordnung und die Beitragsinformationen als verbindlich an.",
+  "Die wichtigsten Beiträge stehen direkt im Formular. Die vollständigen Dokumente kannst du über die folgenden Links öffnen.",
+  "Für Kinder, Jugendliche und Familien ist zusätzlich die Jugendordnung verlinkt."
 ];
 
 export const PRIVACY_SECTIONS = [

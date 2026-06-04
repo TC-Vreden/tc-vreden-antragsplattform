@@ -6,6 +6,7 @@ import { ApplicationsTable } from "@/app/verwaltung/applications-table";
 import { InternalUserBar } from "@/components/internal-user-bar";
 import { TcVredenLogo } from "@/components/tc-vreden-logo";
 import { getApplicationsForManagement } from "@/lib/verwaltung";
+import { getApplicationFormContent } from "@/lib/application-content";
 import { writeInternalAuditLog } from "@/lib/internal-audit";
 import { requireInternalPagePermission } from "@/lib/internal-auth";
 import { hasInternalPermission } from "@/lib/internal-roles";
@@ -38,6 +39,7 @@ export default async function VerwaltungPage() {
   const actor = await requireInternalPagePermission("applications.read");
   const diagnostics = await getEbusyDiagnostics();
   const { applications, error: applicationsError } = await getApplicationsForManagement();
+  const formContent = await getApplicationFormContent();
   const isLiveMode = diagnostics.mode === "live";
   const confirmationPreviewRoute = "/verwaltung/bestaetigung-vorschau" as Route;
   const canUseLookup = hasInternalPermission(actor.role, "ebusy.lookup");
@@ -121,6 +123,7 @@ export default async function VerwaltungPage() {
           ) : (
             <ApplicationsTable
               applications={applications}
+              membershipOptions={formContent.membershipOptions}
               permissions={{
                 canEditApplications: hasInternalPermission(actor.role, "applications.write"),
                 canDeleteApplications: hasInternalPermission(actor.role, "applications.delete"),

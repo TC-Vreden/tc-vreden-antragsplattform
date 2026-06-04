@@ -221,8 +221,6 @@ export default async function ConfirmationPreviewPage() {
               <strong>{clubContact.name}</strong> · {clubContact.address}
               <br />
               {clubContact.email} · {clubContact.website}
-              <br />
-              Satzung: {clubContact.statutesUrl}
             </footer>
           </article>
 

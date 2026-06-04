@@ -5,9 +5,9 @@ import type { ApplicationAdditionalMember, ApplicationRow } from "@/lib/applicat
 import {
   getAdditionalMemberRelationLabel,
   isReducedContributionMembership,
-  membershipOptions,
   salutationOptions
 } from "@/lib/application-options";
+import type { MembershipOption } from "@/lib/application-options";
 
 type EditableFamilyMember = Required<Pick<
   ApplicationAdditionalMember,
@@ -45,6 +45,7 @@ type ApplicationEditPayload = {
 
 type Props = {
   application: ApplicationRow;
+  membershipOptions: MembershipOption[];
   onCancel: () => void;
   onSaved: (application: ApplicationRow, message: string) => void;
 };
@@ -122,7 +123,7 @@ function createForm(application: ApplicationRow): ApplicationEditPayload {
   };
 }
 
-export function ApplicationEditForm({ application, onCancel, onSaved }: Props) {
+export function ApplicationEditForm({ application, membershipOptions, onCancel, onSaved }: Props) {
   const [form, setForm] = useState<ApplicationEditPayload>(() => createForm(application));
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

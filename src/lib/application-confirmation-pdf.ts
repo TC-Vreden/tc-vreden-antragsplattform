@@ -11,10 +11,13 @@ import path from "node:path";
 
 import {
   getAdditionalMemberRelationLabel,
-  getMembershipLabel,
   getSalutationLabel,
   isReducedContributionMembership
 } from "@/lib/application-options";
+import {
+  getApplicationFormContent,
+  getMembershipLabelFromContent
+} from "@/lib/application-content";
 import type {
   ApplicationAdditionalMember,
   ApplicationMatchPayload,
@@ -22,8 +25,8 @@ import type {
 } from "@/lib/application-types";
 import {
   clubContact,
-  confirmationDocumentLinks,
-  confirmationLegalSections,
+  getConfirmationDocumentLinks,
+  getConfirmationLegalSections,
   confirmationMailPreview
 } from "@/lib/confirmation-document";
 import type { ConfiguredMailAttachment } from "@/lib/mail";
@@ -615,8 +618,7 @@ function addAdditionalMember(writer: ConfirmationPdfWriter, member: ApplicationA
   writer.fields([
     { label: "Rolle", value: getAdditionalMemberRelationLabel(member.relation) },
     { label: "Anrede", value: getSalutationLabel(member.salutation) },
-    { label: "Vorname", value: member.firstName },
-    { label: "Nachname", value: member.lastName },
+    { label: "Name", value: name },
     { label: "Geburtsdatum", value: formatDate(member.birthDate) },
     { label: "E-Mail", value: member.email },
     { label: "Mobil", value: member.mobile },
@@ -628,7 +630,7 @@ function addAdditionalMember(writer: ConfirmationPdfWriter, member: ApplicationA
 export async function buildApplicationConfirmationPdf(
   input: ApplicationConfirmationPdfInput
 ): Promise<ConfiguredMailAttachment> {
-  const { application, transferredAt } = input;
+  const { application } = input;
   const generatedAt = new Date().toISOString();
   const document = await PDFDocument.create();
   const regularFont = await document.embedFont(StandardFonts.Helvetica);
@@ -644,6 +646,9 @@ export async function buildApplicationConfirmationPdf(
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
     : [];
+  const formContent = await getApplicationFormContent();
+  const confirmationDocumentLinks = getConfirmationDocumentLinks(formContent);
+  const confirmationLegalSections = getConfirmationLegalSections(formContent);
 
   document.setTitle(`Mitgliedsantrag ${mainPersonName(application)}`);
   document.setAuthor(clubContact.name);
@@ -652,20 +657,13 @@ export async function buildApplicationConfirmationPdf(
   document.setCreator("TC Vreden Antragsplattform");
   document.setCreationDate(new Date(generatedAt));
 
-  writer.section("Bestätigung");
+  writer.section(`Bestätigung vom ${formatDate(generatedAt)}`);
   writer.paragraph(confirmationMailPreview.intro, { highlight: true });
-  writer.fields([
-    { label: "Vorgangs-ID", value: application.id },
-    { label: "Antrag gestellt am", value: formatDate(application.created_at) },
-    { label: "Bestätigt am", value: formatDate(transferredAt) },
-    { label: "PDF erstellt am", value: formatDate(generatedAt) }
-  ]);
 
   writer.section("Hauptperson");
   writer.fields([
     { label: "Anrede", value: getSalutationLabel(application.salutation) },
-    { label: "Vorname", value: application.first_name },
-    { label: "Nachname", value: application.last_name },
+    { label: "Name", value: mainPersonName(application) },
     { label: "Geburtsdatum", value: formatDate(application.birth_date) },
     { label: "E-Mail", value: application.email },
     { label: "Mobil", value: application.mobile },
@@ -675,7 +673,10 @@ export async function buildApplicationConfirmationPdf(
 
   writer.section("Mitgliedschaft");
   const membershipRows: FieldRow[] = [
-    { label: "Mitgliedschaftsart", value: getMembershipLabel(application.membership_kind) }
+    {
+      label: "Mitgliedschaftsart",
+      value: getMembershipLabelFromContent(application.membership_kind, formContent)
+    }
   ];
 
   if (isReducedContributionMembership(application.membership_kind)) {

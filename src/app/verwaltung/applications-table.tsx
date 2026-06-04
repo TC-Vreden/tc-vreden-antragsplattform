@@ -9,15 +9,16 @@ import type {
 } from "@/lib/application-types";
 import {
   getAdditionalMemberRelationLabel,
-  getMembershipLabel,
   getSalutationLabel,
   isReducedContributionMembership,
   isMultiPersonMembership
 } from "@/lib/application-options";
+import type { MembershipOption } from "@/lib/application-options";
 import { ApplicationEditForm } from "./application-edit-form";
 
 type Props = {
   applications: ApplicationRow[];
+  membershipOptions: MembershipOption[];
   permissions: {
     canEditApplications: boolean;
     canDeleteApplications: boolean;
@@ -33,6 +34,13 @@ type LocalState = {
   detailsExpanded?: boolean;
   editing?: boolean;
 };
+
+function getMembershipLabelFromOptions(
+  value: string | null | undefined,
+  membershipOptions: MembershipOption[]
+) {
+  return membershipOptions.find((option) => option.value === value)?.label ?? value ?? "-";
+}
 
 function getStatusLabel(status: string) {
   switch (status) {
@@ -237,7 +245,7 @@ function TakeoverDetails({ payload }: { payload: ApplicationMatchPayload | null 
   );
 }
 
-export function ApplicationsTable({ applications, permissions }: Props) {
+export function ApplicationsTable({ applications, membershipOptions, permissions }: Props) {
   const [rows, setRows] = useState(applications);
   const [states, setStates] = useState<Record<string, LocalState>>({});
 
@@ -657,7 +665,7 @@ export function ApplicationsTable({ applications, permissions }: Props) {
                         : ""}
                     </div>
                   </td>
-                  <td>{getMembershipLabel(application.membership_kind)}</td>
+                  <td>{getMembershipLabelFromOptions(application.membership_kind, membershipOptions)}</td>
                   <td>
                     {multiPersonApplication ? (
                       <strong>Mehrpersonen-Antrag</strong>
@@ -788,6 +796,7 @@ export function ApplicationsTable({ applications, permissions }: Props) {
                     <td colSpan={6} style={{ background: "#fffdf6" }}>
                       <ApplicationEditForm
                         application={application}
+                        membershipOptions={membershipOptions}
                         onCancel={() => cancelEditing(application.id)}
                         onSaved={(updatedApplication, message) =>
                           handleApplicationSaved(application.id, updatedApplication, message)
@@ -840,7 +849,10 @@ export function ApplicationsTable({ applications, permissions }: Props) {
 
             <DetailSection title="Mitgliedschaft">
               <DetailItem label="Technischer Wert" value={displayValue(application.membership_kind)} />
-              <DetailItem label="Sichtbares Label" value={getMembershipLabel(application.membership_kind)} />
+              <DetailItem
+                label="Sichtbares Label"
+                value={getMembershipLabelFromOptions(application.membership_kind, membershipOptions)}
+              />
               <DetailItem
                 label="Familienbezug"
                 value={

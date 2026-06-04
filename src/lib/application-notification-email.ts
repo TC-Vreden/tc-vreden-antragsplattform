@@ -1,4 +1,8 @@
-import { getMembershipLabel } from "@/lib/application-options";
+import {
+  getApplicationFormContent,
+  getMembershipLabelFromContent,
+  type ApplicationFormContent
+} from "@/lib/application-content";
 import type { ApplicationAdditionalMember } from "@/lib/application-types";
 import nodemailer from "nodemailer";
 
@@ -169,8 +173,12 @@ function buildAdditionalMembersSummary(familyMembers: ApplicationAdditionalMembe
     .join("\n");
 }
 
-function buildHtml(input: ApplicationReceivedNotificationInput, adminPortalUrl: string | undefined) {
-  const membershipLabel = getMembershipLabel(input.membershipKind);
+function buildHtml(
+  input: ApplicationReceivedNotificationInput,
+  adminPortalUrl: string | undefined,
+  formContent: ApplicationFormContent
+) {
+  const membershipLabel = getMembershipLabelFromContent(input.membershipKind, formContent);
   const applicantName = `${input.firstName} ${input.lastName}`.trim();
   const address = buildAddress(input);
   const additionalMembers = buildAdditionalMembersSummary(input.familyMembers);
@@ -213,7 +221,13 @@ function buildHtml(input: ApplicationReceivedNotificationInput, adminPortalUrl: 
 </html>`;
 }
 
-function buildText(input: ApplicationReceivedNotificationInput, adminPortalUrl: string | undefined) {
+function buildText(
+  input: ApplicationReceivedNotificationInput,
+  adminPortalUrl: string | undefined,
+  formContent: ApplicationFormContent
+) {
+  const membershipLabel = getMembershipLabelFromContent(input.membershipKind, formContent);
+
   return [
     "Neuer Mitgliedsantrag eingegangen",
     "",
@@ -223,7 +237,7 @@ function buildText(input: ApplicationReceivedNotificationInput, adminPortalUrl: 
     `Eingang: ${formatDate(input.createdAt)}`,
     `Hauptperson: ${input.firstName} ${input.lastName}`,
     `Geburtsdatum: ${formatDate(input.birthDate)}`,
-    `Mitgliedschaft: ${getMembershipLabel(input.membershipKind)}`,
+    `Mitgliedschaft: ${membershipLabel}`,
     `Kontakt: ${input.email} / ${input.mobile || input.phone || "-"}`,
     `Adresse: ${buildAddress(input) || "-"}`,
     "Zusatzpersonen:",
@@ -352,6 +366,7 @@ export async function sendApplicationReceivedNotification(
   }
 
   const adminPortalUrl = getAdminPortalUrl();
+  const formContent = await getApplicationFormContent();
   const replyTo = getEnv("MAIL_REPLY_TO");
   const subject = `Neuer Mitgliedsantrag: ${input.firstName} ${input.lastName}`.trim();
   const provider = getMailProvider();
@@ -361,8 +376,8 @@ export async function sendApplicationReceivedNotification(
     to,
     replyTo,
     subject,
-    html: buildHtml(input, adminPortalUrl),
-    text: buildText(input, adminPortalUrl)
+    html: buildHtml(input, adminPortalUrl, formContent),
+    text: buildText(input, adminPortalUrl, formContent)
   };
 
   if (provider === "smtp") {

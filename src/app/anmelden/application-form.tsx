@@ -4,23 +4,15 @@ import { FormEvent, useState } from "react";
 import type { ApplicationMatchSummary } from "@/lib/application-types";
 import {
   isReducedContributionMembership,
-  membershipOptions,
   salutationOptions
 } from "@/lib/application-options";
+import type { ApplicationFormContent } from "@/lib/application-content";
 import {
-  CONTRIBUTIONS_URL,
-  CONTRIBUTION_NOTES,
-  CONTRIBUTION_ROWS,
-  JUNIOR_TRAINING_NOTES,
   MINOR_CONSENT_TEXT,
-  PLACE_CARE_RULES_URL,
   PHOTO_VIDEO_CONSENT_TEXT,
   PRIVACY_SECTIONS,
   SEPA_MANDATE_TEXT,
-  STATUTES_CONFIRMATION_TEXT,
-  STATUTES_URL,
-  WHATSAPP_CONSENT_TEXT,
-  YOUTH_RULES_URL
+  WHATSAPP_CONSENT_TEXT
 } from "@/lib/application-legal-content";
 
 type SubmissionState =
@@ -181,7 +173,11 @@ function getAdditionalMemberConfig(membershipKind: string) {
   return null;
 }
 
-export function ApplicationForm() {
+type ApplicationFormProps = {
+  content: ApplicationFormContent;
+};
+
+export function ApplicationForm({ content }: ApplicationFormProps) {
   const [state, setState] = useState<SubmissionState>({ kind: "idle" });
   const [membershipKind, setMembershipKind] = useState("");
   const [additionalMembers, setAdditionalMembers] = useState<AdditionalMember[]>([]);
@@ -398,7 +394,7 @@ export function ApplicationForm() {
           <option value="" disabled>
             Bitte auswählen
           </option>
-          {membershipOptions.map((option) => (
+          {content.membershipOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -429,7 +425,7 @@ export function ApplicationForm() {
               </tr>
             </thead>
             <tbody>
-              {CONTRIBUTION_ROWS.map((row) => (
+              {content.contributionRows.map((row) => (
                 <tr key={`${row.membership}-${row.status}-${row.fee}`}>
                   <td>{row.membership}</td>
                   <td>{row.status || "-"}</td>
@@ -439,7 +435,7 @@ export function ApplicationForm() {
             </tbody>
           </table>
           <div style={{ color: "var(--muted)" }}>
-            {CONTRIBUTION_NOTES.map((paragraph) => (
+            {content.contributionNotes.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
@@ -452,7 +448,7 @@ export function ApplicationForm() {
             Wichtiger Hinweis zum Jugendtraining anzeigen
           </summary>
           <div style={{ marginTop: 10, color: "var(--muted)" }}>
-            {JUNIOR_TRAINING_NOTES.map((paragraph) => (
+            {content.juniorTrainingNotes.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
@@ -866,30 +862,16 @@ export function ApplicationForm() {
               Vereinsdokumente anzeigen
             </summary>
             <div style={{ marginTop: 10, color: "var(--muted)" }}>
-              {STATUTES_CONFIRMATION_TEXT.map((paragraph) => (
+              {content.statutesConfirmationText.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
-              <p>
-                Satzung:{" "}
-                <a className="document-link" href={STATUTES_URL} rel="noreferrer" target="_blank">
-                  Satzung als PDF öffnen
-                </a>
-              </p>
-              <p>
-                <a className="document-link" href={CONTRIBUTIONS_URL} rel="noreferrer" target="_blank">
-                  Beitragsübersicht als PDF öffnen
-                </a>
-              </p>
-              <p>
-                <a className="document-link" href={PLACE_CARE_RULES_URL} rel="noreferrer" target="_blank">
-                  Platzpflegeordnung als PDF öffnen
-                </a>
-              </p>
-              <p>
-                <a className="document-link" href={YOUTH_RULES_URL} rel="noreferrer" target="_blank">
-                  Jugendordnung als PDF öffnen
-                </a>
-              </p>
+              {content.documentLinks.map((link) => (
+                <p key={link.id}>
+                  <a className="document-link" href={link.url} rel="noreferrer" target="_blank">
+                    {link.label}
+                  </a>
+                </p>
+              ))}
             </div>
           </details>
           <label className="checkbox">
@@ -959,7 +941,7 @@ export function ApplicationForm() {
         <div className="result-box is-success">
           <h3 style={{ fontSize: "1.1rem", marginBottom: 10 }}>Antrag gespeichert</h3>
           <p>
-            Der Antrag wurde gespeichert und an den Verein übermittelt. Deine Vorgangs-ID:{" "}
+            Der Antrag wurde gespeichert und an den Verein übermittelt. Deine Referenznummer:{" "}
             <strong>{state.id}</strong>.
           </p>
         </div>
