@@ -1,6 +1,11 @@
-export const STATUTES_URL = "/docs/tcv-satzung.pdf";
-export const CONTRIBUTIONS_URL = "/docs/tcv-mitgliedsbeitraege-2026.pdf";
-export const PLACE_CARE_RULES_URL = "/docs/tcv-platzpflegeordnung-2026.pdf";
+export const STATUTES_URL =
+  "https://tennisclub-vreden.de/wp-content/uploads/2024/04/TennisClubVreden-Satzung.pdf";
+export const CONTRIBUTIONS_URL =
+  "https://tennisclub-vreden.de/wp-content/uploads/2026/04/TennisClubVreden-Mitgliedsbeitraege-2026.pdf";
+export const PLACE_CARE_RULES_URL =
+  "https://tennisclub-vreden.de/wp-content/uploads/2026/04/TennisClubVreden-Platzpflegeordnung-2026-1.pdf";
+export const YOUTH_RULES_URL =
+  "https://tennisclub-vreden.de/wp-content/uploads/2025/03/Jugendordnung-TennisClubVreden.pdf";
 
 export const CONTRIBUTION_ROWS = [
   { membership: "Erwachsene", status: "aktiv", fee: "180,- EUR" },
@@ -67,7 +72,8 @@ export const SEPA_MANDATE_TEXT = [
 
 export const STATUTES_CONFIRMATION_TEXT = [
   "Mit der Pflichtbestätigung wird bestätigt, dass die Satzung, die Beitragsordnung, die Platzpflegeordnung und die Beitragsinformationen 2026 zur Kenntnis genommen wurden und als verbindlich anerkannt werden.",
-  "Satzung, Beitragsübersicht 2026 und Platzpflegeordnung 2026 sind im digitalen Formular als vollständige PDF-Dokumente verlinkt.",
+  "Satzung, Beitragsübersicht 2026 und Platzpflegeordnung 2026 sind im digitalen Formular als vollständige PDF-Dokumente der Vereinswebsite verlinkt.",
+  "Für Kinder, Jugendliche und Familien ist zusätzlich die Jugendordnung als PDF-Dokument der Vereinswebsite verlinkt.",
   "Die Beitragsinformationen 2026 wurden zusätzlich als Tabelle in das Formular übernommen, damit die Beitragshöhen vor dem Absenden direkt sichtbar sind."
 ];
 

@@ -1,10 +1,14 @@
 import {
+  CONTRIBUTIONS_URL,
   MINOR_CONSENT_TEXT,
   PHOTO_VIDEO_CONSENT_TEXT,
+  PLACE_CARE_RULES_URL,
   PRIVACY_SECTIONS,
   SEPA_MANDATE_TEXT,
+  STATUTES_URL,
   STATUTES_CONFIRMATION_TEXT,
-  WHATSAPP_CONSENT_TEXT
+  WHATSAPP_CONSENT_TEXT,
+  YOUTH_RULES_URL
 } from "@/lib/application-legal-content";
 
 export type ConfirmationPerson = {
@@ -75,8 +79,15 @@ export const clubContact = {
   address: "Ottensteiner Str. 59, 48691 Vreden",
   email: "mail@tennisclub-vreden.de",
   website: "www.tennisclub-vreden.de",
-  statutesUrl: "/docs/tcv-satzung.pdf"
+  statutesUrl: STATUTES_URL
 };
+
+export const confirmationDocumentLinks = [
+  { label: "Satzung", url: STATUTES_URL },
+  { label: "Beitragsübersicht 2026", url: CONTRIBUTIONS_URL },
+  { label: "Platzpflegeordnung 2026", url: PLACE_CARE_RULES_URL },
+  { label: "Jugendordnung", url: YOUTH_RULES_URL }
+];
 
 function textBlock(paragraphs: string[]) {
   return paragraphs.join("\n\n");
@@ -177,7 +188,7 @@ export const confirmationPreviewApplication: ConfirmationApplicationPreview = {
 
 export const confirmationLegalSections: ConfirmationSection[] = [
   {
-    title: "Satzung, Beitragsordnung und Platzpflegeordnung",
+    title: "Satzung, Beitragsordnung, Platzpflegeordnung und Jugendordnung",
     text: textBlock(STATUTES_CONFIRMATION_TEXT)
   },
   {
@@ -206,7 +217,7 @@ export const confirmationMailPreview = {
   subject: "Bestätigung deiner Mitgliedschaft beim TennisClub Vreden e.V.",
   bcc: clubContact.email,
   intro:
-    "vielen Dank für den digitalen Mitgliedsantrag. Wir haben den Antrag intern geprüft und die Daten in unsere Vereinsverwaltung übernommen.",
+    "vielen Dank für deinen digitalen Mitgliedsantrag. Wir haben den Antrag geprüft und deine Mitgliedschaft beim TennisClub Vreden e.V. bestätigt.",
   attachmentNote:
     "Im Anhang befindet sich eine PDF-Zusammenfassung mit den eingereichten Daten, den bestätigten Einwilligungen und den wichtigsten Hinweisen.",
   revocationNote:

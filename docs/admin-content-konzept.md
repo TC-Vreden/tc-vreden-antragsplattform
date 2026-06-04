@@ -38,7 +38,7 @@ Formulartexte:
 - Hilfetexte an Feldern
 - Akkordeontexte fuer Beitraege, SEPA, Satzung, Datenschutz, Foto/Video, WhatsApp
 - Hinweise zum Jugendtraining
-- Hinweis zur Platzpflegeordnung; aktueller Link im Formular: `/docs/tcv-platzpflegeordnung-2026.pdf`
+- Hinweis zur Platzpflegeordnung; aktueller Link im Formular: `https://tennisclub-vreden.de/wp-content/uploads/2026/04/TennisClubVreden-Platzpflegeordnung-2026-1.pdf`
 
 Recht / Nachweis:
 

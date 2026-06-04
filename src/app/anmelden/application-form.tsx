@@ -19,7 +19,8 @@ import {
   SEPA_MANDATE_TEXT,
   STATUTES_CONFIRMATION_TEXT,
   STATUTES_URL,
-  WHATSAPP_CONSENT_TEXT
+  WHATSAPP_CONSENT_TEXT,
+  YOUTH_RULES_URL
 } from "@/lib/application-legal-content";
 
 type SubmissionState =
@@ -862,7 +863,7 @@ export function ApplicationForm() {
           </label>
           <details style={{ margin: "-4px 0 8px 34px" }}>
             <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-              Satzung, Beitragsordnung und Platzpflegeordnung anzeigen
+              Vereinsdokumente anzeigen
             </summary>
             <div style={{ marginTop: 10, color: "var(--muted)" }}>
               {STATUTES_CONFIRMATION_TEXT.map((paragraph) => (
@@ -883,6 +884,12 @@ export function ApplicationForm() {
               <p>
                 Platzpflegeordnung 2026:{" "}
                 <a href={PLACE_CARE_RULES_URL} rel="noreferrer" target="_blank">
+                  vollständiges PDF öffnen
+                </a>
+              </p>
+              <p>
+                Jugendordnung:{" "}
+                <a href={YOUTH_RULES_URL} rel="noreferrer" target="_blank">
                   vollständiges PDF öffnen
                 </a>
               </p>
@@ -955,15 +962,9 @@ export function ApplicationForm() {
         <div className="result-box is-success">
           <h3 style={{ fontSize: "1.1rem", marginBottom: 10 }}>Antrag gespeichert</h3>
           <p>
-            Der Antrag wurde in der internen Verwaltung abgelegt. Interne Vorgangs-ID:{" "}
-            <strong>{state.id}</strong>
+            Der Antrag wurde gespeichert und an den Verein übermittelt. Deine Vorgangs-ID:{" "}
+            <strong>{state.id}</strong>.
           </p>
-          {state.match ? (
-            <p style={{ marginTop: 10 }}>
-              eBuSy-Status direkt nach dem Speichern: <strong>{state.match.status}</strong>.{" "}
-              {state.match.message}
-            </p>
-          ) : null}
         </div>
       ) : null}
 

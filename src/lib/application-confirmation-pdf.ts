@@ -22,6 +22,7 @@ import type {
 } from "@/lib/application-types";
 import {
   clubContact,
+  confirmationDocumentLinks,
   confirmationLegalSections,
   confirmationMailPreview
 } from "@/lib/confirmation-document";
@@ -42,7 +43,7 @@ const pageWidth = 595.28;
 const pageHeight = 841.89;
 const margin = 42;
 const contentTop = 676;
-const footerReserve = 88;
+const footerReserve = 106;
 const headerLogoWidth = 218;
 const headerLogoHeight = headerLogoWidth / 2.5;
 const headerLogoY = 738;
@@ -243,13 +244,24 @@ class ConfirmationPdfWriter {
     this.y -= 16;
   }
 
+  subheading(title: string) {
+    this.ensureSpace(28);
+    this.page.drawText(pdfText(title), {
+      x: margin,
+      y: this.y,
+      size: 10.4,
+      font: this.boldFont,
+      color: black
+    });
+    this.y -= 15;
+  }
+
   paragraph(text: string, options?: { highlight?: boolean }) {
     const lines = wrapText(text, this.regularFont, 9.5, pageWidth - margin * 2 - (options?.highlight ? 18 : 0));
     const height = lines.length * 12 + (options?.highlight ? 20 : 4);
 
-    this.ensureSpace(height);
-
     if (options?.highlight) {
+      this.ensureSpace(height);
       this.page.drawRectangle({
         x: margin,
         y: this.y - height + 8,
@@ -260,11 +272,26 @@ class ConfirmationPdfWriter {
         borderWidth: 0.8
       });
       this.y -= 10;
+
+      for (const line of lines) {
+        this.page.drawText(line, {
+          x: margin + 9,
+          y: this.y,
+          size: 9.5,
+          font: this.regularFont,
+          color: textColor
+        });
+        this.y -= 12;
+      }
+
+      this.y -= 16;
+      return;
     }
 
     for (const line of lines) {
+      this.ensureSpace(18);
       this.page.drawText(line, {
-        x: margin + (options?.highlight ? 9 : 0),
+        x: margin,
         y: this.y,
         size: 9.5,
         font: this.regularFont,
@@ -273,7 +300,28 @@ class ConfirmationPdfWriter {
       this.y -= 12;
     }
 
-    this.y -= options?.highlight ? 16 : 4;
+    this.y -= 4;
+  }
+
+  linkList(items: Array<{ label: string; url: string }>) {
+    for (const item of items) {
+      const label = `${item.label}:`;
+      const url = item.url;
+
+      this.ensureSpace(28);
+      this.page.drawText(pdfText(label), {
+        x: margin,
+        y: this.y,
+        size: 9.2,
+        font: this.boldFont,
+        color: textColor
+      });
+      this.y -= 11;
+      this.drawExternalLink(url, url, margin, this.y, 8.3);
+      this.y -= 17;
+    }
+
+    this.y -= 2;
   }
 
   fields(rows: FieldRow[], columns = 2) {
@@ -408,6 +456,34 @@ class ConfirmationPdfWriter {
     });
   }
 
+  private drawExternalLink(text: string, url: string, x: number, y: number, size: number) {
+    const normalized = pdfText(text);
+    const linkColor = rgb(0.02, 0.31, 0.52);
+    const width = this.regularFont.widthOfTextAtSize(normalized, size);
+
+    this.page.drawText(normalized, {
+      x,
+      y,
+      size,
+      font: this.regularFont,
+      color: linkColor
+    });
+
+    const annotation = this.document.context.obj({
+      Type: "Annot",
+      Subtype: "Link",
+      Rect: [x, y - 2, x + width, y + size + 2],
+      Border: [0, 0, 0],
+      A: {
+        Type: "Action",
+        S: "URI",
+        URI: url
+      }
+    });
+
+    this.page.node.addAnnot(this.document.context.register(annotation));
+  }
+
   private ensureSpace(height: number) {
     if (this.y - height < footerReserve) {
       this.page = this.addPage();
@@ -446,7 +522,7 @@ class ConfirmationPdfWriter {
       font: this.boldFont,
       color: black
     });
-    page.drawText("PDF-Zusammenfassung nach interner Übernahme", {
+    page.drawText("Bestätigung deines digitalen Mitgliedsantrags", {
       x: headerTextX,
       y: 773,
       size: 9.2,
@@ -518,38 +594,18 @@ function hasGuardianInformation(application: ApplicationRow) {
   );
 }
 
-function ebusyPeople(matchPayload: ApplicationMatchPayload) {
-  if (matchPayload.createdPeople?.length) {
-    return matchPayload.createdPeople.map(
-      (person) =>
-        `${person.roleLabel ? `${person.roleLabel}: ` : ""}${person.displayName ?? "Person"} - eBuSy-ID ${person.externalPersonId}${person.customerId ? `, Kundennummer ${person.customerId}` : ""}`
-    );
+function getApplicantVisibleNotes(notes: string | null | undefined) {
+  const text = notes?.trim();
+
+  if (!text) {
+    return null;
   }
 
-  if (matchPayload.createdPerson) {
-    return [
-      `${matchPayload.createdPerson.displayName ?? "Person"} - eBuSy-ID ${matchPayload.createdPerson.externalPersonId}`
-    ];
+  if (/e\s*bu\s*sy|testlabor|verwaltungsworkflow|automatischer.*test/i.test(text)) {
+    return null;
   }
 
-  return ["Keine eBuSy-Person in der Rückmeldung enthalten."];
-}
-
-function ebusyMemberships(matchPayload: ApplicationMatchPayload) {
-  if (matchPayload.createdMemberships?.length) {
-    return matchPayload.createdMemberships.map(
-      (membership) =>
-        `${membership.roleLabel ? `${membership.roleLabel}: ` : ""}${membership.displayName ?? "Mitgliedschaft"} - ID ${membership.externalMembershipId}${membership.membershipNumber ? `, Mitgliedsnummer ${membership.membershipNumber}` : ""}`
-    );
-  }
-
-  if (matchPayload.createdMembership) {
-    return [
-      `${matchPayload.createdMembership.displayName ?? "Mitgliedschaft"} - ID ${matchPayload.createdMembership.externalMembershipId}`
-    ];
-  }
-
-  return ["Keine Mitgliedschaft in der Rückmeldung enthalten."];
+  return text;
 }
 
 function addAdditionalMember(writer: ConfirmationPdfWriter, member: ApplicationAdditionalMember, index: number) {
@@ -572,7 +628,7 @@ function addAdditionalMember(writer: ConfirmationPdfWriter, member: ApplicationA
 export async function buildApplicationConfirmationPdf(
   input: ApplicationConfirmationPdfInput
 ): Promise<ConfiguredMailAttachment> {
-  const { application, transferredAt, matchPayload } = input;
+  const { application, transferredAt } = input;
   const generatedAt = new Date().toISOString();
   const document = await PDFDocument.create();
   const regularFont = await document.embedFont(StandardFonts.Helvetica);
@@ -601,7 +657,7 @@ export async function buildApplicationConfirmationPdf(
   writer.fields([
     { label: "Vorgangs-ID", value: application.id },
     { label: "Antrag gestellt am", value: formatDate(application.created_at) },
-    { label: "Intern übernommen am", value: formatDate(transferredAt) },
+    { label: "Bestätigt am", value: formatDate(transferredAt) },
     { label: "PDF erstellt am", value: formatDate(generatedAt) }
   ]);
 
@@ -660,25 +716,17 @@ export async function buildApplicationConfirmationPdf(
   writer.section("Bestätigungen und Einwilligungen");
   writer.fields(buildConsentRows(application), 1);
 
-  writer.section("eBuSy-Übernahme");
-  writer.paragraph("Personen");
-  writer.bulletList(ebusyPeople(matchPayload));
-  writer.paragraph("Mitgliedschaften");
-  writer.bulletList(ebusyMemberships(matchPayload));
-
-  if (matchPayload.takeoverWarnings?.length) {
-    writer.paragraph("Hinweise aus der Übernahme");
-    writer.bulletList(matchPayload.takeoverWarnings);
-  }
-
-  if (application.notes) {
+  const applicantVisibleNotes = getApplicantVisibleNotes(application.notes);
+  if (applicantVisibleNotes) {
     writer.section("Hinweise aus dem Antrag");
-    writer.paragraph(application.notes);
+    writer.paragraph(applicantVisibleNotes);
   }
 
   writer.section("Rechtliche Hinweise");
+  writer.subheading("Verlinkte Vereinsdokumente");
+  writer.linkList(confirmationDocumentLinks);
   for (const section of confirmationLegalSections) {
-    writer.paragraph(section.title);
+    writer.subheading(section.title);
     writer.paragraph(section.text);
   }
   writer.paragraph(confirmationMailPreview.revocationNote, { highlight: true });

@@ -31,6 +31,7 @@ type ApplicationConfirmationEmailInput = {
 };
 
 const germanTimeZone = "Europe/Berlin";
+const brandLogoUrl = "https://antrag-tennisclub-vreden.vercel.app/brand/tc-vreden-logo.png";
 
 function isConfirmationEmailEnabled() {
   const explicitValue = getMailEnv("APPLICATION_CONFIRMATION_EMAIL_ENABLED");
@@ -154,59 +155,8 @@ function renderAdditionalMembers(members: ApplicationAdditionalMember[]) {
     .join("");
 }
 
-function renderEbusySummary(matchPayload: ApplicationMatchPayload) {
-  const people = matchPayload.createdPeople?.length
-    ? matchPayload.createdPeople
-    : matchPayload.createdPerson
-      ? [
-          {
-            externalPersonId: matchPayload.createdPerson.externalPersonId,
-            displayName: matchPayload.createdPerson.displayName
-          }
-        ]
-      : [];
-
-  const memberships = matchPayload.createdMemberships?.length
-    ? matchPayload.createdMemberships
-    : matchPayload.createdMembership
-      ? [
-          {
-            externalMembershipId: matchPayload.createdMembership.externalMembershipId,
-            displayName: matchPayload.createdMembership.displayName
-          }
-        ]
-      : [];
-
-  const peopleList = people.length
-    ? people
-        .map(
-          (person) =>
-            `<li>${escapeHtml(person.displayName ?? "Person")} - eBuSy-ID ${escapeHtml(person.externalPersonId)}</li>`
-        )
-        .join("")
-    : "<li>Keine eBuSy-Person in der Rückmeldung enthalten.</li>";
-
-  const membershipList = memberships.length
-    ? memberships
-        .map(
-          (membership) =>
-            `<li>${escapeHtml(membership.displayName ?? "Mitgliedschaft")} - ID ${escapeHtml(
-              membership.externalMembershipId
-            )}</li>`
-        )
-        .join("")
-    : "<li>Keine Mitgliedschaft in der Rückmeldung enthalten.</li>";
-
-  return `
-    <h2>Übernahme in eBuSy</h2>
-    <h3>Personen</h3>
-    <ul>${peopleList}</ul>
-    <h3>Mitgliedschaften</h3>
-    <ul>${membershipList}</ul>`;
-}
-
 function buildHtml(input: ApplicationConfirmationEmailInput) {
-  const { application, transferredAt, matchPayload } = input;
+  const { application, transferredAt } = input;
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
     : [];
@@ -224,12 +174,12 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
   <head>
     <meta charset="utf-8" />
     <style>
-      body { margin: 0; background: #f7f4ed; color: #1f1f1d; font-family: Arial, sans-serif; line-height: 1.5; }
-      .wrap { max-width: 760px; margin: 0 auto; padding: 24px; }
-      .card { background: #fffdf7; border: 1px solid #e3d8c0; border-radius: 12px; overflow: hidden; }
-      .header { padding: 24px; border-bottom: 4px solid #ffd800; }
-      .brand { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6f6200; }
-      h1 { margin: 8px 0 0; font-size: 26px; }
+      body { margin: 0; background: #ffffff; color: #1f1f1d; font-family: Arial, sans-serif; line-height: 1.5; }
+      .wrap { max-width: 760px; margin: 0 auto; padding: 24px; background: #ffffff; }
+      .card { background: #ffffff; border: 1px solid #e3d8c0; border-radius: 8px; overflow: hidden; }
+      .header { padding: 22px 24px 20px; border-bottom: 4px solid #ffd800; background: #ffffff; }
+      .logo { display: block; width: 180px; max-width: 70%; height: auto; margin: 0 0 18px; }
+      h1 { margin: 0; font-size: 26px; }
       h2 { margin: 28px 0 10px; font-size: 18px; }
       h3 { margin: 16px 0 6px; font-size: 15px; }
       .content { padding: 24px; }
@@ -237,10 +187,10 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
       .details th, .details td { padding: 8px 10px; border-bottom: 1px solid #eadfc7; text-align: left; vertical-align: top; }
       .details th { width: 230px; color: #4d4636; }
       .muted { color: #655f52; }
-      .notice { background: #fff7bf; border: 1px solid #ffd800; border-radius: 8px; padding: 12px 14px; }
+      .notice { background: #fffbea; border: 1px solid #ffd800; border-radius: 6px; padding: 12px 14px; }
       .legal-section { margin: 16px 0; padding-top: 6px; border-top: 1px solid #eadfc7; }
       .legal-section p { margin: 8px 0; }
-      .footer { padding: 18px 24px; background: #1f1f1d; color: #ffffff; font-size: 13px; }
+      .footer { padding: 18px 24px; background: #ffffff; border-top: 1px solid #e3d8c0; color: #4d4636; font-size: 13px; }
       a { color: #0b5f8a; }
     </style>
   </head>
@@ -248,7 +198,7 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
     <div class="wrap">
       <div class="card">
         <div class="header">
-          <div class="brand">${escapeHtml(clubContact.name)}</div>
+          <img class="logo" src="${escapeHtml(brandLogoUrl)}" alt="${escapeHtml(clubContact.name)}" />
           <h1>Bestätigung deiner Mitgliedschaft</h1>
         </div>
         <div class="content">
@@ -274,7 +224,7 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
             <tbody>
               ${detailRow("Mitgliedschaftsart", getMembershipLabel(application.membership_kind))}
               ${reducedProofRow}
-              ${detailRow("Übernommen am", formatDate(transferredAt))}
+              ${detailRow("Bestätigt am", formatDate(transferredAt))}
             </tbody>
           </table>
 
@@ -304,8 +254,6 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
             </tbody>
           </table>
 
-          ${renderEbusySummary(matchPayload)}
-
           <h2>Hinweise</h2>
           ${legalNotice}
           <p>${escapeHtml(confirmationMailPreview.revocationNote)}</p>
@@ -321,7 +269,7 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
 }
 
 function buildText(input: ApplicationConfirmationEmailInput) {
-  const { application, transferredAt, matchPayload } = input;
+  const { application, transferredAt } = input;
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
     : [];
@@ -329,16 +277,6 @@ function buildText(input: ApplicationConfirmationEmailInput) {
   const reducedProofLine = isReducedContributionMembership(application.membership_kind)
     ? [`Nachweis Schüler:innen / Azubis / Student:innen gültig bis: ${formatDate(application.student_status_until)}`]
     : [];
-  const people = matchPayload.createdPeople?.length
-    ? matchPayload.createdPeople
-    : matchPayload.createdPerson
-      ? [
-          {
-            externalPersonId: matchPayload.createdPerson.externalPersonId,
-            displayName: matchPayload.createdPerson.displayName
-          }
-        ]
-      : [];
   const legalText = confirmationLegalSections.flatMap((section) => [
     section.title,
     section.text,
@@ -353,7 +291,7 @@ function buildText(input: ApplicationConfirmationEmailInput) {
     "",
     `Mitgliedschaft: ${getMembershipLabel(application.membership_kind)}`,
     ...reducedProofLine,
-    `Übernommen am: ${formatDate(transferredAt)}`,
+    `Bestätigt am: ${formatDate(transferredAt)}`,
     `Geburtsdatum: ${formatDate(application.birth_date)}`,
     `Adresse: ${formatAddress([application.street, application.postal_code, application.city])}`,
     `SEPA-Mandat bestätigt: ${yesNo(application.accepts_sepa)}`,
@@ -375,16 +313,6 @@ function buildText(input: ApplicationConfirmationEmailInput) {
           )
           .join("\n")
       : "- Keine Zusatzpersonen erfasst.",
-    "",
-    "eBuSy:",
-    people.length
-      ? people
-          .map(
-            (person) =>
-              `- ${person.displayName ?? "Person"}: eBuSy-ID ${person.externalPersonId}`
-          )
-          .join("\n")
-      : "- Keine eBuSy-Person in der Rückmeldung enthalten.",
     "",
     "Hinweise:",
     ...legalText,
