@@ -59,7 +59,7 @@ export const CONTRIBUTION_NOTES = [
 export const JUNIOR_TRAINING_NOTES = [
   "Das Jugendtraining ist ein separates Zusatzangebot und nicht automatisch Bestandteil dieses Mitgliedsantrags.",
   "Kinder dürfen bis zu drei Mal unverbindlich reinschnuppern. Wenn es danach weitergehen soll, ist eine Vereinsanmeldung erforderlich.",
-  "Die Trainingsgebühren fallen zusätzlich zur Mitgliedschaft an. Laut Informationsblatt 2026: Sommertraining 01.05. bis 30.09. für Kinder bis 18 Jahre 135,- EUR, Geschwisterkind 117,- EUR; Wintertraining 01.10. bis 30.04. für Kinder bis 18 Jahre 165,- EUR, Geschwisterkind 143,- EUR.",
+  "Trainingszeiten, Saisonzeiträume und Trainingsgebühren werden separat über die Jugend- bzw. Trainingsorganisation des Vereins mitgeteilt. Sie gehören nicht zum Mitgliedsbeitrag.",
   "Für eine spätere digitale Trainingsanmeldung sollte ein eigener Prozess mit gesonderter Einverständniserklärung der Eltern vorbereitet werden."
 ];
 
@@ -71,10 +71,10 @@ export const SEPA_MANDATE_TEXT = [
 ];
 
 export const STATUTES_CONFIRMATION_TEXT = [
-  "Mit der Pflichtbestätigung wird bestätigt, dass die Satzung, die Beitragsordnung, die Platzpflegeordnung und die Beitragsinformationen 2026 zur Kenntnis genommen wurden und als verbindlich anerkannt werden.",
-  "Satzung, Beitragsübersicht 2026 und Platzpflegeordnung 2026 sind im digitalen Formular als vollständige PDF-Dokumente der Vereinswebsite verlinkt.",
+  "Mit der Pflichtbestätigung wird bestätigt, dass die Satzung, die Beitragsordnung, die Platzpflegeordnung und die Beitragsinformationen zur Kenntnis genommen wurden und als verbindlich anerkannt werden.",
+  "Satzung, Beitragsübersicht und Platzpflegeordnung sind im digitalen Formular als vollständige PDF-Dokumente der Vereinswebsite verlinkt.",
   "Für Kinder, Jugendliche und Familien ist zusätzlich die Jugendordnung als PDF-Dokument der Vereinswebsite verlinkt.",
-  "Die Beitragsinformationen 2026 wurden zusätzlich als Tabelle in das Formular übernommen, damit die Beitragshöhen vor dem Absenden direkt sichtbar sind."
+  "Die Beitragsinformationen wurden zusätzlich als Tabelle in das Formular übernommen, damit die Beitragshöhen vor dem Absenden direkt sichtbar sind."
 ];
 
 export const PRIVACY_SECTIONS = [

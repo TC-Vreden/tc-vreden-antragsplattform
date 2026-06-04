@@ -6,7 +6,6 @@ export default function AnmeldenPage() {
     <main className="page-shell">
       <section className="card">
         <TcVredenLogo />
-        <span className="eyebrow">Öffentliches Formular</span>
         <h1 className="page-title">Neuanmeldung</h1>
         <ApplicationForm />
       </section>

@@ -84,8 +84,8 @@ export const clubContact = {
 
 export const confirmationDocumentLinks = [
   { label: "Satzung", url: STATUTES_URL },
-  { label: "Beitragsübersicht 2026", url: CONTRIBUTIONS_URL },
-  { label: "Platzpflegeordnung 2026", url: PLACE_CARE_RULES_URL },
+  { label: "Beitragsübersicht", url: CONTRIBUTIONS_URL },
+  { label: "Platzpflegeordnung", url: PLACE_CARE_RULES_URL },
   { label: "Jugendordnung", url: YOUTH_RULES_URL }
 ];
 
@@ -106,7 +106,7 @@ export const confirmationPreviewApplication: ConfirmationApplicationPreview = {
   ebusyPersonIds: ["842", "843", "844", "845"],
   membershipLabel: "Familie - 290 EUR/Jahr",
   contributionNote:
-    "Der Familienbeitrag wird gemäß Beitragsübersicht 2026 geführt. Jugendtraining ist nicht im Mitgliedsbeitrag enthalten.",
+    "Der Familienbeitrag wird gemäß Beitragsübersicht geführt. Jugendtraining ist nicht im Mitgliedsbeitrag enthalten.",
   youthTrainingNote:
     "Jugendtraining ist ein separater Leistungsblock. Laut Informationsblatt gelten für das Sommertraining und Wintertraining eigene Trainingsgebühren; die Teilnahme muss separat organisiert und abgerechnet werden.",
   mainPerson: {

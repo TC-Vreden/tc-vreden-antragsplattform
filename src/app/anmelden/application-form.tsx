@@ -417,7 +417,7 @@ export function ApplicationForm() {
 
       <details style={{ margin: "0 0 18px" }}>
         <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-          Mitgliedsbeiträge und wichtige Beitragsregeln 2026 anzeigen
+          Mitgliedsbeiträge und wichtige Beitragsregeln anzeigen
         </summary>
         <div style={{ marginTop: 10 }}>
           <table className="table" style={{ marginBottom: 14 }}>
@@ -858,7 +858,7 @@ export function ApplicationForm() {
             <input type="checkbox" name="acceptsStatutes" required />
             <span>
               Ich habe Satzung, Beitragsordnung, Platzpflegeordnung und Beitragsinformationen
-              2026 zur Kenntnis genommen und erkenne diese als verbindlich an.*
+              zur Kenntnis genommen und erkenne diese als verbindlich an.*
             </span>
           </label>
           <details style={{ margin: "-4px 0 8px 34px" }}>
@@ -871,26 +871,23 @@ export function ApplicationForm() {
               ))}
               <p>
                 Satzung:{" "}
-                <a href={STATUTES_URL} rel="noreferrer" target="_blank">
-                  vollständiges PDF öffnen
+                <a className="document-link" href={STATUTES_URL} rel="noreferrer" target="_blank">
+                  Satzung als PDF öffnen
                 </a>
               </p>
               <p>
-                Beitragsübersicht 2026:{" "}
-                <a href={CONTRIBUTIONS_URL} rel="noreferrer" target="_blank">
-                  vollständiges PDF öffnen
+                <a className="document-link" href={CONTRIBUTIONS_URL} rel="noreferrer" target="_blank">
+                  Beitragsübersicht als PDF öffnen
                 </a>
               </p>
               <p>
-                Platzpflegeordnung 2026:{" "}
-                <a href={PLACE_CARE_RULES_URL} rel="noreferrer" target="_blank">
-                  vollständiges PDF öffnen
+                <a className="document-link" href={PLACE_CARE_RULES_URL} rel="noreferrer" target="_blank">
+                  Platzpflegeordnung als PDF öffnen
                 </a>
               </p>
               <p>
-                Jugendordnung:{" "}
-                <a href={YOUTH_RULES_URL} rel="noreferrer" target="_blank">
-                  vollständiges PDF öffnen
+                <a className="document-link" href={YOUTH_RULES_URL} rel="noreferrer" target="_blank">
+                  Jugendordnung als PDF öffnen
                 </a>
               </p>
             </div>

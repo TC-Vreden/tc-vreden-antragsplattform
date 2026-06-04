@@ -1,17 +1,13 @@
 import {
-  getAdditionalMemberRelationLabel,
   getMembershipLabel,
-  getSalutationLabel,
   isReducedContributionMembership
 } from "@/lib/application-options";
 import type {
-  ApplicationAdditionalMember,
   ApplicationMatchPayload,
   ApplicationRow
 } from "@/lib/application-types";
 import {
   clubContact,
-  confirmationLegalSections,
   confirmationMailPreview
 } from "@/lib/confirmation-document";
 import { buildApplicationConfirmationPdf } from "@/lib/application-confirmation-pdf";
@@ -86,73 +82,20 @@ function yesNo(value: boolean | null | undefined) {
   return value ? "Ja" : "Nein";
 }
 
-function formatAddress(parts: Array<string | null | undefined>) {
-  const address = parts.map((part) => part?.trim()).filter(Boolean).join(", ");
-  return address || "-";
-}
-
-function formatIban(value: string | null | undefined) {
-  const normalized = value?.replace(/\s+/g, "").trim();
-
-  if (!normalized) {
-    return "-";
-  }
-
-  return normalized.replace(/(.{4})/g, "$1 ").trim();
-}
-
 function mainPersonName(application: ApplicationRow) {
   return `${application.first_name} ${application.last_name}`.trim();
 }
 
 function detailRow(label: string, value: string | number | boolean | null | undefined) {
-  return `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value ?? "-")}</td></tr>`;
-}
-
-function renderParagraphs(text: string) {
-  return text
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean)
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`)
-    .join("");
-}
-
-function renderLegalSectionsHtml() {
-  return confirmationLegalSections
-    .map(
-      (section) => `
-        <section class="legal-section">
-          <h3>${escapeHtml(section.title)}</h3>
-          ${renderParagraphs(section.text)}
-        </section>`
-    )
-    .join("");
-}
-
-function renderAdditionalMembers(members: ApplicationAdditionalMember[]) {
-  if (members.length === 0) {
-    return "<p class=\"muted\">Keine Zusatzpersonen erfasst.</p>";
-  }
-
-  return members
-    .map((member, index) => {
-      const name = `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim() || `Zusatzperson ${index + 1}`;
-      return `
-        <table class="details">
-          <tbody>
-            ${detailRow("Rolle", getAdditionalMemberRelationLabel(member.relation))}
-            ${detailRow("Anrede", getSalutationLabel(member.salutation))}
-            ${detailRow("Name", name)}
-            ${detailRow("Geburtsdatum", formatDate(member.birthDate))}
-            ${detailRow("E-Mail", member.email)}
-            ${detailRow("Mobil", member.mobile)}
-            ${detailRow("Gesetzliche Vertreter", member.legalRepresentative)}
-            ${detailRow("Adresse", formatAddress([member.street, member.postalCode, member.city]))}
-          </tbody>
-        </table>`;
-    })
-    .join("");
+  return `
+    <tr>
+      <td style="width:190px;padding:7px 10px 7px 0;border-bottom:1px solid #eadfc7;color:#4d4636;font-weight:700;vertical-align:top;">
+        ${escapeHtml(label)}
+      </td>
+      <td style="padding:7px 0;border-bottom:1px solid #eadfc7;color:#1f1f1d;vertical-align:top;">
+        ${escapeHtml(value ?? "-")}
+      </td>
+    </tr>`;
 }
 
 function buildHtml(input: ApplicationConfirmationEmailInput) {
@@ -167,103 +110,60 @@ function buildHtml(input: ApplicationConfirmationEmailInput) {
         formatDate(application.student_status_until)
       )
     : "";
-  const legalNotice = renderLegalSectionsHtml();
+  const additionalMemberSummary = additionalMembers.length
+    ? `${additionalMembers.length} Zusatzperson(en) im Antrag erfasst.`
+    : "Keine Zusatzpersonen erfasst.";
 
   return `<!doctype html>
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <style>
-      body { margin: 0; background: #ffffff; color: #1f1f1d; font-family: Arial, sans-serif; line-height: 1.5; }
-      .wrap { max-width: 760px; margin: 0 auto; padding: 24px; background: #ffffff; }
-      .card { background: #ffffff; border: 1px solid #e3d8c0; border-radius: 8px; overflow: hidden; }
-      .header { padding: 22px 24px 20px; border-bottom: 4px solid #ffd800; background: #ffffff; }
-      .logo { display: block; width: 180px; max-width: 70%; height: auto; margin: 0 0 18px; }
-      h1 { margin: 0; font-size: 26px; }
-      h2 { margin: 28px 0 10px; font-size: 18px; }
-      h3 { margin: 16px 0 6px; font-size: 15px; }
-      .content { padding: 24px; }
-      .details { width: 100%; border-collapse: collapse; margin: 10px 0 18px; }
-      .details th, .details td { padding: 8px 10px; border-bottom: 1px solid #eadfc7; text-align: left; vertical-align: top; }
-      .details th { width: 230px; color: #4d4636; }
-      .muted { color: #655f52; }
-      .notice { background: #fffbea; border: 1px solid #ffd800; border-radius: 6px; padding: 12px 14px; }
-      .legal-section { margin: 16px 0; padding-top: 6px; border-top: 1px solid #eadfc7; }
-      .legal-section p { margin: 8px 0; }
-      .footer { padding: 18px 24px; background: #ffffff; border-top: 1px solid #e3d8c0; color: #4d4636; font-size: 13px; }
-      a { color: #0b5f8a; }
-    </style>
   </head>
-  <body>
-    <div class="wrap">
-      <div class="card">
-        <div class="header">
-          <img class="logo" src="${escapeHtml(brandLogoUrl)}" alt="${escapeHtml(clubContact.name)}" />
-          <h1>Bestätigung deiner Mitgliedschaft</h1>
-        </div>
-        <div class="content">
-          <p>Hallo ${escapeHtml(applicantName)},</p>
-          <p>${escapeHtml(confirmationMailPreview.intro)}</p>
-          <p class="notice">${escapeHtml(confirmationMailPreview.attachmentNote)}</p>
+  <body style="margin:0;padding:0;background:#ffffff;color:#1f1f1d;font-family:Arial,sans-serif;line-height:1.45;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;background:#ffffff;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:760px;border-collapse:collapse;border:1px solid #e3d8c0;background:#ffffff;">
+            <tr>
+              <td style="padding:18px 20px 14px;border-bottom:4px solid #ffd800;background:#ffffff;">
+                <img src="${escapeHtml(brandLogoUrl)}" width="130" alt="${escapeHtml(clubContact.name)}" style="display:block;width:130px;max-width:130px;height:auto;border:0;margin:0 0 12px;" />
+                <h1 style="margin:0;color:#1f1f1d;font-family:Arial,sans-serif;font-size:24px;line-height:1.2;font-weight:700;">Bestätigung deiner Mitgliedschaft</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 20px 20px;background:#ffffff;">
+                <p style="margin:0 0 12px;color:#1f1f1d;">Hallo ${escapeHtml(applicantName)},</p>
+                <p style="margin:0 0 14px;color:#1f1f1d;">${escapeHtml(confirmationMailPreview.intro)}</p>
+                <p style="margin:0 0 18px;padding:10px 12px;border:1px solid #ffd800;background:#fffbea;color:#1f1f1d;">
+                  ${escapeHtml(confirmationMailPreview.attachmentNote)}
+                </p>
 
-          <h2>Hauptperson</h2>
-          <table class="details">
-            <tbody>
-              ${detailRow("Anrede", getSalutationLabel(application.salutation))}
-              ${detailRow("Name", applicantName)}
-              ${detailRow("Geburtsdatum", formatDate(application.birth_date))}
-              ${detailRow("E-Mail", application.email)}
-              ${detailRow("Mobil", application.mobile)}
-              ${detailRow("Telefon", application.phone)}
-              ${detailRow("Adresse", formatAddress([application.street, application.postal_code, application.city]))}
-            </tbody>
+                <h2 style="margin:0 0 8px;color:#1f1f1d;font-family:Arial,sans-serif;font-size:18px;line-height:1.25;">Kurzüberblick</h2>
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin:0 0 18px;">
+                  <tbody>
+                    ${detailRow("Name", applicantName)}
+                    ${detailRow("Mitgliedschaft", getMembershipLabel(application.membership_kind))}
+                    ${reducedProofRow}
+                    ${detailRow("Zusatzpersonen", additionalMemberSummary)}
+                    ${detailRow("Bestätigt am", formatDate(transferredAt))}
+                    ${detailRow("SEPA-Mandat", yesNo(application.accepts_sepa))}
+                  </tbody>
+                </table>
+
+                <p style="margin:0 0 12px;color:#1f1f1d;">Die vollständigen eingereichten Daten, Einwilligungen und rechtlichen Hinweise findest du im PDF-Anhang.</p>
+                <p style="margin:0 0 16px;color:#1f1f1d;">${escapeHtml(confirmationMailPreview.revocationNote)}</p>
+                <p style="margin:0;color:#1f1f1d;">Viele Grüße<br />${escapeHtml(clubContact.name)}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:13px 20px;border-top:1px solid #e3d8c0;background:#ffffff;color:#4d4636;font-size:13px;">
+                ${escapeHtml(clubContact.name)} · ${escapeHtml(clubContact.address)} · ${escapeHtml(clubContact.email)} · ${escapeHtml(clubContact.website)}
+              </td>
+            </tr>
           </table>
-
-          <h2>Mitgliedschaft</h2>
-          <table class="details">
-            <tbody>
-              ${detailRow("Mitgliedschaftsart", getMembershipLabel(application.membership_kind))}
-              ${reducedProofRow}
-              ${detailRow("Bestätigt am", formatDate(transferredAt))}
-            </tbody>
-          </table>
-
-          <h2>Zusatzpersonen / Familienmitglieder</h2>
-          ${renderAdditionalMembers(additionalMembers)}
-
-          <h2>SEPA / Zahlung</h2>
-          <table class="details">
-            <tbody>
-              ${detailRow("Kontoinhaber", application.account_holder)}
-              ${detailRow("IBAN", formatIban(application.iban))}
-              ${detailRow("Anschrift Kontoinhaber", application.account_holder_address)}
-              ${detailRow("SEPA-Mandat bestätigt", yesNo(application.accepts_sepa))}
-              ${detailRow("SEPA-Mandatsdatum / digital bestätigt am", formatDate(application.created_at))}
-            </tbody>
-          </table>
-
-          <h2>Einwilligungen</h2>
-          <table class="details">
-            <tbody>
-              ${detailRow("Satzung / Beitragsordnung / Platzpflegeordnung", yesNo(application.accepts_statutes))}
-              ${detailRow("Datenschutzerklärung nach DSGVO", yesNo(application.accepts_privacy))}
-              ${detailRow("Foto / Video", yesNo(application.accepts_photo_video))}
-              ${detailRow("WhatsApp", yesNo(application.accepts_whatsapp))}
-              ${detailRow("Gesetzliche Vertreter", application.guardian_name)}
-              ${detailRow("Zustimmung gesetzliche Vertreter", yesNo(application.guardian_consent))}
-            </tbody>
-          </table>
-
-          <h2>Hinweise</h2>
-          ${legalNotice}
-          <p>${escapeHtml(confirmationMailPreview.revocationNote)}</p>
-          <p>Viele Grüße<br />${escapeHtml(clubContact.name)}</p>
-        </div>
-        <div class="footer">
-          ${escapeHtml(clubContact.name)} · ${escapeHtml(clubContact.address)} · ${escapeHtml(clubContact.email)} · ${escapeHtml(clubContact.website)}
-        </div>
-      </div>
-    </div>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>`;
 }
@@ -277,11 +177,6 @@ function buildText(input: ApplicationConfirmationEmailInput) {
   const reducedProofLine = isReducedContributionMembership(application.membership_kind)
     ? [`Nachweis Schüler:innen / Azubis / Student:innen gültig bis: ${formatDate(application.student_status_until)}`]
     : [];
-  const legalText = confirmationLegalSections.flatMap((section) => [
-    section.title,
-    section.text,
-    ""
-  ]);
 
   return [
     `Hallo ${applicantName},`,
@@ -292,30 +187,10 @@ function buildText(input: ApplicationConfirmationEmailInput) {
     `Mitgliedschaft: ${getMembershipLabel(application.membership_kind)}`,
     ...reducedProofLine,
     `Bestätigt am: ${formatDate(transferredAt)}`,
-    `Geburtsdatum: ${formatDate(application.birth_date)}`,
-    `Adresse: ${formatAddress([application.street, application.postal_code, application.city])}`,
+    `Zusatzpersonen: ${additionalMembers.length || "keine"}`,
     `SEPA-Mandat bestätigt: ${yesNo(application.accepts_sepa)}`,
-    `SEPA-Mandatsdatum / digital bestätigt am: ${formatDate(application.created_at)}`,
-    `IBAN: ${formatIban(application.iban)}`,
     "",
-    "Zusatzpersonen:",
-    additionalMembers.length
-      ? additionalMembers
-          .map(
-            (member) =>
-              `- ${getAdditionalMemberRelationLabel(member.relation)}: ${member.firstName ?? ""} ${
-                member.lastName ?? ""
-              } (${formatDate(member.birthDate)})${
-                member.legalRepresentative
-                  ? `, gesetzliche Vertreter: ${member.legalRepresentative}`
-                  : ""
-              }`
-          )
-          .join("\n")
-      : "- Keine Zusatzpersonen erfasst.",
-    "",
-    "Hinweise:",
-    ...legalText,
+    "Die vollständigen eingereichten Daten, Einwilligungen und rechtlichen Hinweise findest du im PDF-Anhang.",
     confirmationMailPreview.revocationNote,
     "",
     `Viele Grüße`,
