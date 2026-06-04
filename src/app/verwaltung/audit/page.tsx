@@ -18,9 +18,18 @@ function formatDetails(details: Record<string, unknown>) {
     return "-";
   }
 
-  return entries
-    .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`)
-    .join("; ");
+  return (
+    <div className="audit-details">
+      {entries.map(([key, value]) => (
+        <div className="audit-detail" key={key}>
+          <span className="audit-detail-key">{key}</span>
+          <span className="audit-detail-value">
+            {typeof value === "string" ? value : JSON.stringify(value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default async function AuditPage() {
@@ -48,40 +57,38 @@ export default async function AuditPage() {
         ) : entries.length === 0 ? (
           <p>Noch keine Audit-Einträge vorhanden.</p>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Zeitpunkt</th>
-                <th>Benutzer</th>
-                <th>Aktion</th>
-                <th>Objekt</th>
-                <th>Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry) => (
-                <tr key={entry.id}>
-                  <td>{formatDateTime(entry.created_at)}</td>
-                  <td>
-                    <strong>{entry.actor_email ?? "-"}</strong>
-                    <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
-                      {entry.actor_role ?? "-"}
-                    </div>
-                  </td>
-                  <td>{entry.action}</td>
-                  <td>
-                    {entry.entity_type ?? "-"}
-                    {entry.entity_id ? (
-                      <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
-                        {entry.entity_id}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td>{formatDetails(entry.details)}</td>
+          <div className="table-scroll audit-table-scroll">
+            <table className="table audit-table">
+              <thead>
+                <tr>
+                  <th>Zeitpunkt</th>
+                  <th>Benutzer</th>
+                  <th>Aktion</th>
+                  <th>Objekt</th>
+                  <th>Details</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {entries.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{formatDateTime(entry.created_at)}</td>
+                    <td>
+                      <strong className="audit-email">{entry.actor_email ?? "-"}</strong>
+                      <div className="audit-muted">{entry.actor_role ?? "-"}</div>
+                    </td>
+                    <td className="audit-code">{entry.action}</td>
+                    <td>
+                      <span className="audit-code">{entry.entity_type ?? "-"}</span>
+                      {entry.entity_id ? (
+                        <div className="audit-muted audit-id">{entry.entity_id}</div>
+                      ) : null}
+                    </td>
+                    <td>{formatDetails(entry.details)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </main>
