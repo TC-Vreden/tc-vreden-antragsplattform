@@ -9,6 +9,7 @@ export const internalPermissionIds = [
   "testlab.write",
   "users.manage",
   "content.manage",
+  "mail.manage",
   "audit.read",
   "docs.read",
   "system.read"

@@ -6,18 +6,21 @@ import {
   getMembershipLabelFromContent,
   type ApplicationFormContent
 } from "@/lib/application-content";
+import {
+  getApplicationMailSettings,
+  getMailTransportSettings,
+  renderMailTemplate,
+  renderMailTemplateLines,
+  type ApplicationMailSettings,
+  type MailTemplateContext
+} from "@/lib/application-mail-settings";
 import type {
   ApplicationMatchPayload,
   ApplicationRow
 } from "@/lib/application-types";
-import {
-  clubContact,
-  confirmationMailPreview
-} from "@/lib/confirmation-document";
+import { clubContact } from "@/lib/confirmation-document";
 import { buildApplicationConfirmationPdf } from "@/lib/application-confirmation-pdf";
 import {
-  getMailEnv,
-  isTruthyMailValue,
   sendConfiguredMail,
   type MailDeliveryResult
 } from "@/lib/mail";
@@ -32,16 +35,6 @@ type ApplicationConfirmationEmailInput = {
 
 const germanTimeZone = "Europe/Berlin";
 const brandLogoUrl = "https://antrag-tennisclub-vreden.vercel.app/brand/tc-vreden-logo.png";
-
-function isConfirmationEmailEnabled() {
-  const explicitValue = getMailEnv("APPLICATION_CONFIRMATION_EMAIL_ENABLED");
-
-  if (explicitValue !== undefined) {
-    return isTruthyMailValue(explicitValue);
-  }
-
-  return isTruthyMailValue(getMailEnv("APPLICATION_NOTIFICATION_EMAIL_ENABLED"));
-}
 
 function escapeHtml(value: string | number | boolean | null | undefined) {
   return String(value ?? "")
@@ -90,6 +83,31 @@ function mainPersonName(application: ApplicationRow) {
   return `${application.first_name} ${application.last_name}`.trim();
 }
 
+function buildContext(
+  input: ApplicationConfirmationEmailInput,
+  formContent: ApplicationFormContent
+): MailTemplateContext {
+  const { application, transferredAt } = input;
+  const name = mainPersonName(application);
+
+  return {
+    name,
+    vorname: application.first_name,
+    nachname: application.last_name,
+    email: application.email,
+    mitgliedschaft: getMembershipLabelFromContent(application.membership_kind, formContent),
+    referenznummer: application.id,
+    bestaetigt_am: formatDate(transferredAt),
+    club: clubContact.name
+  };
+}
+
+function paragraphHtml(lines: string[], context: MailTemplateContext) {
+  return renderMailTemplateLines(lines, context)
+    .map((line) => `<p style="margin:0 0 14px;color:#1f1f1d;">${escapeHtml(line)}</p>`)
+    .join("");
+}
+
 function detailRow(label: string, value: string | number | boolean | null | undefined) {
   return `
     <tr>
@@ -102,12 +120,17 @@ function detailRow(label: string, value: string | number | boolean | null | unde
     </tr>`;
 }
 
-function buildHtml(input: ApplicationConfirmationEmailInput, formContent: ApplicationFormContent) {
+function buildHtml(
+  input: ApplicationConfirmationEmailInput,
+  formContent: ApplicationFormContent,
+  settings: ApplicationMailSettings
+) {
   const { application, transferredAt } = input;
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
     : [];
   const applicantName = mainPersonName(application);
+  const context = buildContext(input, formContent);
   const reducedProofRow = isReducedContributionMembership(application.membership_kind)
     ? detailRow(
         "Nachweis Schüler:innen / Azubis / Student:innen gültig bis",
@@ -137,9 +160,11 @@ function buildHtml(input: ApplicationConfirmationEmailInput, formContent: Applic
             <tr>
               <td style="padding:18px 20px 20px;background:#ffffff;">
                 <p style="margin:0 0 12px;color:#1f1f1d;">Hallo ${escapeHtml(applicantName)},</p>
-                <p style="margin:0 0 14px;color:#1f1f1d;">${escapeHtml(confirmationMailPreview.intro)}</p>
+                ${paragraphHtml(settings.confirmationIntro, context)}
                 <p style="margin:0 0 18px;padding:10px 12px;border:1px solid #ffd800;background:#fffbea;color:#1f1f1d;">
-                  ${escapeHtml(confirmationMailPreview.attachmentNote)}
+                  ${renderMailTemplateLines(settings.confirmationAttachmentNote, context)
+                    .map((line) => escapeHtml(line))
+                    .join("<br />")}
                 </p>
 
                 <h2 style="margin:0 0 8px;color:#1f1f1d;font-family:Arial,sans-serif;font-size:18px;line-height:1.25;">Kurzüberblick</h2>
@@ -157,8 +182,8 @@ function buildHtml(input: ApplicationConfirmationEmailInput, formContent: Applic
                   </tbody>
                 </table>
 
-                <p style="margin:0 0 12px;color:#1f1f1d;">Die vollständigen eingereichten Daten, Einwilligungen und rechtlichen Hinweise findest du im PDF-Anhang.</p>
-                <p style="margin:0 0 16px;color:#1f1f1d;">${escapeHtml(confirmationMailPreview.revocationNote)}</p>
+                ${paragraphHtml(settings.confirmationPdfNote, context)}
+                ${paragraphHtml(settings.confirmationRevocationNote, context)}
                 <p style="margin:0;color:#1f1f1d;">Viele Grüße<br />${escapeHtml(clubContact.name)}</p>
               </td>
             </tr>
@@ -175,12 +200,17 @@ function buildHtml(input: ApplicationConfirmationEmailInput, formContent: Applic
 </html>`;
 }
 
-function buildText(input: ApplicationConfirmationEmailInput, formContent: ApplicationFormContent) {
+function buildText(
+  input: ApplicationConfirmationEmailInput,
+  formContent: ApplicationFormContent,
+  settings: ApplicationMailSettings
+) {
   const { application, transferredAt } = input;
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
     : [];
   const applicantName = mainPersonName(application);
+  const context = buildContext(input, formContent);
   const reducedProofLine = isReducedContributionMembership(application.membership_kind)
     ? [`Nachweis Schüler:innen / Azubis / Student:innen gültig bis: ${formatDate(application.student_status_until)}`]
     : [];
@@ -188,8 +218,8 @@ function buildText(input: ApplicationConfirmationEmailInput, formContent: Applic
   return [
     `Hallo ${applicantName},`,
     "",
-    confirmationMailPreview.intro,
-    confirmationMailPreview.attachmentNote,
+    ...renderMailTemplateLines(settings.confirmationIntro, context),
+    ...renderMailTemplateLines(settings.confirmationAttachmentNote, context),
     "",
     `Mitgliedschaft: ${getMembershipLabelFromContent(application.membership_kind, formContent)}`,
     ...reducedProofLine,
@@ -197,8 +227,8 @@ function buildText(input: ApplicationConfirmationEmailInput, formContent: Applic
     `Zusatzpersonen: ${additionalMembers.length || "keine"}`,
     `SEPA-Mandat bestätigt: ${yesNo(application.accepts_sepa)}`,
     "",
-    "Die vollständigen eingereichten Daten, Einwilligungen und rechtlichen Hinweise findest du im PDF-Anhang.",
-    confirmationMailPreview.revocationNote,
+    ...renderMailTemplateLines(settings.confirmationPdfNote, context),
+    ...renderMailTemplateLines(settings.confirmationRevocationNote, context),
     "",
     `Viele Grüße`,
     clubContact.name
@@ -208,18 +238,16 @@ function buildText(input: ApplicationConfirmationEmailInput, formContent: Applic
 export async function sendApplicationConfirmationEmail(
   input: ApplicationConfirmationEmailInput
 ): Promise<ApplicationConfirmationEmailResult> {
-  if (!isConfirmationEmailEnabled()) {
+  const settings = await getApplicationMailSettings();
+
+  if (!settings.confirmationEnabled) {
     return {
       status: "skipped",
-      reason: "APPLICATION_CONFIRMATION_EMAIL_ENABLED ist nicht aktiv."
+      reason: "Bestätigungsmail ist nicht aktiv."
     };
   }
 
-  const from = getMailEnv("MAIL_FROM");
-  const bcc = getMailEnv("MAIL_CONFIRMATION_BCC") ?? getMailEnv("MAIL_TO_CLUB") ?? clubContact.email;
-  const replyTo = getMailEnv("MAIL_REPLY_TO") ?? clubContact.email;
-
-  if (!from) {
+  if (!settings.from) {
     return {
       status: "skipped",
       reason: "MAIL_FROM fehlt."
@@ -235,15 +263,19 @@ export async function sendApplicationConfirmationEmail(
 
   const pdfAttachment = await buildApplicationConfirmationPdf(input);
   const formContent = await getApplicationFormContent();
+  const context = buildContext(input, formContent);
 
-  return sendConfiguredMail({
-    from,
-    to: input.application.email,
-    bcc,
-    replyTo,
-    subject: confirmationMailPreview.subject,
-    html: buildHtml(input, formContent),
-    text: buildText(input, formContent),
-    attachments: [pdfAttachment]
-  });
+  return sendConfiguredMail(
+    {
+      from: settings.from,
+      to: input.application.email,
+      bcc: settings.confirmationBcc || undefined,
+      replyTo: settings.replyTo || undefined,
+      subject: renderMailTemplate(settings.confirmationSubject, context),
+      html: buildHtml(input, formContent, settings),
+      text: buildText(input, formContent, settings),
+      attachments: [pdfAttachment]
+    },
+    getMailTransportSettings(settings)
+  );
 }

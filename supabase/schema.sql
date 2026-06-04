@@ -85,6 +85,13 @@ create table if not exists public.application_form_content (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.application_mail_settings (
+  id text primary key,
+  settings jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.internal_user_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
@@ -156,12 +163,19 @@ before update on public.application_form_content
 for each row
 execute function public.set_updated_at();
 
+drop trigger if exists application_mail_settings_set_updated_at on public.application_mail_settings;
+create trigger application_mail_settings_set_updated_at
+before update on public.application_mail_settings
+for each row
+execute function public.set_updated_at();
+
 alter table public.applications enable row level security;
 alter table public.application_status_history enable row level security;
 alter table public.ebusy_match_candidates enable row level security;
 alter table public.admin_notes enable row level security;
 alter table public.system_heartbeat enable row level security;
 alter table public.application_form_content enable row level security;
+alter table public.application_mail_settings enable row level security;
 alter table public.internal_user_profiles enable row level security;
 alter table public.internal_audit_log enable row level security;
 
@@ -186,6 +200,7 @@ revoke all on table public.ebusy_match_candidates from anon, authenticated;
 revoke all on table public.admin_notes from anon, authenticated;
 revoke all on table public.system_heartbeat from anon, authenticated;
 revoke all on table public.application_form_content from anon, authenticated;
+revoke all on table public.application_mail_settings from anon, authenticated;
 revoke all on table public.internal_user_profiles from anon, authenticated;
 revoke all on table public.internal_audit_log from anon, authenticated;
 
@@ -193,5 +208,6 @@ grant insert on table public.applications to anon, authenticated;
 grant usage on schema public to service_role;
 grant select, insert, update on table public.system_heartbeat to service_role;
 grant select, insert, update on table public.application_form_content to service_role;
+grant select, insert, update on table public.application_mail_settings to service_role;
 grant select, insert, update on table public.internal_user_profiles to service_role;
 grant select, insert on table public.internal_audit_log to service_role;

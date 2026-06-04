@@ -473,6 +473,16 @@ p {
   background: linear-gradient(180deg, rgba(255, 248, 229, 0.96), rgba(255, 255, 255, 0.98));
 }
 
+.settings-panel {
+  padding: 18px 0 22px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-panel:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

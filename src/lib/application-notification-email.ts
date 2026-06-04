@@ -3,16 +3,22 @@ import {
   getMembershipLabelFromContent,
   type ApplicationFormContent
 } from "@/lib/application-content";
+import {
+  getApplicationMailSettings,
+  getMailTransportSettings,
+  renderMailTemplate,
+  renderMailTemplateLines,
+  type ApplicationMailSettings,
+  type MailTemplateContext
+} from "@/lib/application-mail-settings";
 import type { ApplicationAdditionalMember } from "@/lib/application-types";
-import nodemailer from "nodemailer";
+import {
+  getAdminPortalUrl,
+  sendConfiguredMail,
+  type MailDeliveryResult
+} from "@/lib/mail";
 
-type NotificationStatus = "sent" | "skipped" | "failed";
-
-export type ApplicationNotificationResult = {
-  status: NotificationStatus;
-  reason?: string;
-  messageId?: string;
-};
+export type ApplicationNotificationResult = MailDeliveryResult;
 
 export type ApplicationReceivedNotificationInput = {
   applicationId: string;
@@ -34,85 +40,7 @@ export type ApplicationReceivedNotificationInput = {
   acceptsWhatsapp: boolean;
 };
 
-type ResendSendResponse = {
-  id?: string;
-  message?: string;
-  name?: string;
-};
-
-type MailProvider = "resend" | "smtp";
-
-type MailPayload = {
-  from: string;
-  to: string;
-  replyTo?: string;
-  subject: string;
-  html: string;
-  text: string;
-};
-
 const germanTimeZone = "Europe/Berlin";
-
-function getEnv(name: string) {
-  const value = process.env[name]?.trim();
-  return value ? value : undefined;
-}
-
-function getAdminPortalUrl() {
-  const explicitUrl = getEnv("ADMIN_PORTAL_URL");
-
-  if (explicitUrl) {
-    return explicitUrl;
-  }
-
-  const siteUrl = getEnv("NEXT_PUBLIC_SITE_URL");
-  if (siteUrl) {
-    return `${siteUrl.replace(/\/$/, "")}/verwaltung`;
-  }
-
-  const vercelUrl = getEnv("VERCEL_URL");
-  if (vercelUrl) {
-    return `https://${vercelUrl.replace(/\/$/, "")}/verwaltung`;
-  }
-
-  return undefined;
-}
-
-function isEnabled() {
-  return getEnv("APPLICATION_NOTIFICATION_EMAIL_ENABLED") === "true";
-}
-
-function getMailProvider(): MailProvider {
-  const provider = getEnv("MAIL_PROVIDER")?.toLowerCase();
-
-  if (provider === "smtp" || provider === "resend") {
-    return provider;
-  }
-
-  return getEnv("SMTP_HOST") ? "smtp" : "resend";
-}
-
-function getSmtpPort() {
-  const rawPort = getEnv("SMTP_PORT");
-
-  if (!rawPort) {
-    return 465;
-  }
-
-  const port = Number.parseInt(rawPort, 10);
-
-  return Number.isFinite(port) ? port : 465;
-}
-
-function getSmtpSecure(port: number) {
-  const rawSecure = getEnv("SMTP_SECURE")?.toLowerCase();
-
-  if (!rawSecure) {
-    return port === 465;
-  }
-
-  return ["1", "true", "yes", "ja"].includes(rawSecure);
-}
 
 function escapeHtml(value: string | number | boolean | null | undefined) {
   return String(value ?? "-")
@@ -173,50 +101,90 @@ function buildAdditionalMembersSummary(familyMembers: ApplicationAdditionalMembe
     .join("\n");
 }
 
-function buildHtml(
+function buildContext(
   input: ApplicationReceivedNotificationInput,
   adminPortalUrl: string | undefined,
   formContent: ApplicationFormContent
+): MailTemplateContext {
+  const name = `${input.firstName} ${input.lastName}`.trim();
+  const membership = getMembershipLabelFromContent(input.membershipKind, formContent);
+
+  return {
+    name,
+    vorname: input.firstName,
+    nachname: input.lastName,
+    email: input.email,
+    mitgliedschaft: membership,
+    referenznummer: input.applicationId,
+    eingang: formatDate(input.createdAt),
+    verwaltungslink: adminPortalUrl ?? "interne Verwaltungsadresse öffnen",
+    club: "TennisClub Vreden e.V."
+  };
+}
+
+function paragraphHtml(lines: string[], context: MailTemplateContext) {
+  return renderMailTemplateLines(lines, context)
+    .map((line) => `<p style="margin:0 0 12px;color:#1f1f1d;">${escapeHtml(line)}</p>`)
+    .join("");
+}
+
+function buildHtml(
+  input: ApplicationReceivedNotificationInput,
+  adminPortalUrl: string | undefined,
+  formContent: ApplicationFormContent,
+  settings: ApplicationMailSettings
 ) {
-  const membershipLabel = getMembershipLabelFromContent(input.membershipKind, formContent);
-  const applicantName = `${input.firstName} ${input.lastName}`.trim();
+  const context = buildContext(input, adminPortalUrl, formContent);
+  const membershipLabel = String(context.mitgliedschaft ?? "-");
+  const applicantName = String(context.name ?? "-");
   const address = buildAddress(input);
   const additionalMembers = buildAdditionalMembersSummary(input.familyMembers);
+  const buttonLabel = renderMailTemplate(settings.notificationButtonLabel, context);
   const reviewLink = adminPortalUrl
-    ? `<p style="margin:24px 0;"><a href="${escapeHtml(adminPortalUrl)}" style="display:inline-block;background:#1d1d1b;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:6px;">Zum Verwaltungsportal</a></p>`
-    : "<p style=\"margin:24px 0;\"><strong>Verwaltungsportal:</strong> Bitte die interne Verwaltungsadresse öffnen.</p>";
+    ? `<p style="margin:20px 0;"><a href="${escapeHtml(adminPortalUrl)}" style="display:inline-block;background:#1d1d1b;color:#ffffff;text-decoration:none;font-weight:700;padding:11px 16px;border-radius:6px;">${escapeHtml(buttonLabel)}</a></p>`
+    : "<p style=\"margin:20px 0;\"><strong>Verwaltungsportal:</strong> Bitte die interne Verwaltungsadresse öffnen.</p>";
 
   return `<!doctype html>
 <html lang="de">
-  <body style="margin:0;background:#f7f3ea;font-family:Arial,sans-serif;color:#1d1d1b;">
-    <main style="max-width:680px;margin:0 auto;padding:28px 18px;">
-      <section style="background:#ffffff;border:1px solid #e1d6be;border-radius:8px;overflow:hidden;">
-        <div style="background:#ffde00;padding:18px 22px;">
-          <p style="margin:0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">TennisClub Vreden e.V.</p>
-          <h1 style="margin:6px 0 0;font-size:24px;line-height:1.25;">Neuer Mitgliedsantrag eingegangen</h1>
-        </div>
-        <div style="padding:22px;">
-          <p style="margin-top:0;">Im Verwaltungsportal liegt ein neuer Antrag zur Prüfung bereit. Bitte die Daten prüfen und anschließend bei eBuSy übernehmen.</p>
-          ${reviewLink}
-          <table style="width:100%;border-collapse:collapse;font-size:14px;">
-            <tbody>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Vorgang</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(input.applicationId)}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Eingang</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(formatDate(input.createdAt))}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Hauptperson</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(applicantName)}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Geburtsdatum</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(formatDate(input.birthDate))}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Mitgliedschaft</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(membershipLabel)}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Kontakt</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(input.email)}<br>${escapeHtml(input.mobile || input.phone || "-")}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Adresse</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(address || "-")}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Zusatzpersonen</td><td style="padding:8px 0;border-top:1px solid #eee;white-space:pre-line;">${escapeHtml(additionalMembers)}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">SEPA bestätigt</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(yesNo(input.acceptsSepa))}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">Foto/Video</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(yesNo(input.acceptsPhotoVideo))}</td></tr>
-              <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;">WhatsApp</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(yesNo(input.acceptsWhatsapp))}</td></tr>
-            </tbody>
+  <body style="margin:0;background:#ffffff;font-family:Arial,sans-serif;color:#1d1d1b;line-height:1.45;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;background:#ffffff;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:720px;border-collapse:collapse;border:1px solid #e3d8c0;background:#ffffff;">
+            <tr>
+              <td style="padding:18px 20px 14px;border-bottom:4px solid #ffd800;background:#ffffff;">
+                <p style="margin:0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b5900;">TennisClub Vreden e.V.</p>
+                <h1 style="margin:6px 0 0;font-size:23px;line-height:1.25;color:#1d1d1b;">Neuer Mitgliedsantrag eingegangen</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px;background:#ffffff;">
+                ${paragraphHtml(settings.notificationIntro, context)}
+                ${reviewLink}
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:14px;margin-top:12px;">
+                  <tbody>
+                    <tr><td style="width:170px;padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Referenznummer</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(input.applicationId)}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Eingang</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(formatDate(input.createdAt))}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Hauptperson</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(applicantName)}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Geburtsdatum</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(formatDate(input.birthDate))}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Mitgliedschaft</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(membershipLabel)}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Kontakt</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(input.email)}<br>${escapeHtml(input.mobile || input.phone || "-")}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Adresse</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(address || "-")}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Zusatzpersonen</td><td style="padding:8px 0;border-top:1px solid #eee;white-space:pre-line;">${escapeHtml(additionalMembers)}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">SEPA bestätigt</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(yesNo(input.acceptsSepa))}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Foto/Video</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(yesNo(input.acceptsPhotoVideo))}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">WhatsApp</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(yesNo(input.acceptsWhatsapp))}</td></tr>
+                  </tbody>
+                </table>
+                <div style="margin-top:18px;color:#555;font-size:13px;">
+                  ${paragraphHtml(settings.notificationFooter, context)}
+                </div>
+              </td>
+            </tr>
           </table>
-          <p style="margin:22px 0 0;color:#555;font-size:13px;">Dies ist eine automatische Benachrichtigung der digitalen Mitgliedsantragsplattform.</p>
-        </div>
-      </section>
-    </main>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>`;
 }
@@ -224,20 +192,23 @@ function buildHtml(
 function buildText(
   input: ApplicationReceivedNotificationInput,
   adminPortalUrl: string | undefined,
-  formContent: ApplicationFormContent
+  formContent: ApplicationFormContent,
+  settings: ApplicationMailSettings
 ) {
-  const membershipLabel = getMembershipLabelFromContent(input.membershipKind, formContent);
+  const context = buildContext(input, adminPortalUrl, formContent);
+  const intro = renderMailTemplateLines(settings.notificationIntro, context);
+  const footer = renderMailTemplateLines(settings.notificationFooter, context);
 
   return [
     "Neuer Mitgliedsantrag eingegangen",
     "",
-    "Im Verwaltungsportal liegt ein neuer Antrag zur Prüfung bereit.",
+    ...intro,
     "",
-    `Vorgang: ${input.applicationId}`,
+    `Referenznummer: ${input.applicationId}`,
     `Eingang: ${formatDate(input.createdAt)}`,
     `Hauptperson: ${input.firstName} ${input.lastName}`,
     `Geburtsdatum: ${formatDate(input.birthDate)}`,
-    `Mitgliedschaft: ${membershipLabel}`,
+    `Mitgliedschaft: ${context.mitgliedschaft}`,
     `Kontakt: ${input.email} / ${input.mobile || input.phone || "-"}`,
     `Adresse: ${buildAddress(input) || "-"}`,
     "Zusatzpersonen:",
@@ -246,143 +217,44 @@ function buildText(
     `Foto/Video: ${yesNo(input.acceptsPhotoVideo)}`,
     `WhatsApp: ${yesNo(input.acceptsWhatsapp)}`,
     "",
-    adminPortalUrl ? `Verwaltung: ${adminPortalUrl}` : "Verwaltung: interne Verwaltungsadresse öffnen"
+    adminPortalUrl ? `Verwaltung: ${adminPortalUrl}` : "Verwaltung: interne Verwaltungsadresse öffnen",
+    "",
+    ...footer
   ].join("\n");
-}
-
-async function sendWithResend(payload: MailPayload): Promise<ApplicationNotificationResult> {
-  const apiKey = getEnv("RESEND_API_KEY");
-
-  if (!apiKey) {
-    return {
-      status: "skipped",
-      reason: "RESEND_API_KEY fehlt."
-    };
-  }
-
-  const responsePayload = {
-    from: payload.from,
-    to: [payload.to],
-    reply_to: payload.replyTo,
-    subject: payload.subject,
-    html: payload.html,
-    text: payload.text
-  };
-
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(responsePayload)
-    });
-
-    const data = (await response.json().catch(() => ({}))) as ResendSendResponse;
-
-    if (!response.ok) {
-      return {
-        status: "failed",
-        reason: data.message || data.name || `Resend HTTP ${response.status}`
-      };
-    }
-
-    return {
-      status: "sent",
-      messageId: data.id
-    };
-  } catch (error) {
-    return {
-      status: "failed",
-      reason: error instanceof Error ? error.message : "Unbekannter Mailfehler"
-    };
-  }
-}
-
-async function sendWithSmtp(payload: MailPayload): Promise<ApplicationNotificationResult> {
-  const host = getEnv("SMTP_HOST");
-  const user = getEnv("SMTP_USER");
-  const pass = getEnv("SMTP_PASSWORD");
-  const port = getSmtpPort();
-
-  if (!host || !user || !pass) {
-    return {
-      status: "skipped",
-      reason: "SMTP_HOST, SMTP_USER oder SMTP_PASSWORD fehlt."
-    };
-  }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: getSmtpSecure(port),
-    auth: {
-      user,
-      pass
-    }
-  });
-
-  try {
-    const info = await transporter.sendMail({
-      from: payload.from,
-      to: payload.to,
-      replyTo: payload.replyTo,
-      subject: payload.subject,
-      html: payload.html,
-      text: payload.text
-    });
-
-    return {
-      status: "sent",
-      messageId: info.messageId
-    };
-  } catch (error) {
-    return {
-      status: "failed",
-      reason: error instanceof Error ? error.message : "Unbekannter SMTP-Mailfehler"
-    };
-  }
 }
 
 export async function sendApplicationReceivedNotification(
   input: ApplicationReceivedNotificationInput
 ): Promise<ApplicationNotificationResult> {
-  if (!isEnabled()) {
+  const settings = await getApplicationMailSettings();
+
+  if (!settings.notificationEnabled) {
     return {
       status: "skipped",
-      reason: "APPLICATION_NOTIFICATION_EMAIL_ENABLED ist nicht true."
+      reason: "Eingangsmail ist nicht aktiv."
     };
   }
 
-  const from = getEnv("MAIL_FROM");
-  const to = getEnv("MAIL_TO_CLUB");
-
-  if (!from || !to) {
+  if (!settings.from || !settings.clubRecipient) {
     return {
       status: "skipped",
-      reason: "MAIL_FROM oder MAIL_TO_CLUB fehlt."
+      reason: "Absender oder Club-Empfänger fehlt."
     };
   }
 
   const adminPortalUrl = getAdminPortalUrl();
   const formContent = await getApplicationFormContent();
-  const replyTo = getEnv("MAIL_REPLY_TO");
-  const subject = `Neuer Mitgliedsantrag: ${input.firstName} ${input.lastName}`.trim();
-  const provider = getMailProvider();
+  const context = buildContext(input, adminPortalUrl, formContent);
 
-  const payload = {
-    from,
-    to,
-    replyTo,
-    subject,
-    html: buildHtml(input, adminPortalUrl, formContent),
-    text: buildText(input, adminPortalUrl, formContent)
-  };
-
-  if (provider === "smtp") {
-    return sendWithSmtp(payload);
-  }
-
-  return sendWithResend(payload);
+  return sendConfiguredMail(
+    {
+      from: settings.from,
+      to: settings.clubRecipient,
+      replyTo: settings.replyTo || undefined,
+      subject: renderMailTemplate(settings.notificationSubject, context),
+      html: buildHtml(input, adminPortalUrl, formContent, settings),
+      text: buildText(input, adminPortalUrl, formContent, settings)
+    },
+    getMailTransportSettings(settings)
+  );
 }

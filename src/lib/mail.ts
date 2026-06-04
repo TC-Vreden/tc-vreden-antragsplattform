@@ -8,7 +8,7 @@ export type MailDeliveryResult = {
   messageId?: string;
 };
 
-type MailProvider = "resend" | "smtp";
+export type MailProvider = "resend" | "smtp";
 
 type MailAddressList = string | string[];
 
@@ -27,6 +27,16 @@ export type ConfiguredMailPayload = {
   html: string;
   text: string;
   attachments?: ConfiguredMailAttachment[];
+};
+
+export type ConfiguredMailTransportSettings = {
+  provider?: "auto" | MailProvider;
+  resendApiKey?: string;
+  smtpHost?: string;
+  smtpPort?: number | string;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPassword?: string;
 };
 
 type ResendSendResponse = {
@@ -64,29 +74,39 @@ export function getAdminPortalUrl() {
   return undefined;
 }
 
-function getMailProvider(): MailProvider {
-  const provider = getMailEnv("MAIL_PROVIDER")?.toLowerCase();
+function getMailProvider(settings?: ConfiguredMailTransportSettings): MailProvider {
+  const provider = settings?.provider === "auto" ? undefined : settings?.provider;
 
   if (provider === "smtp" || provider === "resend") {
     return provider;
   }
 
-  return getMailEnv("SMTP_HOST") ? "smtp" : "resend";
+  const envProvider = getMailEnv("MAIL_PROVIDER")?.toLowerCase();
+
+  if (envProvider === "smtp" || envProvider === "resend") {
+    return envProvider;
+  }
+
+  return settings?.smtpHost || getMailEnv("SMTP_HOST") ? "smtp" : "resend";
 }
 
-function getSmtpPort() {
-  const rawPort = getMailEnv("SMTP_PORT");
+function getSmtpPort(settings?: ConfiguredMailTransportSettings) {
+  const rawPort = settings?.smtpPort ?? getMailEnv("SMTP_PORT");
 
   if (!rawPort) {
     return 465;
   }
 
-  const port = Number.parseInt(rawPort, 10);
+  const port = typeof rawPort === "number" ? rawPort : Number.parseInt(rawPort, 10);
 
   return Number.isFinite(port) ? port : 465;
 }
 
-function getSmtpSecure(port: number) {
+function getSmtpSecure(port: number, settings?: ConfiguredMailTransportSettings) {
+  if (typeof settings?.smtpSecure === "boolean") {
+    return settings.smtpSecure;
+  }
+
   const rawSecure = getMailEnv("SMTP_SECURE");
 
   if (!rawSecure) {
@@ -118,8 +138,11 @@ function toSmtpAttachments(attachments: ConfiguredMailAttachment[] | undefined) 
   }));
 }
 
-async function sendWithResend(payload: ConfiguredMailPayload): Promise<MailDeliveryResult> {
-  const apiKey = getMailEnv("RESEND_API_KEY");
+async function sendWithResend(
+  payload: ConfiguredMailPayload,
+  settings?: ConfiguredMailTransportSettings
+): Promise<MailDeliveryResult> {
+  const apiKey = settings?.resendApiKey ?? getMailEnv("RESEND_API_KEY");
   const to = toAddressArray(payload.to);
 
   if (!apiKey) {
@@ -185,11 +208,14 @@ async function sendWithResend(payload: ConfiguredMailPayload): Promise<MailDeliv
   }
 }
 
-async function sendWithSmtp(payload: ConfiguredMailPayload): Promise<MailDeliveryResult> {
-  const host = getMailEnv("SMTP_HOST");
-  const user = getMailEnv("SMTP_USER");
-  const pass = getMailEnv("SMTP_PASSWORD");
-  const port = getSmtpPort();
+async function sendWithSmtp(
+  payload: ConfiguredMailPayload,
+  settings?: ConfiguredMailTransportSettings
+): Promise<MailDeliveryResult> {
+  const host = settings?.smtpHost ?? getMailEnv("SMTP_HOST");
+  const user = settings?.smtpUser ?? getMailEnv("SMTP_USER");
+  const pass = settings?.smtpPassword ?? getMailEnv("SMTP_PASSWORD");
+  const port = getSmtpPort(settings);
 
   if (!host || !user || !pass) {
     return {
@@ -201,7 +227,7 @@ async function sendWithSmtp(payload: ConfiguredMailPayload): Promise<MailDeliver
   const transporter = nodemailer.createTransport({
     host,
     port,
-    secure: getSmtpSecure(port),
+    secure: getSmtpSecure(port, settings),
     auth: {
       user,
       pass
@@ -233,11 +259,12 @@ async function sendWithSmtp(payload: ConfiguredMailPayload): Promise<MailDeliver
 }
 
 export async function sendConfiguredMail(
-  payload: ConfiguredMailPayload
+  payload: ConfiguredMailPayload,
+  settings?: ConfiguredMailTransportSettings
 ): Promise<MailDeliveryResult> {
-  if (getMailProvider() === "smtp") {
-    return sendWithSmtp(payload);
+  if (getMailProvider(settings) === "smtp") {
+    return sendWithSmtp(payload, settings);
   }
 
-  return sendWithResend(payload);
+  return sendWithResend(payload, settings);
 }
