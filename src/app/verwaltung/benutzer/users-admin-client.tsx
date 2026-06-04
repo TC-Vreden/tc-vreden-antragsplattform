@@ -223,11 +223,11 @@ export function UsersAdminClient({ initialUsers }: Props) {
   }
 
   return (
-    <div style={{ display: "grid", gap: 20 }}>
-      <article className="card" style={{ padding: 18 }}>
-        <h2 style={{ fontSize: "1.2rem" }}>Benutzer einladen</h2>
-        <form className="form" onSubmit={handleInvite}>
-          <div className="grid grid-2">
+    <div className="users-admin-layout">
+      <section className="settings-panel users-admin-section">
+        <h2 className="settings-section-title">Benutzer einladen</h2>
+        <form className="form invite-user-form" onSubmit={handleInvite}>
+          <div className="invite-user-grid">
             <label className="field">
               <span>E-Mail</span>
               <input
@@ -254,12 +254,12 @@ export function UsersAdminClient({ initialUsers }: Props) {
                 ))}
               </select>
             </label>
+            <button className="button invite-submit-button" type="submit" disabled={inviting}>
+              {inviting ? "Einladung läuft..." : "Einladung senden"}
+            </button>
           </div>
-          <button className="button" type="submit" disabled={inviting}>
-            {inviting ? "Einladung läuft..." : "Einladung senden"}
-          </button>
         </form>
-      </article>
+      </section>
 
       {feedback ? (
         <div className="hint-box">
@@ -275,8 +275,11 @@ export function UsersAdminClient({ initialUsers }: Props) {
         </div>
       ) : null}
 
-      <article className="card" style={{ padding: 18 }}>
-        <h2 style={{ fontSize: "1.2rem" }}>Interne Benutzer</h2>
+      <section className="settings-panel users-admin-section">
+        <div className="settings-heading-row">
+          <h2 className="settings-section-title">Interne Benutzer</h2>
+          <span className="settings-heading-note">{users.length} Einträge</span>
+        </div>
         {users.length === 0 ? (
           <p>Noch keine internen Benutzerprofile vorhanden.</p>
         ) : (
@@ -405,7 +408,7 @@ export function UsersAdminClient({ initialUsers }: Props) {
             </table>
           </div>
         )}
-      </article>
+      </section>
     </div>
   );
 }

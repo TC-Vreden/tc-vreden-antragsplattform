@@ -5,7 +5,7 @@ export function getAuthMailErrorMessage(error: unknown, fallback: string) {
   if (normalizedMessage.includes("rate limit")) {
     return {
       message:
-        "Supabase hat gerade zu viele Auth-E-Mails verschickt. Bitte einige Minuten warten und dann den Link erneut senden.",
+        "Supabase hat den Auth-Mailversand begrenzt. Mit dem Standardversand sind nur sehr wenige Einladungs- und Passwortmails pro Stunde möglich; bitte später erneut senden oder Supabase Auth auf Custom SMTP umstellen.",
       status: 429
     };
   }

@@ -6,6 +6,42 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
+function getAuthError(params: URLSearchParams) {
+  const message = params.get("error_description") ?? params.get("error");
+  const code = params.get("error_code");
+
+  if (!message && !code) {
+    return null;
+  }
+
+  return {
+    code,
+    message: message ?? code ?? ""
+  };
+}
+
+function translateAuthError(error: { code: string | null; message: string }) {
+  const combined = `${error.code ?? ""} ${error.message}`.toLowerCase();
+
+  if (
+    combined.includes("otp_expired") ||
+    combined.includes("expired") ||
+    combined.includes("invalid")
+  ) {
+    return "Der Passwortlink konnte nicht mehr aktiviert werden. Bitte fordere einen neuen Link an oder sende ihn in der Benutzerverwaltung erneut.";
+  }
+
+  if (combined.includes("rate limit")) {
+    return "Der Mailversand wurde gerade begrenzt. Bitte warte kurz und fordere den Passwortlink danach erneut an.";
+  }
+
+  return error.message || "Der Passwortlink konnte nicht geprüft werden.";
+}
+
+function clearAuthParamsFromUrl() {
+  window.history.replaceState(null, document.title, window.location.pathname);
+}
+
 export function PasswordUpdateForm() {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -21,18 +57,12 @@ export function PasswordUpdateForm() {
 
     async function initializeSession() {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/u, ""));
-      const hashError = hashParams.get("error_description") ?? hashParams.get("error");
+      const searchParams = new URLSearchParams(window.location.search);
+      const linkError = getAuthError(hashParams) ?? getAuthError(searchParams);
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
 
       if (!isMounted) {
-        return;
-      }
-
-      if (hashError) {
-        setErrorMessage(hashError);
-        setHasSession(false);
-        setCheckingSession(false);
         return;
       }
 
@@ -42,21 +72,22 @@ export function PasswordUpdateForm() {
           refresh_token: refreshToken
         });
 
-        window.history.replaceState(
-          null,
-          document.title,
-          `${window.location.pathname}${window.location.search}`
-        );
+        clearAuthParamsFromUrl();
 
         if (!isMounted) {
           return;
         }
 
-        if (error) {
-          setErrorMessage(error.message);
-        }
-
         setHasSession(Boolean(data.session));
+        setErrorMessage(
+          data.session
+            ? null
+            : error
+              ? error.message
+              : linkError
+                ? translateAuthError(linkError)
+                : "Der Passwortlink konnte nicht aktiviert werden."
+        );
         setCheckingSession(false);
         return;
       }
@@ -67,11 +98,26 @@ export function PasswordUpdateForm() {
         return;
       }
 
-      if (error) {
-        setErrorMessage(error.message);
+      const sessionIsActive = Boolean(data.session);
+
+      if (sessionIsActive && (linkError || window.location.hash || window.location.search)) {
+        clearAuthParamsFromUrl();
       }
 
-      setHasSession(Boolean(data.session));
+      if (!sessionIsActive && linkError && (window.location.hash || window.location.search)) {
+        clearAuthParamsFromUrl();
+      }
+
+      setHasSession(sessionIsActive);
+      setErrorMessage(
+        sessionIsActive
+          ? null
+          : linkError
+            ? translateAuthError(linkError)
+            : error
+              ? error.message
+              : null
+      );
       setCheckingSession(false);
     }
 
@@ -133,35 +179,48 @@ export function PasswordUpdateForm() {
 
   return (
     <form className="form" onSubmit={handleSubmit}>
-      <div className="field">
-        <label htmlFor="new-password">Neues Passwort</label>
-        <input
-          id="new-password"
-          type="password"
-          autoComplete="new-password"
-          minLength={8}
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </div>
+      {checkingSession ? (
+        <div className="hint-box">
+          <strong>Passwortlink wird geprüft</strong>
+          <p style={{ margin: "8px 0 0" }}>Einen Moment bitte.</p>
+        </div>
+      ) : null}
 
-      <div className="field">
-        <label htmlFor="new-password-repeat">Passwort wiederholen</label>
-        <input
-          id="new-password-repeat"
-          type="password"
-          autoComplete="new-password"
-          minLength={8}
-          required
-          value={passwordRepeat}
-          onChange={(event) => setPasswordRepeat(event.target.value)}
-        />
-      </div>
+      {!checkingSession && hasSession ? (
+        <>
+          <div className="field">
+            <label htmlFor="new-password">Neues Passwort</label>
+            <input
+              id="new-password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="new-password-repeat">Passwort wiederholen</label>
+            <input
+              id="new-password-repeat"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+              value={passwordRepeat}
+              onChange={(event) => setPasswordRepeat(event.target.value)}
+            />
+          </div>
+        </>
+      ) : null}
 
       {errorMessage ? (
         <div className="warning-box">
-          <strong>Passwort konnte nicht gesetzt werden</strong>
+          <strong>
+            {hasSession ? "Passwort konnte nicht gesetzt werden" : "Passwortlink konnte nicht geöffnet werden"}
+          </strong>
           <p style={{ margin: "8px 0 0" }}>{errorMessage}</p>
         </div>
       ) : null}
@@ -176,13 +235,15 @@ export function PasswordUpdateForm() {
       ) : null}
 
       <div className="cta-row">
-        <button className="button" type="submit" disabled={loading || checkingSession || !hasSession}>
-          {checkingSession
-            ? "Link wird geprüft..."
-            : loading
-              ? "Passwort wird gespeichert..."
-              : "Passwort speichern"}
-        </button>
+        {checkingSession ? null : hasSession ? (
+          <button className="button" type="submit" disabled={loading || checkingSession}>
+            {loading ? "Passwort wird gespeichert..." : "Passwort speichern"}
+          </button>
+        ) : (
+          <Link className="button" href={"/verwaltung/passwort-zuruecksetzen" as Route}>
+            Neuen Link anfordern
+          </Link>
+        )}
         <Link className="button secondary" href={"/verwaltung/login" as Route}>
           Zum Login
         </Link>

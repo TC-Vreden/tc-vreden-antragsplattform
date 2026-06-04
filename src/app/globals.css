@@ -483,6 +483,30 @@ p {
   padding-top: 0;
 }
 
+.settings-section-title {
+  margin-bottom: 14px;
+  font-size: 1.18rem;
+}
+
+.settings-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.settings-heading-row .settings-section-title {
+  margin-bottom: 0;
+}
+
+.settings-heading-note {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -585,8 +609,39 @@ p {
   border: 0;
 }
 
+.users-admin-layout {
+  display: grid;
+  gap: 22px;
+  margin-top: 18px;
+}
+
+.users-admin-section {
+  padding-bottom: 24px;
+}
+
+.invite-user-form {
+  gap: 14px;
+}
+
+.invite-user-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 1.1fr)
+    minmax(220px, 1fr)
+    minmax(170px, 0.7fr)
+    minmax(180px, auto);
+  gap: 14px;
+  align-items: end;
+}
+
+.invite-submit-button {
+  width: 100%;
+  min-height: 48px;
+  white-space: nowrap;
+}
+
 .users-table {
-  min-width: 980px;
+  min-width: 1040px;
   table-layout: fixed;
 }
 
@@ -597,27 +652,27 @@ p {
 
 .users-table th:nth-child(1),
 .users-table td:nth-child(1) {
-  width: 24%;
+  width: 28%;
 }
 
 .users-table th:nth-child(2),
 .users-table td:nth-child(2) {
-  width: 25%;
+  width: 18%;
 }
 
 .users-table th:nth-child(3),
 .users-table td:nth-child(3) {
-  width: 12%;
+  width: 14%;
 }
 
 .users-table th:nth-child(4),
 .users-table td:nth-child(4) {
-  width: 22%;
+  width: 25%;
 }
 
 .users-table th:nth-child(5),
 .users-table td:nth-child(5) {
-  width: 17%;
+  width: 15%;
 }
 
 .users-table .field {
@@ -631,8 +686,9 @@ p {
 .users-table input,
 .users-table select {
   min-height: 42px;
-  border-radius: 10px;
-  padding: 9px 10px;
+  border-radius: 9px;
+  padding: 9px 11px;
+  font-size: 0.95rem;
 }
 
 .users-table-email {
@@ -671,8 +727,8 @@ p {
 }
 
 .user-action-button {
-  min-height: 34px;
-  padding: 0 10px;
+  min-height: 36px;
+  padding: 0 12px;
   border-radius: 9px;
   box-shadow: none;
   font-size: 0.84rem;
@@ -782,6 +838,10 @@ p {
   h1 {
     font-size: 3.2rem;
   }
+
+  .invite-user-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -824,6 +884,10 @@ p {
 
   .public-form-footer {
     font-size: 0.9rem;
+  }
+
+  .invite-user-grid {
+    grid-template-columns: 1fr;
   }
 }
 
