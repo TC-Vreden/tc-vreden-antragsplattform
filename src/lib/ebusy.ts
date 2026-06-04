@@ -372,7 +372,7 @@ async function getEbusyPersonByUsername(username: string) {
   }
 
   if (result.error) {
-    throw new Error(result.message ?? `eBuSy-Benutzerpruefung fuer ${username} fehlgeschlagen.`);
+    throw new Error(result.message ?? `eBuSy-Benutzerprüfung für ${username} fehlgeschlagen.`);
   }
 
   return person;
@@ -521,11 +521,11 @@ export async function setEbusyPersonAttributes(
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
 
   if (mode !== "live") {
-    throw new Error("eBuSy-Attribute koennen nur im Live-Modus gesetzt werden.");
+    throw new Error("eBuSy-Attribute können nur im Live-Modus gesetzt werden.");
   }
 
   if (assignments.length === 0) {
-    throw new Error("Es wurden keine eBuSy-Attribute zum Setzen uebergeben.");
+    throw new Error("Es wurden keine eBuSy-Attribute zum Setzen übergeben.");
   }
 
   const payload = buildEbusyAttributePayload(assignments);
@@ -589,28 +589,28 @@ export async function setEbusyPersonPaidBy(
     paidByInfo.paysForVouchersAndCoupons !== relation.paysForVouchersAndCoupons ||
     paidByInfo.paysForCustomPurchases !== relation.paysForCustomPurchases
   ) {
-    throw new Error("Die Hauptzahler-Verknuepfung konnte nach dem Schreiben nicht bestaetigt werden.");
+    throw new Error("Die Hauptzahler-Verknuepfung konnte nach dem Schreiben nicht bestätigt werden.");
   }
 
   if (
     paymentDetails.bankAccount?.number &&
     !sameNormalizedText(person.bankAccount?.number, paymentDetails.bankAccount.number)
   ) {
-    throw new Error("Das Bankkonto des Hauptzahlers konnte nach dem Schreiben nicht bestaetigt werden.");
+    throw new Error("Das Bankkonto des Hauptzahlers konnte nach dem Schreiben nicht bestätigt werden.");
   }
 
   if (
     paymentDetails.bankAccount?.holder &&
     !sameNormalizedText(person.bankAccount?.holder, paymentDetails.bankAccount.holder)
   ) {
-    throw new Error("Der Kontoinhaber des Hauptzahlers konnte nach dem Schreiben nicht bestaetigt werden.");
+    throw new Error("Der Kontoinhaber des Hauptzahlers konnte nach dem Schreiben nicht bestätigt werden.");
   }
 
   if (
     paymentDetails.sepaMandate?.date &&
     !sameNormalizedText(person.sepaMandate?.date, paymentDetails.sepaMandate.date)
   ) {
-    throw new Error("Das SEPA-Mandatsdatum des Hauptzahlers konnte nach dem Schreiben nicht bestaetigt werden.");
+    throw new Error("Das SEPA-Mandatsdatum des Hauptzahlers konnte nach dem Schreiben nicht bestätigt werden.");
   }
 }
 
@@ -624,7 +624,7 @@ export async function createEbusyMembership(
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
 
   if (mode !== "live") {
-    throw new Error("eBuSy-Mitgliedschaften koennen nur im Live-Modus erstellt werden.");
+    throw new Error("eBuSy-Mitgliedschaften können nur im Live-Modus erstellt werden.");
   }
 
   const result = await ebusyPost<EbusyCreatedMembership>(
@@ -634,7 +634,7 @@ export async function createEbusyMembership(
   const createdMembership = result.response ?? result.result;
 
   if (!createdMembership?.id) {
-    throw new Error("eBuSy hat keine Mitgliedschafts-ID fuer den neuen Datensatz zurueckgegeben.");
+    throw new Error("eBuSy hat keine Mitgliedschafts-ID für den neuen Datensatz zurückgegeben.");
   }
 
   return {

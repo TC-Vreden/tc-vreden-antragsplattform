@@ -17,7 +17,7 @@ function getReasonText(reason: string | undefined) {
   }
 
   if (reason === "forbidden") {
-    return "Fuer diese interne Aktion fehlt die passende Rolle.";
+    return "Für diese interne Aktion fehlt die passende Rolle.";
   }
 
   return null;
@@ -41,18 +41,18 @@ export default async function InternalLoginPage({ searchParams }: Props) {
         <span className="eyebrow">Interner Bereich</span>
         <h1 className="page-title">Login</h1>
         <p>
-          Bitte mit dem persoenlichen internen Zugang anmelden. Einladungs- und
-          Passwortlinks laufen ueber Supabase Auth.
+          Bitte mit dem persönlichen internen Zugang anmelden. Einladungs- und
+          Passwortlinks laufen über Supabase Auth.
         </p>
         <p>
-          Fuer den ersten Admin kann der alte Uebergangs-Zugang gezielt ueber{" "}
+          Für den ersten Admin kann der alte Übergangs-Zugang gezielt über{" "}
           <a href="/verwaltung/benutzer?legacy=1">/verwaltung/benutzer?legacy=1</a>{" "}
           verwendet werden, solange die Basic-Auth-Fallback-Variable aktiv ist.
         </p>
 
         {reasonText ? (
           <div className="warning-box" style={{ marginBottom: 20 }}>
-            <strong>Zugriff nicht moeglich</strong>
+            <strong>Zugriff nicht möglich</strong>
             <p style={{ margin: "8px 0 0" }}>{reasonText}</p>
           </div>
         ) : null}

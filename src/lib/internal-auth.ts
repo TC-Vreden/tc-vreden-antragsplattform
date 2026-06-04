@@ -168,7 +168,7 @@ async function getLegacyBasicAuthActor(
     authMode: "basic",
     userId: null,
     email: `legacy-basic-auth:${expectedUsername}`,
-    displayName: "Uebergangs-Basic-Auth",
+    displayName: "Übergangs-Basic-Auth",
     role: "admin",
     status: "active",
     permissions: getInternalRolePermissions("admin")
@@ -356,7 +356,7 @@ export async function requireInternalApiPermission(
   }
 
   if (!hasInternalPermission(actor.role, permission)) {
-    throw new InternalAuthError("Fuer diese Aktion fehlt die Berechtigung.", 403);
+    throw new InternalAuthError("Für diese Aktion fehlt die Berechtigung.", 403);
   }
 
   return actor;

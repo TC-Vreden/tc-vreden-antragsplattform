@@ -362,6 +362,55 @@ p {
   border-radius: 10px;
 }
 
+.technical-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.technical-status-title {
+  margin-right: 4px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.status-chip.is-ok {
+  border-color: rgba(84, 142, 78, 0.36);
+  background: #f2faee;
+  color: #315f2f;
+}
+
+.status-chip.is-warning {
+  border-color: rgba(255, 222, 0, 0.7);
+  background: #fff8c7;
+  color: #6b5900;
+}
+
+.status-chip.is-error {
+  border-color: rgba(168, 78, 78, 0.36);
+  background: #fff2ef;
+  color: #7a2929;
+}
+
 .warning-box {
   padding: 16px 18px;
   border: 1px solid rgba(168, 78, 78, 0.28);

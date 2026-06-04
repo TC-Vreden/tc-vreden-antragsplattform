@@ -7,9 +7,9 @@ export default function PasswordResetRequestPage() {
       <section className="card">
         <TcVredenLogo />
         <span className="eyebrow">Interner Bereich</span>
-        <h1 className="page-title">Passwort zuruecksetzen</h1>
+        <h1 className="page-title">Passwort zurücksetzen</h1>
         <p>
-          Der Link fuehrt zur Passwortvergabe fuer den persoenlichen internen Zugang.
+          Der Link führt zur Passwortvergabe für den persönlichen internen Zugang.
         </p>
 
         <PasswordResetRequestForm />

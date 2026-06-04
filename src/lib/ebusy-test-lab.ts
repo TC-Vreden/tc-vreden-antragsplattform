@@ -115,7 +115,7 @@ export type EbusyTestLabResult = {
 type EbusyTestCreatedPerson = NonNullable<EbusyTestLabResult["createdPersons"]>[number];
 type EbusyTestCreatedMembership = NonNullable<EbusyTestLabResult["createdMemberships"]>[number];
 
-const TEST_MARKER = "AUTOMATISCHER EBUSY-TEST - darf geloescht werden";
+const TEST_MARKER = "AUTOMATISCHER EBUSY-TEST - darf gelöscht werden";
 const SIMPLE_ACTIVE_TENNIS_MEMBERSHIP: EbusyMembershipWriteConfig = {
   moduleId: 4,
   sectionIds: [1],
@@ -199,7 +199,7 @@ async function runMultiEbusyTestLabAction(
       runId,
       members: memberPayloadPreview,
       safetyNote:
-        "Mehrpersonen-Test: Hauptzahlerbezug inklusive Bankkonto/SEPA-Kopie fuer Zusatzpersonen, Mitgliedsbeitraege-NEU-Attribute und einfache Mitgliedschaften koennen je Person geschrieben werden. Beitragsarten werden nicht geschrieben."
+        "Mehrpersonen-Test: Hauptzahlerbezug inklusive Bankkonto/SEPA-Kopie für Zusatzpersonen, Mitgliedsbeiträge-NEU-Attribute und einfache Mitgliedschaften können je Person geschrieben werden. Beitragsarten werden nicht geschrieben."
     }),
     memberAttributeAssignments
   };
@@ -306,7 +306,7 @@ async function runMultiEbusyTestLabAction(
 
       if (shouldCreateMembership) {
         if (!member.membershipTest) {
-          throw new Error(`Fuer ${member.roleLabel} ist kein Mitgliedschaftstest hinterlegt.`);
+          throw new Error(`Für ${member.roleLabel} ist kein Mitgliedschaftstest hinterlegt.`);
         }
 
         const personId = Number(createdPerson.externalPersonId);
@@ -334,7 +334,7 @@ async function runMultiEbusyTestLabAction(
           ) ?? memberships[0];
 
         if (!readBackMembership) {
-          throw new Error(`${member.roleLabel}: Die neue Mitgliedschaft konnte nicht zurueckgelesen werden.`);
+          throw new Error(`${member.roleLabel}: Die neue Mitgliedschaft konnte nicht zurückgelesen werden.`);
         }
 
         createdMemberships.push({
@@ -382,10 +382,10 @@ async function runMultiEbusyTestLabAction(
     ...baseResult,
     message: shouldCreateMembership
       ? shouldSetAttributes
-        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Bankkonto/SEPA wurden vom Hauptzahler uebernommen, Mitgliedsbeitraege-NEU-Attribute wurden gesetzt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Beitragsarten werden weiterhin nicht geschrieben."
-        : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensaetze wurden direkt wieder ausgelesen. Attribute und Beitragsarten wurden nicht geschrieben."
+        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Bankkonto/SEPA wurden vom Hauptzahler übernommen, Mitgliedsbeiträge-NEU-Attribute wurden gesetzt, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensätze wurden direkt wieder ausgelesen. Beitragsarten werden weiterhin nicht geschrieben."
+        : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, einfache Test-Mitgliedschaften wurden je Person erstellt und alle Datensätze wurden direkt wieder ausgelesen. Attribute und Beitragsarten wurden nicht geschrieben."
       : shouldSetAttributes
-        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Mitgliedsbeitraege-NEU-Attribute wurden gesetzt und alle Datensaetze wurden direkt wieder ausgelesen. Mitgliedschaften und Beitragsarten wurden nicht geschrieben."
+        ? "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet, Mitgliedsbeiträge-NEU-Attribute wurden gesetzt und alle Datensätze wurden direkt wieder ausgelesen. Mitgliedschaften und Beitragsarten wurden nicht geschrieben."
         : "Mehrpersonen-Testpersonen wurden in eBuSy angelegt, Zusatzpersonen wurden dem Hauptzahler zugeordnet und direkt wieder ausgelesen. Attribute, Mitgliedschaften und Beitragsarten wurden nicht geschrieben.",
     createdPersons,
     createdMemberships,
@@ -469,7 +469,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "adult_passive_person",
     title: "Erwachsene Einzelperson passiv",
     description:
-      "Kontrollierter Test fuer eine passive erwachsene Einzelperson. Nach Live-Bestaetigung darf dieser Fall auch produktiv fuer Einzelpersonen uebernommen werden.",
+      "Kontrollierter Test für eine passive erwachsene Einzelperson. Nach Live-Bestätigung darf dieser Fall auch produktiv für Einzelpersonen übernommen werden.",
     application: createBaseApplication({
       id: "tcv-test-adult-passive-0001",
       last_name: "Passiv",
@@ -479,7 +479,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     attributeAssignments: [
       {
         attributeId: 6,
-        attributeName: "Mitgliedsbeitraege NEU",
+        attributeName: "Mitgliedsbeiträge NEU",
         valueId: 33,
         valueName: "Passiv"
       },
@@ -497,7 +497,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "child_person",
     title: "Kind bis 14 Jahre",
     description:
-      "Kontrollierter Test fuer ein Kind bis 14 Jahre. Prueft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Kinderuebernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestaetigt sind.",
+      "Kontrollierter Test für ein Kind bis 14 Jahre. Prüft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Kinderübernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestätigt sind.",
     application: createBaseApplication({
       id: "tcv-test-child-0001",
       salutation: "FEMALE",
@@ -515,12 +515,12 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
       guardian_phone: "02861 000001",
       guardian_consent: true,
       notes:
-        `${TEST_MARKER}\nMinderjaehrigen-Test: gesetzlicher Vertreter und SEPA-Zahler muessen spaeter im PDF/E-Mail-Prozess nachvollziehbar dokumentiert werden.`
+        `${TEST_MARKER}\nMinderjährigen-Test: gesetzlicher Vertreter und SEPA-Zahler müssen später im PDF/E-Mail-Prozess nachvollziehbar dokumentiert werden.`
     }),
     attributeAssignments: [
       {
         attributeId: 6,
-        attributeName: "Mitgliedsbeitraege NEU",
+        attributeName: "Mitgliedsbeiträge NEU",
         valueId: 14,
         valueName: "Kinder bis 14 Jahre"
       },
@@ -538,7 +538,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "youth_active_person",
     title: "Jugendliche bis 18 Jahre aktiv",
     description:
-      "Kontrollierter Test fuer Jugendliche bis 18 Jahre. Prueft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Minderjaehrigenuebernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestaetigt sind.",
+      "Kontrollierter Test für Jugendliche bis 18 Jahre. Prüft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Minderjährigenübernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestätigt sind.",
     application: createBaseApplication({
       id: "tcv-test-youth-active-0001",
       salutation: "MALE",
@@ -556,12 +556,12 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
       guardian_phone: "02861 000002",
       guardian_consent: true,
       notes:
-        `${TEST_MARKER}\nMinderjaehrigen-Test Jugendliche bis 18 Jahre: gesetzlicher Vertreter und SEPA-Zahler muessen spaeter im PDF/E-Mail-Prozess nachvollziehbar dokumentiert werden.`
+        `${TEST_MARKER}\nMinderjährigen-Test Jugendliche bis 18 Jahre: gesetzlicher Vertreter und SEPA-Zahler müssen später im PDF/E-Mail-Prozess nachvollziehbar dokumentiert werden.`
     }),
     attributeAssignments: [
       {
         attributeId: 6,
-        attributeName: "Mitgliedsbeitraege NEU",
+        attributeName: "Mitgliedsbeiträge NEU",
         valueId: 17,
         valueName: "Jugendliche bis 18 Jahre"
       },
@@ -579,7 +579,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
     id: "family_four_persons",
     title: "Familie mit 4 Personen",
     description:
-      "Kontrollierter Mehrpersonen-Test fuer eine Familie mit zahlender Hauptperson, Partner:in und zwei Kindern. Der Test kann Personen, Hauptzahlerbezug, Mitgliedsbeitraege-NEU-Attribute und einfache Mitgliedschaften je Person schreiben.",
+      "Kontrollierter Mehrpersonen-Test für eine Familie mit zahlender Hauptperson, Partner:in und zwei Kindern. Der Test kann Personen, Hauptzahlerbezug, Mitgliedsbeiträge-NEU-Attribute und einfache Mitgliedschaften je Person schreiben.",
     members: [
       {
         id: "family_main",
@@ -625,7 +625,7 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
         attributeAssignments: [
           {
             attributeId: 6,
-            attributeName: "Mitgliedsbeitraege NEU",
+            attributeName: "Mitgliedsbeiträge NEU",
             valueId: 18,
             valueName: "Familien"
           },
@@ -651,14 +651,14 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
           account_holder: null,
           account_holder_address: null,
           notes:
-            `${TEST_MARKER}\nFamilien-Test: Partner:in. Vorschlag: beitragsfreie Familienzugehoerigkeit, fachlich noch zu bestaetigen.`
+            `${TEST_MARKER}\nFamilien-Test: Partner:in. Vorschlag: beitragsfreie Familienzugehörigkeit, fachlich noch zu bestätigen.`
         }),
         attributeAssignments: [
           {
             attributeId: 6,
-            attributeName: "Mitgliedsbeitraege NEU",
+            attributeName: "Mitgliedsbeiträge NEU",
             valueId: 22,
-            valueName: "Beitragsfreie Familienangehoerige"
+            valueName: "Beitragsfreie Familienangehörige"
           },
         ],
         membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP,
@@ -687,14 +687,14 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
           guardian_phone: "02861 000010",
           guardian_consent: true,
           notes:
-            `${TEST_MARKER}\nFamilien-Test: minderjaehriges Kind. Vertreter-/PDF-/Mailnachweis bleibt separat zu klaeren.`
+            `${TEST_MARKER}\nFamilien-Test: minderjähriges Kind. Vertreter-/PDF-/Mailnachweis bleibt separat zu klären.`
         }),
         attributeAssignments: [
           {
             attributeId: 6,
-            attributeName: "Mitgliedsbeitraege NEU",
+            attributeName: "Mitgliedsbeiträge NEU",
             valueId: 22,
-            valueName: "Beitragsfreie Familienangehoerige"
+            valueName: "Beitragsfreie Familienangehörige"
           },
         ],
         membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP,
@@ -723,14 +723,14 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
           guardian_phone: "02861 000010",
           guardian_consent: true,
           notes:
-            `${TEST_MARKER}\nFamilien-Test: minderjaehrige jugendliche Person. Vertreter-/PDF-/Mailnachweis bleibt separat zu klaeren.`
+            `${TEST_MARKER}\nFamilien-Test: minderjährige jugendliche Person. Vertreter-/PDF-/Mailnachweis bleibt separat zu klären.`
         }),
         attributeAssignments: [
           {
             attributeId: 6,
-            attributeName: "Mitgliedsbeitraege NEU",
+            attributeName: "Mitgliedsbeiträge NEU",
             valueId: 22,
-            valueName: "Beitragsfreie Familienangehoerige"
+            valueName: "Beitragsfreie Familienangehörige"
           },
         ],
         membershipTest: SIMPLE_ACTIVE_TENNIS_MEMBERSHIP,
@@ -1255,7 +1255,7 @@ async function runSingleEbusyTestLabAction(
         ) ?? memberships[0];
 
       if (!readBackMembership) {
-        throw new Error("Die neue Mitgliedschaft konnte nicht zurueckgelesen werden.");
+        throw new Error("Die neue Mitgliedschaft konnte nicht zurückgelesen werden.");
       }
 
       checks = [

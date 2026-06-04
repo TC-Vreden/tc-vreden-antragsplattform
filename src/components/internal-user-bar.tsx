@@ -29,7 +29,7 @@ export function InternalUserBar({ actor }: Props) {
         <strong>{actor.displayName ?? actor.email}</strong>
         <p style={{ margin: "4px 0 0" }}>
           Rolle: {getInternalRoleLabel(actor.role)}
-          {actor.authMode === "basic" ? " (Uebergangs-Zugang)" : ""}
+          {actor.authMode === "basic" ? " (Übergangs-Zugang)" : ""}
         </p>
       </div>
       <nav className="internal-nav" aria-label="Interne Navigation">

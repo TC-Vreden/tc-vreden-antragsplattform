@@ -15,7 +15,7 @@ export default async function VerwaltungHandbuchPage() {
         <span className="eyebrow">Interne Dokumentation</span>
         <h1 className="page-title">Handbuch</h1>
         <p>
-          Wissensbasis fuer Bedienung, eBuSy-Uebernahme, Betrieb und Weiterentwicklung der
+          Wissensbasis für Bedienung, eBuSy-Übernahme, Betrieb und Weiterentwicklung der
           digitalen Mitgliedsantragsplattform. Stand: <strong>{handbookDate}</strong>.
         </p>
 
@@ -23,7 +23,7 @@ export default async function VerwaltungHandbuchPage() {
 
         <div className="cta-row" style={{ marginBottom: 24 }}>
           <Link className="button secondary" href="/verwaltung">
-            Zurueck zur Verwaltung
+            Zurück zur Verwaltung
           </Link>
           <Link className="button secondary" href="/anmelden">
             Formular ansehen
@@ -37,7 +37,7 @@ export default async function VerwaltungHandbuchPage() {
           <h2>Was ist dokumentiert?</h2>
           <p>
             Dieses Handbuch ist bewusst als lebende Dokumentation angelegt. Bei neuen Funktionen,
-            geaenderten eBuSy-Regeln, Datenbanktabellen, Release-Schritten oder Rechten muss es
+            geänderten eBuSy-Regeln, Datenbanktabellen, Release-Schritten oder Rechten muss es
             mit aktualisiert werden.
           </p>
         </section>

@@ -75,7 +75,7 @@ const defaultMainPayerRelation: EbusyPayerRelationWriteConfig = {
 const familyMainAttributes: EbusyAttributeAssignment[] = [
   {
     attributeId: 6,
-    attributeName: "Mitgliedsbeitraege NEU",
+    attributeName: "Mitgliedsbeiträge NEU",
     valueId: 18,
     valueName: "Familien"
   }
@@ -84,16 +84,16 @@ const familyMainAttributes: EbusyAttributeAssignment[] = [
 const freeFamilyAttributes: EbusyAttributeAssignment[] = [
   {
     attributeId: 6,
-    attributeName: "Mitgliedsbeitraege NEU",
+    attributeName: "Mitgliedsbeiträge NEU",
     valueId: 22,
-    valueName: "Beitragsfreie Familienangehoerige"
+    valueName: "Beitragsfreie Familienangehörige"
   }
 ];
 
 const adultChildMainAttributes: EbusyAttributeAssignment[] = [
   {
     attributeId: 6,
-    attributeName: "Mitgliedsbeitraege NEU",
+    attributeName: "Mitgliedsbeiträge NEU",
     valueId: 20,
     valueName: "Erwachsene + 1 Kind"
   }
@@ -102,7 +102,7 @@ const adultChildMainAttributes: EbusyAttributeAssignment[] = [
 const partnerActiveAttributes: EbusyAttributeAssignment[] = [
   {
     attributeId: 6,
-    attributeName: "Mitgliedsbeitraege NEU",
+    attributeName: "Mitgliedsbeiträge NEU",
     valueId: 19,
     valueName: "Ehepaare / Lebenspartner aktiv"
   }
@@ -111,7 +111,7 @@ const partnerActiveAttributes: EbusyAttributeAssignment[] = [
 const partnerPassiveAttributes: EbusyAttributeAssignment[] = [
   {
     attributeId: 6,
-    attributeName: "Mitgliedsbeitraege NEU",
+    attributeName: "Mitgliedsbeiträge NEU",
     valueId: 33,
     valueName: "Passiv"
   }
@@ -122,12 +122,12 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     membershipKind: "adult_active",
     title: "Erwachsene Einzelperson",
     description:
-      "Prueft die Personen-/Benutzeranlage fuer ein aktives Erwachsenenmitglied. Optional koennen danach kontrollierte Attribut- und Mitgliedschaftstests ausgefuehrt werden; Beitragslogik wird nicht direkt geschrieben.",
+      "Prüft die Personen-/Benutzeranlage für ein aktives Erwachsenenmitglied. Optional können danach kontrollierte Attribut- und Mitgliedschaftstests ausgeführt werden; Beitragslogik wird nicht direkt geschrieben.",
     productionEnabled: true,
     attributeAssignments: [
       {
         attributeId: 6,
-        attributeName: "Mitgliedsbeitraege NEU",
+        attributeName: "Mitgliedsbeiträge NEU",
         valueId: 16,
         valueName: "Erwachsene Aktiv"
       }
@@ -144,12 +144,12 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     membershipKind: "adult_passive",
     title: "Erwachsene Einzelperson passiv",
     description:
-      "Kontrollierter Test fuer eine passive erwachsene Einzelperson. Nach Live-Bestaetigung darf dieser Fall auch produktiv fuer Einzelpersonen uebernommen werden.",
+      "Kontrollierter Test für eine passive erwachsene Einzelperson. Nach Live-Bestätigung darf dieser Fall auch produktiv für Einzelpersonen übernommen werden.",
     productionEnabled: true,
     attributeAssignments: [
       {
         attributeId: 6,
-        attributeName: "Mitgliedsbeitraege NEU",
+        attributeName: "Mitgliedsbeiträge NEU",
         valueId: 33,
         valueName: "Passiv"
       }
@@ -166,12 +166,12 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     membershipKind: "child",
     title: "Kind bis 14 Jahre",
     description:
-      "Kontrollierter Test fuer ein Kind bis 14 Jahre. Prueft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Kinderuebernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestaetigt sind.",
+      "Kontrollierter Test für ein Kind bis 14 Jahre. Prüft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Kinderübernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestätigt sind.",
     productionEnabled: false,
     attributeAssignments: [
       {
         attributeId: 6,
-        attributeName: "Mitgliedsbeitraege NEU",
+        attributeName: "Mitgliedsbeiträge NEU",
         valueId: 14,
         valueName: "Kinder bis 14 Jahre"
       }
@@ -188,12 +188,12 @@ export const ebusySinglePersonTakeoverConfigs: EbusySinglePersonTakeoverConfig[]
     membershipKind: "youth_active",
     title: "Jugendliche bis 18 Jahre aktiv",
     description:
-      "Kontrollierter Test fuer Jugendliche bis 18 Jahre. Prueft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Minderjaehrigenuebernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestaetigt sind.",
+      "Kontrollierter Test für Jugendliche bis 18 Jahre. Prüft Person, Bank/SEPA, Attribute und einfache aktive Mitgliedschaft. Produktive Minderjährigenübernahme bleibt gesperrt, bis Vertreter-, PDF- und Mailprozess sauber bestätigt sind.",
     productionEnabled: false,
     attributeAssignments: [
       {
         attributeId: 6,
-        attributeName: "Mitgliedsbeitraege NEU",
+        attributeName: "Mitgliedsbeiträge NEU",
         valueId: 17,
         valueName: "Jugendliche bis 18 Jahre"
       }
@@ -243,8 +243,8 @@ export const ebusyMultiPersonTakeoverConfigs: EbusyMultiPersonTakeoverConfig[] =
       }
     ],
     warnings: [
-      "Hauptzahlerbezug wird fuer Zusatzpersonen per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
-      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung laeuft ueber das Attribut Mitgliedsbeitraege NEU."
+      "Hauptzahlerbezug wird für Zusatzpersonen per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
+      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung läuft über das Attribut Mitgliedsbeiträge NEU."
     ]
   },
   {
@@ -274,8 +274,8 @@ export const ebusyMultiPersonTakeoverConfigs: EbusyMultiPersonTakeoverConfig[] =
       }
     ],
     warnings: [
-      "Hauptzahlerbezug wird fuer Zusatzpersonen per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
-      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung laeuft ueber das Attribut Mitgliedsbeitraege NEU."
+      "Hauptzahlerbezug wird für Zusatzpersonen per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
+      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung läuft über das Attribut Mitgliedsbeiträge NEU."
     ]
   },
   {
@@ -298,8 +298,8 @@ export const ebusyMultiPersonTakeoverConfigs: EbusyMultiPersonTakeoverConfig[] =
       }
     ],
     warnings: [
-      "Hauptzahlerbezug wird fuer die zweite Person per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
-      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung laeuft ueber das Attribut Mitgliedsbeitraege NEU."
+      "Hauptzahlerbezug wird für die zweite Person per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
+      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung läuft über das Attribut Mitgliedsbeiträge NEU."
     ]
   },
   {
@@ -322,8 +322,8 @@ export const ebusyMultiPersonTakeoverConfigs: EbusyMultiPersonTakeoverConfig[] =
       }
     ],
     warnings: [
-      "Hauptzahlerbezug wird fuer die zweite Person per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
-      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung laeuft ueber das Attribut Mitgliedsbeitraege NEU."
+      "Hauptzahlerbezug wird für die zweite Person per eBuSy-Personen-Patch gesetzt und muss im Testlabor fachlich kontrolliert werden.",
+      "Beitragsarten werden weiterhin nicht geschrieben; die Zuordnung läuft über das Attribut Mitgliedsbeiträge NEU."
     ]
   }
 ];
@@ -366,7 +366,7 @@ export function getEbusyMultiPersonMemberConfig(
     config.memberConfigs[0];
 
   if (!memberConfig) {
-    throw new Error(`Keine eBuSy-Konfiguration fuer Mehrpersonen-Rolle ${role} gefunden.`);
+    throw new Error(`Keine eBuSy-Konfiguration für Mehrpersonen-Rolle ${role} gefunden.`);
   }
 
   return memberConfig;
@@ -377,7 +377,7 @@ export function buildEbusyMembershipPayloadForApplication(
   personId: number,
   config: EbusyMembershipWriteConfig,
   membershipNumber?: string,
-  commentPrefix = "Automatischer eBuSy-Test fuer Antrag"
+  commentPrefix = "Automatischer eBuSy-Test für Antrag"
 ): EbusyMembershipPayload {
   return {
     begin: application.created_at.slice(0, 10),

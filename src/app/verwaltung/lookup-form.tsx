@@ -75,12 +75,8 @@ export function LookupForm() {
     <article className="card" style={{ padding: 18, marginBottom: 20 }}>
       <h2 style={{ fontSize: "1.2rem" }}>Personenabgleich</h2>
       <p>
-        Diese Suche bleibt intern. Angezeigt werden bewusst nur wenige Vergleichsfelder und keine
-        sensiblen Finanz- oder SEPA-Daten.
-      </p>
-      <p>
-        Aktuell ist das eine direkte Suche in eBuSy. Es wird also noch kein vorher über das
-        Formular gespeicherter Antrag benötigt.
+        Dies ist eine direkte Suchfunktion in eBuSy. Es wird kein vorher über das Formular
+        gespeicherter Antrag benötigt.
       </p>
 
       <form className="form" onSubmit={handleSubmit}>

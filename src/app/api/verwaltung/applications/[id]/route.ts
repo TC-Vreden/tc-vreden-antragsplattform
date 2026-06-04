@@ -97,7 +97,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (!parsed.success) {
       return NextResponse.json(
         {
-          message: "Die uebermittelten Antragsdaten sind unvollstaendig oder ungueltig.",
+          message: "Die übermittelten Antragsdaten sind unvollständig oder ungültig.",
           issues: parsed.error.flatten()
         },
         { status: 400 }
@@ -123,7 +123,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           message:
-            "Bereits nach eBuSy uebertragene Antraege koennen hier nicht mehr veraendert werden."
+            "Bereits nach eBuSy übertragene Anträge können hier nicht mehr verändert werden."
         },
         { status: 409 }
       );
@@ -178,7 +178,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         status: "pending",
         source: "manual_review",
         message:
-          "Antrag wurde intern bearbeitet. Bitte den eBuSy-Abgleich vor der Uebernahme erneut starten.",
+          "Antrag wurde intern bearbeitet. Bitte den eBuSy-Abgleich vor der Übernahme erneut starten.",
         candidates: []
       },
       updated_at: now
@@ -249,7 +249,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       entityId: id
     });
 
-    return NextResponse.json({ message: "Antrag geloescht." });
+    return NextResponse.json({ message: "Antrag gelöscht." });
   } catch (error) {
     const authResponse = internalAuthErrorResponse(error);
 
@@ -259,7 +259,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
     return NextResponse.json(
       {
-        message: error instanceof Error ? error.message : "Antrag konnte nicht geloescht werden."
+        message: error instanceof Error ? error.message : "Antrag konnte nicht gelöscht werden."
       },
       { status: 500 }
     );

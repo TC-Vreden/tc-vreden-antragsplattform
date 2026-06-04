@@ -384,7 +384,7 @@ export async function sendApplicationConfirmationEmail(
   if (!input.application.email) {
     return {
       status: "skipped",
-      reason: "Antrag enthaelt keine Empfaenger-E-Mail."
+      reason: "Antrag enthält keine Empfänger-E-Mail."
     };
   }
 

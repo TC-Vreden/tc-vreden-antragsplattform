@@ -18,12 +18,12 @@ export type InternalPermission = (typeof internalPermissionIds)[number];
 export const internalRoleDefinitions = {
   admin: {
     label: "Admin",
-    description: "Benutzer, Rollen, Technik und alle Antraege verwalten.",
+    description: "Alle Rechte inklusive Benutzerverwaltung.",
     permissions: internalPermissionIds
   },
   verwaltung: {
     label: "Verwaltung",
-    description: "Antraege bearbeiten, eBuSy-Abgleich und Uebernahme ausfuehren.",
+    description: "Anträge bearbeiten und nach eBuSy übertragen.",
     permissions: [
       "applications.read",
       "applications.write",
@@ -31,19 +31,8 @@ export const internalRoleDefinitions = {
       "ebusy.lookup",
       "ebusy.match",
       "ebusy.takeover",
-      "docs.read",
-      "system.read"
+      "docs.read"
     ]
-  },
-  vorstand_lesen: {
-    label: "Vorstand lesen",
-    description: "Antraege und Status einsehen, aber nichts uebertragen.",
-    permissions: ["applications.read", "docs.read"]
-  },
-  technik: {
-    label: "Technik",
-    description: "Systemstatus, Testlabor und Betriebsdokumentation einsehen.",
-    permissions: ["testlab.read", "docs.read", "system.read", "audit.read"]
   }
 } as const satisfies Record<
   string,

@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         {
-          message: "Die Benutzerdaten sind unvollstaendig oder ungueltig.",
+          message: "Die Benutzerdaten sind unvollständig oder ungültig.",
           issues: parsed.error.flatten()
         },
         { status: 400 }
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       user: profile,
       message: userAlreadyExisted
-        ? `Fuer ${email} gab es bereits einen Zugang. Ein neuer Passwortlink wurde versendet.`
+        ? `Für ${email} gab es bereits einen Zugang. Ein neuer Passwortlink wurde versendet.`
         : `Einladung wurde an ${email} versendet.`
     });
   } catch (error) {

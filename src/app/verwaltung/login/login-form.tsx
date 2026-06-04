@@ -75,10 +75,10 @@ export function LoginForm({ nextPath }: Props) {
 
       <div className="cta-row">
         <button className="button" type="submit" disabled={loading}>
-          {loading ? "Anmeldung laeuft..." : "Einloggen"}
+          {loading ? "Anmeldung läuft..." : "Einloggen"}
         </button>
         <Link className="button secondary" href={"/verwaltung/passwort-zuruecksetzen" as Route}>
-          Passwort zuruecksetzen
+          Passwort zurücksetzen
         </Link>
       </div>
     </form>

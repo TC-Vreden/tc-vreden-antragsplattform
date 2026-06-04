@@ -33,7 +33,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (!parsed.success) {
       return NextResponse.json(
         {
-          message: "Die Benutzerdaten sind unvollstaendig oder ungueltig.",
+          message: "Die Benutzerdaten sind unvollständig oder ungültig.",
           issues: parsed.error.flatten()
         },
         { status: 400 }
@@ -124,7 +124,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     if (actor.userId === id) {
       return NextResponse.json(
         {
-          message: "Der eigene Admin-Zugang kann nicht geloescht werden."
+          message: "Der eigene Admin-Zugang kann nicht gelöscht werden."
         },
         { status: 400 }
       );
@@ -160,7 +160,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({
-      message: `Benutzer ${profile.email} wurde geloescht.`
+      message: `Benutzer ${profile.email} wurde gelöscht.`
     });
   } catch (error) {
     const authResponse = internalAuthErrorResponse(error);
@@ -172,7 +172,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error ? error.message : "Benutzer konnte nicht geloescht werden."
+          error instanceof Error ? error.message : "Benutzer konnte nicht gelöscht werden."
       },
       { status: 500 }
     );

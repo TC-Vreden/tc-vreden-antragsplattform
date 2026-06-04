@@ -53,7 +53,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error ? error.message : "Der Kandidat konnte nicht verknuepft werden."
+          error instanceof Error ? error.message : "Der Kandidat konnte nicht verknüpft werden."
       },
       { status: 500 }
     );

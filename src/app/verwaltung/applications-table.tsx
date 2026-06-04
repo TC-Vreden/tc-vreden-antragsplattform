@@ -733,8 +733,8 @@ export function ApplicationsTable({ applications, permissions }: Props) {
                           style={{ minWidth: 190 }}
                         >
                           {showCandidates
-                            ? "Kandidaten ausblenden"
-                            : `Kandidaten ansehen (${candidates.length})`}
+                            ? "Antrag ausblenden"
+                            : `Antrag ansehen (${candidates.length})`}
                         </button>
                       ) : null}
 

@@ -204,7 +204,7 @@ function validateAdditionalMember(member: ApplicationAdditionalMember, index: nu
     return null;
   }
 
-  return `Zusatzperson ${index + 1} ist unvollstaendig: ${missingFields.join(", ")} fehlt.`;
+  return `Zusatzperson ${index + 1} ist unvollständig: ${missingFields.join(", ")} fehlt.`;
 }
 
 function buildMultiPersonTakeoverPlan(
@@ -446,7 +446,7 @@ async function createMultiPersonApplicationInEbusy(
     return {
       status: "error",
       message:
-        "Diese Mehrpersonen-Mitgliedschaft ist noch nicht fuer die automatische eBuSy-Uebernahme freigegeben."
+        "Diese Mehrpersonen-Mitgliedschaft ist noch nicht für die automatische eBuSy-Übernahme freigegeben."
     };
   }
 
@@ -454,7 +454,7 @@ async function createMultiPersonApplicationInEbusy(
     return {
       status: "error",
       message:
-        "Der Antrag ist als Mehrpersonen-Mitgliedschaft markiert, enthaelt aber keine Zusatzpersonen."
+        "Der Antrag ist als Mehrpersonen-Mitgliedschaft markiert, enthält aber keine Zusatzpersonen."
     };
   }
 
@@ -465,7 +465,7 @@ async function createMultiPersonApplicationInEbusy(
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Mehrpersonen-Antrag ist unvollstaendig."
+      message: error instanceof Error ? error.message : "Mehrpersonen-Antrag ist unvollständig."
     };
   }
 
@@ -519,7 +519,7 @@ async function createMultiPersonApplicationInEbusy(
       const failedPayload: ApplicationMatchPayload = {
         status: "error",
         source: "live",
-        message: `Mehrpersonen-Uebernahme abgebrochen: ${member.roleLabel} konnte nicht angelegt werden: ${reason}`,
+        message: `Mehrpersonen-Übernahme abgebrochen: ${member.roleLabel} konnte nicht angelegt werden: ${reason}`,
         candidates: existingPayload?.candidates ?? [],
         createdPeople,
         createdMemberships,
@@ -545,7 +545,7 @@ async function createMultiPersonApplicationInEbusy(
 
       return {
         status: "error",
-        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy pruefen.`,
+        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy prüfen.`,
         externalPersonId: createdPeople[0]?.externalPersonId ?? null,
         matchPayload: failedPayload
       };
@@ -591,7 +591,7 @@ async function createMultiPersonApplicationInEbusy(
       const failedPayload: ApplicationMatchPayload = {
         status: "error",
         source: "live",
-        message: `Mehrpersonen-Uebernahme abgebrochen: Hauptzahler fuer ${member.roleLabel} konnte nicht gesetzt werden: ${reason}`,
+        message: `Mehrpersonen-Übernahme abgebrochen: Hauptzahler für ${member.roleLabel} konnte nicht gesetzt werden: ${reason}`,
         candidates: existingPayload?.candidates ?? [],
         createdPeople,
         createdMemberships,
@@ -617,7 +617,7 @@ async function createMultiPersonApplicationInEbusy(
 
       return {
         status: "error",
-        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy pruefen.`,
+        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy prüfen.`,
         externalPersonId: createdPeople[0]?.externalPersonId ?? null,
         matchPayload: failedPayload
       };
@@ -651,7 +651,7 @@ async function createMultiPersonApplicationInEbusy(
           roleLabel: member.roleLabel,
           step: "attributes",
           status: "skipped",
-          message: "Keine Attribute fuer diese Rolle konfiguriert."
+          message: "Keine Attribute für diese Rolle konfiguriert."
         });
       }
     } catch (error) {
@@ -659,7 +659,7 @@ async function createMultiPersonApplicationInEbusy(
       const failedPayload: ApplicationMatchPayload = {
         status: "error",
         source: "live",
-        message: `Mehrpersonen-Uebernahme abgebrochen: Attribute fuer ${member.roleLabel} konnten nicht gesetzt werden: ${reason}`,
+        message: `Mehrpersonen-Übernahme abgebrochen: Attribute für ${member.roleLabel} konnten nicht gesetzt werden: ${reason}`,
         candidates: existingPayload?.candidates ?? [],
         createdPeople,
         createdMemberships,
@@ -685,7 +685,7 @@ async function createMultiPersonApplicationInEbusy(
 
       return {
         status: "error",
-        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy pruefen.`,
+        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy prüfen.`,
         externalPersonId: createdPeople[0]?.externalPersonId ?? null,
         matchPayload: failedPayload
       };
@@ -708,7 +708,7 @@ async function createMultiPersonApplicationInEbusy(
 
         if (existingMemberships.length > 0) {
           throw new Error(
-            "Die verknuepfte Hauptperson hat bereits eine Mitgliedschaft. Bitte den Mehrpersonen-Antrag manuell pruefen, damit keine Doppelmitgliedschaft entsteht."
+            "Die verknüpfte Hauptperson hat bereits eine Mitgliedschaft. Bitte den Mehrpersonen-Antrag manuell prüfen, damit keine Doppelmitgliedschaft entsteht."
           );
         }
       }
@@ -747,7 +747,7 @@ async function createMultiPersonApplicationInEbusy(
       const failedPayload: ApplicationMatchPayload = {
         status: "error",
         source: "live",
-        message: `Mehrpersonen-Uebernahme abgebrochen: Mitgliedschaft fuer ${member.roleLabel} konnte nicht erstellt werden: ${reason}`,
+        message: `Mehrpersonen-Übernahme abgebrochen: Mitgliedschaft für ${member.roleLabel} konnte nicht erstellt werden: ${reason}`,
         candidates: existingPayload?.candidates ?? [],
         createdPeople,
         createdMemberships,
@@ -773,7 +773,7 @@ async function createMultiPersonApplicationInEbusy(
 
       return {
         status: "error",
-        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy pruefen.`,
+        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy prüfen.`,
         externalPersonId: createdPeople[0]?.externalPersonId ?? null,
         matchPayload: failedPayload
       };
@@ -781,7 +781,7 @@ async function createMultiPersonApplicationInEbusy(
   }
 
   const mainPerson = createdPeople[0];
-  const message = `${createdPeople.length} Person(en), Hauptzahlerbezug fuer Zusatzpersonen, Attribute und einfache Mitgliedschaften wurden in eBuSy angelegt bzw. aktualisiert.`;
+  const message = `${createdPeople.length} Person(en), Hauptzahlerbezug für Zusatzpersonen, Attribute und einfache Mitgliedschaften wurden in eBuSy angelegt bzw. aktualisiert.`;
   const transferredAt = new Date().toISOString();
   const nextPayload: ApplicationMatchPayload = {
     status: "created_in_ebusy",
@@ -810,7 +810,7 @@ async function createMultiPersonApplicationInEbusy(
   if (updateError) {
     return {
       status: "created_in_ebusy",
-      message: `${message} Achtung: Die lokale Verknuepfung konnte nicht gespeichert werden: ${updateError.message}`,
+      message: `${message} Achtung: Die lokale Verknüpfung konnte nicht gespeichert werden: ${updateError.message}`,
       externalPersonId: mainPerson?.externalPersonId ?? null,
       matchPayload: nextPayload
     };
@@ -879,7 +879,7 @@ export async function createApplicationPersonInEbusy(
     return {
       status: "error",
       message:
-        "Diese Mitgliedschaftsart ist noch nicht fuer die vollstaendige automatische eBuSy-Uebernahme freigegeben. Bitte zuerst im eBuSy-Testlabor pruefen."
+        "Diese Mitgliedschaftsart ist noch nicht für die vollständige automatische eBuSy-Übernahme freigegeben. Bitte zuerst im eBuSy-Testlabor prüfen."
     };
   }
 
@@ -901,7 +901,7 @@ export async function createApplicationPersonInEbusy(
   if (!Number.isInteger(personId)) {
     return {
       status: "error",
-      message: `Person wurde in eBuSy angelegt (${createdPerson.externalPersonId}), aber die eBuSy-ID konnte nicht als Zahl fuer Folgeschritte verarbeitet werden. Bitte manuell pruefen.`,
+      message: `Person wurde in eBuSy angelegt (${createdPerson.externalPersonId}), aber die eBuSy-ID konnte nicht als Zahl für Folgeschritte verarbeitet werden. Bitte manuell prüfen.`,
       externalPersonId: createdPerson.externalPersonId
     };
   }
@@ -916,7 +916,7 @@ export async function createApplicationPersonInEbusy(
       return {
         status: "error",
         message:
-          "Die verknuepfte eBuSy-Person hat bereits eine Mitgliedschaft. Bitte den Fall manuell pruefen, damit keine Doppelmitgliedschaft entsteht.",
+          "Die verknüpfte eBuSy-Person hat bereits eine Mitgliedschaft. Bitte den Fall manuell prüfen, damit keine Doppelmitgliedschaft entsteht.",
         externalPersonId: createdPerson.externalPersonId
       };
     }
@@ -949,7 +949,7 @@ export async function createApplicationPersonInEbusy(
 
     return {
       status: "error",
-      message: `${failedPayload.message}. Bitte die Person in eBuSy manuell pruefen.`,
+      message: `${failedPayload.message}. Bitte die Person in eBuSy manuell prüfen.`,
       externalPersonId: createdPerson.externalPersonId
     };
   }
@@ -996,7 +996,7 @@ export async function createApplicationPersonInEbusy(
 
     return {
       status: "error",
-      message: `${failedPayload.message}. Bitte die Person in eBuSy manuell pruefen.`,
+      message: `${failedPayload.message}. Bitte die Person in eBuSy manuell prüfen.`,
       externalPersonId: createdPerson.externalPersonId
     };
   }

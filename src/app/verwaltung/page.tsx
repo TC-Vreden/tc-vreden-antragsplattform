@@ -10,6 +10,30 @@ import { writeInternalAuditLog } from "@/lib/internal-audit";
 import { requireInternalPagePermission } from "@/lib/internal-auth";
 import { hasInternalPermission } from "@/lib/internal-roles";
 
+function getStatusLabel(endpoint: string) {
+  if (endpoint.includes("/modules") && !endpoint.includes("memberships")) {
+    return "Module";
+  }
+
+  if (endpoint.includes("/attributes")) {
+    return "Attribute";
+  }
+
+  if (endpoint.includes("/groups")) {
+    return "Gruppen";
+  }
+
+  if (endpoint.includes("/persons")) {
+    return "Personen";
+  }
+
+  if (endpoint.includes("/memberships")) {
+    return "Mitgliedschaften";
+  }
+
+  return "API";
+}
+
 export default async function VerwaltungPage() {
   const actor = await requireInternalPagePermission("applications.read");
   const diagnostics = await getEbusyDiagnostics();
@@ -33,10 +57,6 @@ export default async function VerwaltungPage() {
         <TcVredenLogo />
         <span className="eyebrow">Interner Bereich</span>
         <h1 className="page-title">Verwaltungsbereich</h1>
-        <p>
-          Diese Ansicht ist für die interne Bearbeitung gedacht. Sensible eBuSy-Daten werden
-          serverseitig abgefragt und nur in stark reduzierter Form angezeigt.
-        </p>
 
         <InternalUserBar actor={actor} />
 
@@ -47,29 +67,6 @@ export default async function VerwaltungPage() {
           <Link className="button secondary" href={confirmationPreviewRoute}>
             Bestätigungsvorschau öffnen
           </Link>
-        </div>
-
-        <div className="grid grid-2" style={{ marginBottom: 20 }}>
-          <article className="card" style={{ padding: 18 }}>
-            <h2 style={{ fontSize: "1.2rem" }}>Arbeitsweise</h2>
-            <ul className="list">
-              <li>Im Moment ist dies eine direkte interne Suche in eBuSy</li>
-              <li>Der Personenabgleich erfolgt serverseitig über die API</li>
-              <li>Sensible Finanzdaten werden nicht in der Oberfläche gezeigt</li>
-            </ul>
-          </article>
-
-          <article className="card" style={{ padding: 18 }}>
-            <h2 style={{ fontSize: "1.2rem" }}>Systemstatus</h2>
-            <ul className="list">
-              <li>Modus: {diagnostics.mode}</li>
-              {diagnostics.checks.map((check) => (
-                <li key={check.endpoint}>
-                  {check.ok ? "OK" : "Fehler"}: {check.endpoint}
-                </li>
-              ))}
-            </ul>
-          </article>
         </div>
 
         {!isLiveMode ? (
@@ -97,10 +94,6 @@ export default async function VerwaltungPage() {
             Person wird aktualisiert und um Attribute sowie Mitgliedschaft ergänzt.
             Mehrpersonen-Anträge setzen bei Zusatzpersonen den Hauptzahlerbezug zur Hauptperson
             inklusive Bankkonto/SEPA-Kopie des Hauptzahlers.
-          </p>
-          <p style={{ margin: "10px 0 0" }}>
-            Automatisch gesetzt wird nur noch das Attribut <strong>Mitgliedsbeiträge NEU</strong>.
-            Status-Quo-Attribute und Sommertraining-Gebühren bleiben unberührt.
           </p>
         </article>
 
@@ -138,17 +131,21 @@ export default async function VerwaltungPage() {
           )}
         </article>
 
-        <article className="card" style={{ padding: 18, marginBottom: 20 }}>
-          <h2 style={{ fontSize: "1.2rem" }}>API-Status</h2>
-          <ul className="list">
-            {diagnostics.checks.map((check) => (
-              <li key={`${check.endpoint}-message`}>
-                <strong>{check.endpoint}</strong>: {check.message}
-              </li>
-            ))}
-          </ul>
+        <article className="technical-status" aria-label="Technischer Status">
+          <span className="technical-status-title">Technischer Status</span>
+          <span className={`status-chip ${isLiveMode ? "is-ok" : "is-warning"}`}>
+            {isLiveMode ? "Live" : "Testmodus"}
+          </span>
+          {diagnostics.checks.map((check) => (
+            <span
+              className={`status-chip ${check.ok ? "is-ok" : "is-error"}`}
+              key={check.endpoint}
+              title={`${check.endpoint}: ${check.message}`}
+            >
+              {check.ok ? "✓" : "!"} {getStatusLabel(check.endpoint)}
+            </span>
+          ))}
         </article>
-
       </section>
     </main>
   );

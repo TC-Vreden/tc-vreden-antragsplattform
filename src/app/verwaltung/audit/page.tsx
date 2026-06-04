@@ -34,19 +34,19 @@ export default async function AuditPage() {
         <span className="eyebrow">Interner Bereich</span>
         <h1 className="page-title">Audit-Log</h1>
         <p>
-          Nachvollziehbarkeit fuer interne Aktionen: Benutzer, Zeitpunkt, Aktion und technische
-          Referenz werden ohne Passwoerter oder Secrets protokolliert.
+          Nachvollziehbarkeit für interne Aktionen: Benutzer, Zeitpunkt, Aktion und technische
+          Referenz werden ohne Passwörter oder Secrets protokolliert.
         </p>
 
         <InternalUserBar actor={actor} />
 
         {error ? (
           <div className="warning-box">
-            <strong>Audit-Log nicht verfuegbar</strong>
+            <strong>Audit-Log nicht verfügbar</strong>
             <p style={{ margin: "8px 0 0" }}>{error}</p>
           </div>
         ) : entries.length === 0 ? (
-          <p>Noch keine Audit-Eintraege vorhanden.</p>
+          <p>Noch keine Audit-Einträge vorhanden.</p>
         ) : (
           <table className="table">
             <thead>

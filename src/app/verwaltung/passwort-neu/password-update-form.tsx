@@ -100,7 +100,7 @@ export function PasswordUpdateForm() {
 
     if (!hasSession) {
       setErrorMessage(
-        "Der Passwortlink ist nicht aktiv. Bitte den Link aus der E-Mail neu oeffnen."
+        "Der Passwortlink ist nicht aktiv. Bitte den Link aus der E-Mail neu öffnen."
       );
       return;
     }
@@ -111,7 +111,7 @@ export function PasswordUpdateForm() {
     }
 
     if (password !== passwordRepeat) {
-      setErrorMessage("Die Passwoerter stimmen nicht ueberein.");
+      setErrorMessage("Die Passwörter stimmen nicht überein.");
       return;
     }
 
@@ -170,7 +170,7 @@ export function PasswordUpdateForm() {
         <div className="warning-box">
           <strong>Passwortlink fehlt</strong>
           <p style={{ margin: "8px 0 0" }}>
-            Bitte diese Seite ueber den Link aus der E-Mail oeffnen.
+            Bitte diese Seite über den Link aus der E-Mail öffnen.
           </p>
         </div>
       ) : null}
@@ -178,7 +178,7 @@ export function PasswordUpdateForm() {
       <div className="cta-row">
         <button className="button" type="submit" disabled={loading || checkingSession || !hasSession}>
           {checkingSession
-            ? "Link wird geprueft..."
+            ? "Link wird geprüft..."
             : loading
               ? "Passwort wird gespeichert..."
               : "Passwort speichern"}

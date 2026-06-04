@@ -132,7 +132,7 @@ async function sendWithResend(payload: ConfiguredMailPayload): Promise<MailDeliv
   if (!to) {
     return {
       status: "skipped",
-      reason: "Mail-Empfaenger fehlt."
+      reason: "Mail-Empfänger fehlt."
     };
   }
 

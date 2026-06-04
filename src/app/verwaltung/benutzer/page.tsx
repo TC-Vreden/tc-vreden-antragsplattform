@@ -42,7 +42,7 @@ export default async function UsersPage() {
         <span className="eyebrow">Interner Bereich</span>
         <h1 className="page-title">Benutzerverwaltung</h1>
         <p>
-          Interne Benutzer werden per E-Mail eingeladen, bekommen eine Rolle und koennen bei Bedarf
+          Interne Benutzer werden per E-Mail eingeladen, bekommen eine Rolle und können bei Bedarf
           gesperrt oder erneut zum Passwortsetzen aufgefordert werden.
         </p>
 
@@ -50,7 +50,7 @@ export default async function UsersPage() {
 
         {error ? (
           <div className="warning-box">
-            <strong>Benutzerliste nicht verfuegbar</strong>
+            <strong>Benutzerliste nicht verfügbar</strong>
             <p style={{ margin: "8px 0 0" }}>{error}</p>
           </div>
         ) : (

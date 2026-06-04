@@ -73,7 +73,7 @@ export default async function HandbookDetailPage({ params }: Props) {
 
         <div className="cta-row" style={{ marginBottom: 24 }}>
           <Link className="button secondary" href="/verwaltung/handbuch">
-            Zurueck zum Handbuch
+            Zurück zum Handbuch
           </Link>
           <Link className="button secondary" href="/verwaltung">
             Verwaltung

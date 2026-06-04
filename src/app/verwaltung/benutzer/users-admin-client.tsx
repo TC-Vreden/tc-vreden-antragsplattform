@@ -183,7 +183,7 @@ export function UsersAdminClient({ initialUsers }: Props) {
 
   async function deleteUser(user: InternalUserProfile) {
     const confirmed = window.confirm(
-      `Soll der interne Benutzer ${user.email} wirklich geloescht werden?\n\nDer Zugang wird aus Supabase Auth entfernt.`
+      `Soll der interne Benutzer ${user.email} wirklich gelöscht werden?\n\nDer Zugang wird aus Supabase Auth entfernt.`
     );
 
     if (!confirmed) {
@@ -212,10 +212,10 @@ export function UsersAdminClient({ initialUsers }: Props) {
         delete next[user.id];
         return next;
       });
-      setFeedback(payload.message ?? "Benutzer wurde geloescht.");
+      setFeedback(payload.message ?? "Benutzer wurde gelöscht.");
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Benutzer konnte nicht geloescht werden."
+        error instanceof Error ? error.message : "Benutzer konnte nicht gelöscht werden."
       );
     } finally {
       setLoadingId(null);
@@ -256,7 +256,7 @@ export function UsersAdminClient({ initialUsers }: Props) {
             </label>
           </div>
           <button className="button" type="submit" disabled={inviting}>
-            {inviting ? "Einladung laeuft..." : "Einladung senden"}
+            {inviting ? "Einladung läuft..." : "Einladung senden"}
           </button>
         </form>
       </article>
@@ -287,7 +287,7 @@ export function UsersAdminClient({ initialUsers }: Props) {
                 <th>Benutzer</th>
                 <th>Rolle</th>
                 <th>Status</th>
-                <th>Aktivitaet</th>
+                <th>Aktivität</th>
                 <th>Aktion</th>
               </tr>
             </thead>
@@ -306,7 +306,7 @@ export function UsersAdminClient({ initialUsers }: Props) {
                       <label className="field">
                         <span className="users-table-email">{user.email}</span>
                         <input
-                          aria-label={`Name fuer ${user.email}`}
+                          aria-label={`Name für ${user.email}`}
                           value={draft.displayName}
                           placeholder="Name"
                           onChange={(event) =>
@@ -319,9 +319,9 @@ export function UsersAdminClient({ initialUsers }: Props) {
                     </td>
                     <td className="users-table-role">
                       <label className="field compact-field">
-                        <span className="sr-only">Rolle fuer {user.email}</span>
+                        <span className="sr-only">Rolle für {user.email}</span>
                         <select
-                          aria-label={`Rolle fuer ${user.email}`}
+                          aria-label={`Rolle für ${user.email}`}
                           title={getInternalRoleDescription(draft.role)}
                           value={draft.role}
                           onChange={(event) =>
@@ -340,9 +340,9 @@ export function UsersAdminClient({ initialUsers }: Props) {
                     </td>
                     <td className="users-table-status">
                       <label className="field compact-field">
-                        <span className="sr-only">Status fuer {user.email}</span>
+                        <span className="sr-only">Status für {user.email}</span>
                         <select
-                          aria-label={`Status fuer ${user.email}`}
+                          aria-label={`Status für ${user.email}`}
                           value={draft.status}
                           onChange={(event) =>
                             updateDraft(user.id, {
@@ -394,7 +394,7 @@ export function UsersAdminClient({ initialUsers }: Props) {
                           disabled={isLoading}
                           onClick={() => deleteUser(user)}
                         >
-                          Loeschen
+                          Löschen
                         </button>
                       </div>
                     </td>

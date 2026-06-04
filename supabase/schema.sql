@@ -82,7 +82,7 @@ create table if not exists public.internal_user_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   display_name text,
-  role text not null check (role in ('admin', 'verwaltung', 'vorstand_lesen', 'technik')),
+  role text not null check (role in ('admin', 'verwaltung')),
   status text not null default 'invited' check (status in ('invited', 'active', 'disabled')),
   invited_at timestamptz not null default now(),
   accepted_at timestamptz,

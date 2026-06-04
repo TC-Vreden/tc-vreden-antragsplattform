@@ -111,8 +111,8 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
         action === "create_person_with_membership" ||
         action === "create_person_with_attributes_and_membership";
       const membershipConfirmationText = selectedScenarioIsMulti
-        ? "Zusaetzlich wird je Testperson eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Bei Zusatzpersonen werden Hauptzahlerbezug sowie Bankkonto/SEPA-Kopie zur Hauptperson gesetzt. Beitragsarten werden nicht geschrieben.\n\n"
-        : "Zusaetzlich wird eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Eine Beitragsart wird noch nicht geschrieben.\n\n";
+        ? "Zusätzlich wird je Testperson eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Bei Zusatzpersonen werden Hauptzahlerbezug sowie Bankkonto/SEPA-Kopie zur Hauptperson gesetzt. Beitragsarten werden nicht geschrieben.\n\n"
+        : "Zusätzlich wird eine einfache Test-Mitgliedschaft gesetzt: aktiv, Status ACTIVE, Abteilung Tennis und Eintrittsdatum. Eine Beitragsart wird noch nicht geschrieben.\n\n";
       const confirmationText =
         `Soll jetzt wirklich ${selectedScenarioIsMulti ? "mehrere eBuSy-Testpersonen" : "eine eBuSy-Testperson"} angelegt werden?\n\n` +
         (writesAttributes
@@ -198,7 +198,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
       setError(
         batchError instanceof Error
           ? batchError.message
-          : "Die Mehrfachpruefung konnte nicht ausgefuehrt werden."
+          : "Die Mehrfachprüfung konnte nicht ausgeführt werden."
       );
     } finally {
       setBatchLoading(false);
@@ -247,7 +247,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
             disabled={isBusy}
             onClick={runAllDryRuns}
           >
-            {batchLoading ? "Alle Datenpakete werden geprueft..." : "Alle Datenpakete pruefen"}
+            {batchLoading ? "Alle Datenpakete werden geprüft..." : "Alle Datenpakete prüfen"}
           </button>
           <button
             className="button"
@@ -312,10 +312,10 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
           </div>
         ) : !canRunLiveActions ? (
           <div className="warning-box" style={{ marginTop: 16 }}>
-            <strong>Live-Schreibtest fuer diese Rolle gesperrt</strong>
+            <strong>Live-Schreibtest für diese Rolle gesperrt</strong>
             <p style={{ margin: "8px 0 0" }}>
-              Datenpakete koennen geprueft werden. Live-Schreibtests duerfen nur Rollen mit
-              Testlabor-Schreibrecht ausfuehren.
+              Datenpakete können geprüft werden. Live-Schreibtests dürfen nur Rollen mit
+              Testlabor-Schreibrecht ausführen.
             </p>
           </div>
         ) : (
@@ -338,7 +338,7 @@ export function EbusyTestLabClient({ scenarios, writeEnabled, canRunLiveActions 
 
       {batchResults.length > 0 ? (
         <article className="card" style={{ padding: 18 }}>
-          <h2 style={{ fontSize: "1.2rem" }}>Mehrfachpruefung</h2>
+          <h2 style={{ fontSize: "1.2rem" }}>Mehrfachprüfung</h2>
           <p>
             Alle aktuell hinterlegten Szenarien wurden als Datenpaket vorbereitet. Es wurde keine
             Person in eBuSy angelegt.
