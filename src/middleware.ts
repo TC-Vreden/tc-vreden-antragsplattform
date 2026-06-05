@@ -12,7 +12,8 @@ const PUBLIC_INTERNAL_PATHS = [
   "/verwaltung/login",
   "/verwaltung/passwort-zuruecksetzen",
   "/verwaltung/passwort-neu",
-  "/auth/callback"
+  "/auth/callback",
+  "/auth/confirm"
 ];
 
 function getSupabaseUrl() {

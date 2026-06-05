@@ -28,7 +28,7 @@ function translateAuthError(error: { code: string | null; message: string }) {
     combined.includes("code verifier") ||
     combined.includes("different browser")
   ) {
-    return "Der Passwortlink wurde in einem anderen Browser oder auf einem anderen Gerät angefordert. Bitte öffne den Link im selben Browser, in dem du ihn angefordert hast, oder fordere im gewünschten Browser einen neuen Link an.";
+    return "Der Passwortlink konnte nicht direkt aktiviert werden. Bitte fordere einen neuen Link an oder sende ihn in der Benutzerverwaltung erneut.";
   }
 
   if (
@@ -66,7 +66,7 @@ function translatePasswordUpdateError(message: string) {
     normalizedMessage.includes("code verifier") ||
     normalizedMessage.includes("different browser")
   ) {
-    return "Der Passwortlink wurde in einem anderen Browser oder auf einem anderen Gerät angefordert. Bitte öffne den Link im selben Browser, in dem du ihn angefordert hast, oder fordere im gewünschten Browser einen neuen Link an.";
+    return "Die Passwort-Sitzung konnte nicht aktiviert werden. Bitte fordere einen neuen Link an und öffne ihn direkt aus der E-Mail.";
   }
 
   if (
@@ -100,6 +100,7 @@ export function PasswordUpdateForm() {
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
       const code = searchParams.get("code");
+      const verifiedByServer = searchParams.get("verified") === "1";
 
       if (!isMounted) {
         return;
@@ -159,6 +160,30 @@ export function PasswordUpdateForm() {
       }
 
       const sessionIsActive = Boolean(data.session);
+
+      if (verifiedByServer && sessionIsActive) {
+        if (window.location.search) {
+          clearAuthParamsFromUrl();
+        }
+
+        setCanSetPassword(true);
+        setErrorMessage(null);
+        setCheckingSession(false);
+        return;
+      }
+
+      if (verifiedByServer && !sessionIsActive) {
+        if (window.location.search) {
+          clearAuthParamsFromUrl();
+        }
+
+        setCanSetPassword(false);
+        setErrorMessage(
+          "Der Passwortlink konnte nicht aktiviert werden. Bitte fordere einen neuen Link an oder sende ihn in der Benutzerverwaltung erneut."
+        );
+        setCheckingSession(false);
+        return;
+      }
 
       if (sessionIsActive && (linkError || window.location.hash || window.location.search)) {
         clearAuthParamsFromUrl();
