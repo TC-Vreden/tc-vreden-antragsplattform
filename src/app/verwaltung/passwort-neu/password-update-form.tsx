@@ -24,6 +24,14 @@ function translateAuthError(error: { code: string | null; message: string }) {
   const combined = `${error.code ?? ""} ${error.message}`.toLowerCase();
 
   if (
+    combined.includes("pkce") ||
+    combined.includes("code verifier") ||
+    combined.includes("different browser")
+  ) {
+    return "Der Passwortlink wurde in einem anderen Browser oder auf einem anderen Gerät angefordert. Bitte öffne den Link im selben Browser, in dem du ihn angefordert hast, oder fordere im gewünschten Browser einen neuen Link an.";
+  }
+
+  if (
     combined.includes("otp_expired") ||
     combined.includes("expired") ||
     combined.includes("invalid")
@@ -52,6 +60,14 @@ function getInactivePasswordSessionMessage(hasExistingSession: boolean) {
 
 function translatePasswordUpdateError(message: string) {
   const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("pkce") ||
+    normalizedMessage.includes("code verifier") ||
+    normalizedMessage.includes("different browser")
+  ) {
+    return "Der Passwortlink wurde in einem anderen Browser oder auf einem anderen Gerät angefordert. Bitte öffne den Link im selben Browser, in dem du ihn angefordert hast, oder fordere im gewünschten Browser einen neuen Link an.";
+  }
 
   if (
     normalizedMessage.includes("auth session missing") ||
