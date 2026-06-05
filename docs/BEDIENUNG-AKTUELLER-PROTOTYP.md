@@ -10,11 +10,11 @@ Zweck dieser Datei:
 
 ## 1. Oeffentliche Test-URL
 
-- [https://antrag-tennisclub-vreden.vercel.app/anmelden](https://antrag-tennisclub-vreden.vercel.app/anmelden)
+- [https://tennisclub-vreden.vercel.app/anmelden](https://tennisclub-vreden.vercel.app/anmelden)
 
 ## 2. Interne Verwaltungs-URL
 
-- [https://antrag-tennisclub-vreden.vercel.app/verwaltung](https://antrag-tennisclub-vreden.vercel.app/verwaltung)
+- [https://tennisclub-vreden.vercel.app/verwaltung](https://tennisclub-vreden.vercel.app/verwaltung)
 
 ## 3. Zugang zur Verwaltung
 

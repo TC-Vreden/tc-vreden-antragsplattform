@@ -14,10 +14,10 @@ Before changing files, verify the local routing from this project folder:
 Expected routing:
 
 - GitHub: `https://github.com/TC-Vreden/tc-vreden-antragsplattform.git`
-- Vercel project: `antrag-tennisclub-vreden`
+- Vercel project: `tennisclub-vreden`
 - Vercel scope: `tc-vredens-projects`
 - Supabase project ref: `xftnhnojaizyaecvtxcq`
-- Live URL: `https://antrag-tennisclub-vreden.vercel.app`
+- Live URL: `https://tennisclub-vreden.vercel.app`
 
 ## Release Rules
 

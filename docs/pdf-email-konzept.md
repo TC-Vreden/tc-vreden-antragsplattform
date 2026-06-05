@@ -203,7 +203,7 @@ Noetige ENV-Variablen fuer Aktivierung mit All-Inkl / SMTP:
 - `MAIL_FROM`, z. B. `TennisClub Vreden e.V. <mail@tennisclub-vreden.de>`
 - `MAIL_TO_CLUB`, z. B. das Vereinspostfach
 - optional `MAIL_REPLY_TO`
-- optional `ADMIN_PORTAL_URL`, z. B. `https://antrag-tennisclub-vreden.vercel.app/verwaltung`
+- optional `ADMIN_PORTAL_URL`, z. B. `https://tennisclub-vreden.vercel.app/verwaltung`
 
 Alternative Aktivierung ueber Resend:
 

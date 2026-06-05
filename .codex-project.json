@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "projectName": "TC-Vreden Antragsplattform",
   "defaultBranch": "main",
-  "liveUrl": "https://antrag-tennisclub-vreden.vercel.app",
+  "liveUrl": "https://tennisclub-vreden.vercel.app",
   "github": {
     "remoteName": "origin",
     "remoteUrl": "https://github.com/TC-Vreden/tc-vreden-antragsplattform.git",
     "releaseExcludePaths": []
   },
   "vercel": {
-    "projectName": "antrag-tennisclub-vreden",
+    "projectName": "tennisclub-vreden",
     "projectId": "prj_BXNdB8jgvsSt6unrYbc9319WcNSi",
     "orgId": "team_WY3CvMqN0FVdrjFI9EJJjHWt",
     "scope": "tc-vredens-projects",

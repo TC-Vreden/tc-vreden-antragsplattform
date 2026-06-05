@@ -18,7 +18,7 @@ Der Cron schreibt keine fachlichen Mitgliedsdaten. Er aktualisiert nur die feste
 `CRON_SECRET` muss an zwei Stellen gleich gesetzt werden:
 
 - lokal in `.env.local`
-- in Vercel beim Projekt `antrag-tennisclub-vreden` als Environment Variable fuer Production
+- in Vercel beim Projekt `tennisclub-vreden` als Environment Variable fuer Production
 
 Ein lokales Secret kann so erzeugt werden:
 
@@ -39,7 +39,7 @@ Mit dem Secret kann die Route manuell getestet werden:
 
 ```powershell
 $headers = @{ Authorization = "Bearer $env:CRON_SECRET" }
-Invoke-RestMethod -Uri "https://antrag-tennisclub-vreden.vercel.app/api/cron/supabase-heartbeat" -Headers $headers
+Invoke-RestMethod -Uri "https://tennisclub-vreden.vercel.app/api/cron/supabase-heartbeat" -Headers $headers
 ```
 
 Die Antwort sollte `ok: true` enthalten.

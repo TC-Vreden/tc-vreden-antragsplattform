@@ -143,9 +143,9 @@ export const handbookPages: HandbookPage[] = [
         rows: [
           ["Lokaler Ordner", "F:\\Onedrive\\Dokumente\\Codex\\TC-Vreden\\webapp-prototyp"],
           ["GitHub", "https://github.com/TC-Vreden/tc-vreden-antragsplattform.git"],
-          ["Vercel", "antrag-tennisclub-vreden im Scope tc-vredens-projects"],
+          ["Vercel", "tennisclub-vreden im Scope tc-vredens-projects"],
           ["Supabase", "xftnhnojaizyaecvtxcq / tennisclub-vreden"],
-          ["Live-URL", "https://antrag-tennisclub-vreden.vercel.app"]
+          ["Live-URL", "https://tennisclub-vreden.vercel.app"]
         ]
       },
       {

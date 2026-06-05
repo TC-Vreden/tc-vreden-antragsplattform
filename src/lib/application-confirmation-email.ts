@@ -34,7 +34,13 @@ type ApplicationConfirmationEmailInput = {
 };
 
 const germanTimeZone = "Europe/Berlin";
-const brandLogoUrl = "https://antrag-tennisclub-vreden.vercel.app/brand/tc-vreden-logo.png";
+const defaultSiteUrl = "https://tennisclub-vreden.vercel.app";
+
+function getBrandLogoUrl() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/u, "") || defaultSiteUrl;
+
+  return `${siteUrl}/brand/tc-vreden-logo.png`;
+}
 
 function escapeHtml(value: string | number | boolean | null | undefined) {
   return String(value ?? "")
@@ -153,7 +159,7 @@ function buildHtml(
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:760px;border-collapse:collapse;border:1px solid #e3d8c0;background:#ffffff;">
             <tr>
               <td style="padding:18px 20px 14px;border-bottom:4px solid #ffd800;background:#ffffff;">
-                <img src="${escapeHtml(brandLogoUrl)}" width="130" alt="${escapeHtml(clubContact.name)}" style="display:block;width:130px;max-width:130px;height:auto;border:0;margin:0 0 12px;" />
+                <img src="${escapeHtml(getBrandLogoUrl())}" width="130" alt="${escapeHtml(clubContact.name)}" style="display:block;width:130px;max-width:130px;height:auto;border:0;margin:0 0 12px;" />
                 <h1 style="margin:0;color:#1f1f1d;font-family:Arial,sans-serif;font-size:24px;line-height:1.2;font-weight:700;">Bestätigung deiner Mitgliedschaft</h1>
               </td>
             </tr>

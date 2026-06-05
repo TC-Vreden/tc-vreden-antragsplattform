@@ -92,4 +92,4 @@ Nicht sofort, aber bald:
 - Supabase Service Role Key
 - eBuSy-API-Zugangsdaten
 - Corporate-Design-PDF
-- spaeter Domain-Zuweisung fuer `antrag.tennisclub-vreden.de`
+- spaeter Domain-Zuweisung fuer eine eigene Vereinsdomain, z. B. `app.tennisclub-vreden.de`

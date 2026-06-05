@@ -8,10 +8,10 @@ Diese Datei beschreibt die lokale Codex-Einrichtung fuer die TC-Vreden Antragspl
 
 - Lokaler Ordner: `F:\Onedrive\Dokumente\Codex\TC-Vreden\webapp-prototyp`
 - GitHub: `https://github.com/TC-Vreden/tc-vreden-antragsplattform.git`
-- Vercel-Projekt: `antrag-tennisclub-vreden`
+- Vercel-Projekt: `tennisclub-vreden`
 - Vercel-Scope: `tc-vredens-projects`
 - Supabase-Projekt: `xftnhnojaizyaecvtxcq`
-- Live-URL: `https://antrag-tennisclub-vreden.vercel.app`
+- Live-URL: `https://tennisclub-vreden.vercel.app`
 
 Massgeblich sind immer die lokalen Routing-Dateien:
 

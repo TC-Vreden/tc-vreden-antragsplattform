@@ -35,10 +35,10 @@ Erwartetes Routing:
 - Lokaler Ordner: F:\Onedrive\Dokumente\Codex\TC-Vreden\webapp-prototyp
 - GitHub: https://github.com/TC-Vreden/tc-vreden-antragsplattform.git
 - Branch: main
-- Vercel-Projekt: antrag-tennisclub-vreden
+- Vercel-Projekt: tennisclub-vreden
 - Vercel-Scope: tc-vredens-projects
 - Supabase-Projekt: xftnhnojaizyaecvtxcq / tennisclub-vreden
-- Live-URL: https://antrag-tennisclub-vreden.vercel.app
+- Live-URL: https://tennisclub-vreden.vercel.app
 
 Ziel dieses neuen Threads:
 Plane und implementiere ein kleines, sauberes Rechte- und Rollensystem fuer die interne Verwaltung. Aktuell ist der interne Bereich nur per gemeinsamer Basic Auth ueber INTERNAL_ACCESS_USERNAME / INTERNAL_ACCESS_PASSWORD geschuetzt. Ziel ist: mehrere interne Benutzer, Rollen/Rechte, Benutzerverwaltung in der App, Einladung/Passwort-Prozess und Audit-Log, damit nachvollziehbar ist, welcher interne User welche Aktion ausgefuehrt hat.
@@ -59,7 +59,7 @@ Wichtig:
   - `c479710 TC-Vreden: add Supabase heartbeat cron`
   - `f4ad399 TC-Vreden: harden Codex routing checks`
 - Release-/Doctor-Setup ist projektgeroutet und funktionierte am 28.05.2026.
-- Vercel Production ist live unter `https://antrag-tennisclub-vreden.vercel.app`.
+- Vercel Production ist live unter `https://tennisclub-vreden.vercel.app`.
 - Supabase-Migration `20260528_add_system_heartbeat.sql` wurde angewendet.
 - Der Supabase-Heartbeat funktioniert live ueber `/api/cron/supabase-heartbeat` mit `CRON_SECRET`.
 
@@ -67,7 +67,7 @@ Wichtig:
 
 - `AGENTS.md`: Projektregeln, Trennung zu Filter.Shop, Dokumentationspflicht.
 - `.codex-project.json`: Projekt-Routing fuer GitHub, Vercel, Supabase, Runtime-Env.
-- `.vercel\project.json`: Vercel-Link auf `antrag-tennisclub-vreden`.
+- `.vercel\project.json`: Vercel-Link auf `tennisclub-vreden`.
 - `.deploy.local.ps1`: lokale Release-Secrets, gitignored, nicht anzeigen.
 - `.env.local`: lokale Runtime-Secrets, gitignored, nicht anzeigen.
 - `scripts\codex-doctor.ps1`: Routing-/Credential-/Runtime-Pruefung.
