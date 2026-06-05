@@ -320,6 +320,11 @@ p {
 }
 
 .internal-user-bar {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.72fr) minmax(0, 1.28fr);
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
   padding: 14px 16px;
 }
 
@@ -336,6 +341,7 @@ p {
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .internal-nav form {
@@ -347,7 +353,7 @@ p {
   align-items: center;
   justify-content: center;
   min-height: 40px;
-  padding: 0 14px;
+  padding: 0 12px;
   border: 1px solid rgba(30, 30, 28, 0.18);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.92);
@@ -633,10 +639,10 @@ p {
 .invite-user-grid {
   display: grid;
   grid-template-columns:
-    minmax(220px, 1.1fr)
+    minmax(220px, 1.15fr)
     minmax(220px, 1fr)
     minmax(170px, 0.7fr)
-    minmax(180px, auto);
+    minmax(170px, 0.58fr);
   gap: 14px;
   align-items: end;
 }
@@ -648,23 +654,24 @@ p {
 }
 
 .users-table {
-  min-width: 1040px;
+  min-width: 980px;
   table-layout: fixed;
 }
 
 .users-table th,
 .users-table td {
+  padding: 14px 10px;
   vertical-align: middle;
 }
 
 .users-table th:nth-child(1),
 .users-table td:nth-child(1) {
-  width: 28%;
+  width: 29%;
 }
 
 .users-table th:nth-child(2),
 .users-table td:nth-child(2) {
-  width: 18%;
+  width: 16%;
 }
 
 .users-table th:nth-child(3),
@@ -674,7 +681,7 @@ p {
 
 .users-table th:nth-child(4),
 .users-table td:nth-child(4) {
-  width: 25%;
+  width: 26%;
 }
 
 .users-table th:nth-child(5),
@@ -692,9 +699,9 @@ p {
 
 .users-table input,
 .users-table select {
-  min-height: 42px;
-  border-radius: 9px;
-  padding: 9px 11px;
+  min-height: 44px;
+  border-radius: 11px;
+  padding: 10px 12px;
   font-size: 0.95rem;
 }
 
@@ -713,8 +720,8 @@ p {
 
 .activity-line {
   display: grid;
-  grid-template-columns: 78px minmax(0, 1fr);
-  gap: 6px;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 8px;
   margin: 0 0 4px;
 }
 
@@ -730,15 +737,17 @@ p {
 
 .user-action-list {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  min-width: 150px;
 }
 
 .user-action-button {
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: 9px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
   box-shadow: none;
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   white-space: nowrap;
 }
 
@@ -848,6 +857,14 @@ p {
 
   .invite-user-grid {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+
+  .internal-user-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .internal-nav {
+    justify-content: flex-start;
   }
 }
 

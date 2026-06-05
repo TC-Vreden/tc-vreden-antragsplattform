@@ -16,17 +16,7 @@ export function InternalUserBar({ actor }: Props) {
   const canReadTestLab = hasInternalPermission(actor.role, "testlab.read");
 
   return (
-    <div
-      className="hint-box internal-user-bar"
-      style={{
-        alignItems: "center",
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 12,
-        justifyContent: "space-between",
-        marginBottom: 20
-      }}
-    >
+    <div className="hint-box internal-user-bar">
       <div>
         <strong>{actor.displayName ?? actor.email}</strong>
         <p className="internal-user-email">{actor.email}</p>
