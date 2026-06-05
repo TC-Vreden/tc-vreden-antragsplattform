@@ -5,6 +5,16 @@ import Link from "next/link";
 import type { Route } from "next";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
+function translateResetError(message: string) {
+  const normalizedMessage = message.toLowerCase();
+
+  if (normalizedMessage.includes("rate limit")) {
+    return "Der Mailversand wurde gerade begrenzt. Bitte später erneut versuchen oder den Link in der Benutzerverwaltung erneut senden.";
+  }
+
+  return message;
+}
+
 export function PasswordResetRequestForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +34,7 @@ export function PasswordResetRequestForm() {
     });
 
     if (error) {
-      setErrorMessage(error.message);
+      setErrorMessage(translateResetError(error.message));
       setLoading(false);
       return;
     }

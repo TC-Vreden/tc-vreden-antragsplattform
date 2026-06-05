@@ -40,15 +40,6 @@ export default async function InternalLoginPage({ searchParams }: Props) {
         <TcVredenLogo />
         <span className="eyebrow">Interner Bereich</span>
         <h1 className="page-title">Login</h1>
-        <p>
-          Bitte mit dem persönlichen internen Zugang anmelden. Einladungs- und
-          Passwortlinks laufen über Supabase Auth.
-        </p>
-        <p>
-          Für den ersten Admin kann der alte Übergangs-Zugang gezielt über{" "}
-          <a href="/verwaltung/benutzer?legacy=1">/verwaltung/benutzer?legacy=1</a>{" "}
-          verwendet werden, solange die Basic-Auth-Fallback-Variable aktiv ist.
-        </p>
 
         {reasonText ? (
           <div className="warning-box" style={{ marginBottom: 20 }}>

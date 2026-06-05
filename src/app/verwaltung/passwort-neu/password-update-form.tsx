@@ -42,13 +42,35 @@ function clearAuthParamsFromUrl() {
   window.history.replaceState(null, document.title, window.location.pathname);
 }
 
+function getInactivePasswordSessionMessage(hasExistingSession: boolean) {
+  if (hasExistingSession) {
+    return "Bitte öffne den Passwortlink direkt aus der E-Mail. Aus Sicherheitsgründen kann ein Passwort hier nicht über eine bereits bestehende Anmeldung geändert werden.";
+  }
+
+  return null;
+}
+
+function translatePasswordUpdateError(message: string) {
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("auth session missing") ||
+    normalizedMessage.includes("session missing") ||
+    normalizedMessage.includes("jwt")
+  ) {
+    return "Die Passwort-Sitzung ist nicht mehr aktiv. Bitte fordere einen neuen Link an und öffne ihn direkt im gewünschten Browser.";
+  }
+
+  return message;
+}
+
 export function PasswordUpdateForm() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [passwordRepeat, setPasswordRepeat] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [hasSession, setHasSession] = useState(false);
+  const [canSetPassword, setCanSetPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -61,6 +83,7 @@ export function PasswordUpdateForm() {
       const linkError = getAuthError(hashParams) ?? getAuthError(searchParams);
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
+      const code = searchParams.get("code");
 
       if (!isMounted) {
         return;
@@ -78,7 +101,7 @@ export function PasswordUpdateForm() {
           return;
         }
 
-        setHasSession(Boolean(data.session));
+        setCanSetPassword(Boolean(data.session));
         setErrorMessage(
           data.session
             ? null
@@ -87,6 +110,27 @@ export function PasswordUpdateForm() {
               : linkError
                 ? translateAuthError(linkError)
                 : "Der Passwortlink konnte nicht aktiviert werden."
+        );
+        setCheckingSession(false);
+        return;
+      }
+
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+        clearAuthParamsFromUrl();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCanSetPassword(Boolean(data.session));
+        setErrorMessage(
+          data.session
+            ? null
+            : error
+              ? translateAuthError({ code: error.name, message: error.message })
+              : "Der Passwortlink konnte nicht aktiviert werden."
         );
         setCheckingSession(false);
         return;
@@ -108,35 +152,21 @@ export function PasswordUpdateForm() {
         clearAuthParamsFromUrl();
       }
 
-      setHasSession(sessionIsActive);
+      setCanSetPassword(false);
       setErrorMessage(
-        sessionIsActive
-          ? null
-          : linkError
+        linkError
             ? translateAuthError(linkError)
             : error
               ? error.message
-              : null
+              : getInactivePasswordSessionMessage(sessionIsActive)
       );
       setCheckingSession(false);
     }
-
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted) {
-        return;
-      }
-
-      setHasSession(Boolean(session));
-      setCheckingSession(false);
-    });
 
     initializeSession();
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
     };
   }, []);
 
@@ -144,9 +174,9 @@ export function PasswordUpdateForm() {
     event.preventDefault();
     setErrorMessage(null);
 
-    if (!hasSession) {
+    if (!canSetPassword) {
       setErrorMessage(
-        "Der Passwortlink ist nicht aktiv. Bitte den Link aus der E-Mail neu öffnen."
+        "Der Passwortlink ist nicht aktiv. Bitte öffne den Link aus der E-Mail erneut."
       );
       return;
     }
@@ -168,7 +198,11 @@ export function PasswordUpdateForm() {
     });
 
     if (error) {
-      setErrorMessage(error.message);
+      const translatedError = translatePasswordUpdateError(error.message);
+      setErrorMessage(translatedError);
+      if (translatedError !== error.message) {
+        setCanSetPassword(false);
+      }
       setLoading(false);
       return;
     }
@@ -186,7 +220,7 @@ export function PasswordUpdateForm() {
         </div>
       ) : null}
 
-      {!checkingSession && hasSession ? (
+      {!checkingSession && canSetPassword ? (
         <>
           <div className="field">
             <label htmlFor="new-password">Neues Passwort</label>
@@ -219,13 +253,13 @@ export function PasswordUpdateForm() {
       {errorMessage ? (
         <div className="warning-box">
           <strong>
-            {hasSession ? "Passwort konnte nicht gesetzt werden" : "Passwortlink konnte nicht geöffnet werden"}
+            {canSetPassword ? "Passwort konnte nicht gesetzt werden" : "Passwortlink konnte nicht geöffnet werden"}
           </strong>
           <p style={{ margin: "8px 0 0" }}>{errorMessage}</p>
         </div>
       ) : null}
 
-      {!checkingSession && !hasSession && !errorMessage ? (
+      {!checkingSession && !canSetPassword && !errorMessage ? (
         <div className="warning-box">
           <strong>Passwortlink fehlt</strong>
           <p style={{ margin: "8px 0 0" }}>
@@ -235,7 +269,7 @@ export function PasswordUpdateForm() {
       ) : null}
 
       <div className="cta-row">
-        {checkingSession ? null : hasSession ? (
+        {checkingSession ? null : canSetPassword ? (
           <button className="button" type="submit" disabled={loading || checkingSession}>
             {loading ? "Passwort wird gespeichert..." : "Passwort speichern"}
           </button>

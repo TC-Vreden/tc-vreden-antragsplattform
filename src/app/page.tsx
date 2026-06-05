@@ -1,48 +1,5 @@
-import Link from "next/link";
-import { TcVredenLogo } from "@/components/tc-vreden-logo";
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return (
-    <main className="page-shell">
-      <section className="hero">
-        <TcVredenLogo />
-        <span className="eyebrow">TC Vreden Prototyp</span>
-        <h1>Digitale Vereinsprozesse statt Papierstapel.</h1>
-        <p>
-          Dieser erste Prototyp sammelt Mitgliedsanfragen außerhalb von eBuSy, speichert sie
-          strukturiert und bereitet sie für die interne Bearbeitung vor.
-        </p>
-        <div className="cta-row">
-          <Link className="button" href="/anmelden">
-            Neuanmeldung testen
-          </Link>
-          <Link className="button secondary" href="/verwaltung">
-            Interne Ansicht
-          </Link>
-        </div>
-      </section>
-
-      <section className="grid grid-2" style={{ marginTop: 28 }}>
-        <article className="card">
-          <h2>Version 1</h2>
-          <ul className="list">
-            <li>Neuanmeldung über eigenes Vereinsformular</li>
-            <li>Zwischenspeicherung in Supabase</li>
-            <li>interne Bearbeitung mit Personenabgleich</li>
-            <li>gesicherter eBuSy-Abgleich im internen Bereich</li>
-          </ul>
-        </article>
-
-        <article className="card">
-          <h2>Danach</h2>
-          <ul className="list">
-            <li>automatische Zuordnung zu Bestandsmitgliedern</li>
-            <li>PDF-Zusammenfassung per E-Mail</li>
-            <li>Bestandsmitglieder und Padel-Umstellung</li>
-            <li>spätere SEPA- und Einwilligungsstrecken</li>
-          </ul>
-        </article>
-      </section>
-    </main>
-  );
+  redirect("/verwaltung");
 }

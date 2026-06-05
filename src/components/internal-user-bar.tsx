@@ -29,6 +29,7 @@ export function InternalUserBar({ actor }: Props) {
     >
       <div>
         <strong>{actor.displayName ?? actor.email}</strong>
+        <p className="internal-user-email">{actor.email}</p>
         <p style={{ margin: "4px 0 0" }}>
           Rolle: {getInternalRoleLabel(actor.role)}
           {actor.authMode === "basic" ? " (Übergangs-Zugang)" : ""}
