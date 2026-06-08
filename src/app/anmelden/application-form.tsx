@@ -941,8 +941,7 @@ export function ApplicationForm({ content }: ApplicationFormProps) {
         <div className="result-box is-success">
           <h3 style={{ fontSize: "1.1rem", marginBottom: 10 }}>Antrag gespeichert</h3>
           <p>
-            Der Antrag wurde gespeichert und an den Verein übermittelt. Deine Referenznummer:{" "}
-            <strong>{state.id}</strong>.
+            Der Antrag wurde gespeichert und an den Verein übermittelt.
           </p>
         </div>
       ) : null}

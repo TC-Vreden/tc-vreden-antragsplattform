@@ -25,7 +25,7 @@ Massgeblich sind:
 ## Arbeitsweise
 
 - Keine Secrets ausgeben oder committen.
-- Keine Filter.Shop-Dateien, -Secrets oder -Projekte verwenden.
+- Keine Dateien, Secrets oder Projekte aus anderen Arbeitskontexten verwenden.
 - Bei Codeaenderungen zuerst vorhandene Patterns lesen.
 - Manuelle Edits mit `apply_patch`.
 - Vor Release:
