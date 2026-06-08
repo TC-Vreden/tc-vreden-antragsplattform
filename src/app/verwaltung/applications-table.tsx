@@ -628,7 +628,8 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
     }
 
     return (
-      <table className="table">
+      <div className="table-scroll application-table-scroll">
+        <table className="table management-applications-table">
         <thead>
           <tr>
             <th>Eingang</th>
@@ -694,7 +695,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                     ) : null}
                   </td>
                   <td>
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div className="application-action-list">
                       <button
                         className="button secondary"
                         type="button"
@@ -811,7 +812,8 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
             );
           })}
         </tbody>
-      </table>
+        </table>
+      </div>
     );
   }
 

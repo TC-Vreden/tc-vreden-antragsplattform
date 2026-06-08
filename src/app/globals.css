@@ -529,6 +529,62 @@ p {
   overflow-x: auto;
 }
 
+.application-table-scroll {
+  max-width: 100%;
+}
+
+.management-applications-table {
+  min-width: 1180px;
+  table-layout: fixed;
+}
+
+.management-applications-table th,
+.management-applications-table td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.management-applications-table th:nth-child(1),
+.management-applications-table td:nth-child(1) {
+  width: 9%;
+}
+
+.management-applications-table th:nth-child(2),
+.management-applications-table td:nth-child(2) {
+  width: 25%;
+}
+
+.management-applications-table th:nth-child(3),
+.management-applications-table td:nth-child(3) {
+  width: 15%;
+}
+
+.management-applications-table th:nth-child(4),
+.management-applications-table td:nth-child(4) {
+  width: 15%;
+}
+
+.management-applications-table th:nth-child(5),
+.management-applications-table td:nth-child(5) {
+  width: 21%;
+}
+
+.management-applications-table th:nth-child(6),
+.management-applications-table td:nth-child(6) {
+  width: 224px;
+}
+
+.application-action-list {
+  display: grid;
+  gap: 10px;
+  justify-items: stretch;
+}
+
+.application-action-list .button {
+  width: 100%;
+  padding-inline: 14px;
+}
+
 .audit-table-scroll {
   margin-top: 22px;
   max-width: 100%;
