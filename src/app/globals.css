@@ -534,7 +534,7 @@ p {
 }
 
 .management-applications-table {
-  min-width: 1180px;
+  min-width: 0;
   table-layout: fixed;
 }
 
@@ -551,27 +551,27 @@ p {
 
 .management-applications-table th:nth-child(2),
 .management-applications-table td:nth-child(2) {
-  width: 25%;
+  width: 26%;
 }
 
 .management-applications-table th:nth-child(3),
 .management-applications-table td:nth-child(3) {
-  width: 15%;
+  width: 14%;
 }
 
 .management-applications-table th:nth-child(4),
 .management-applications-table td:nth-child(4) {
-  width: 15%;
+  width: 13%;
 }
 
 .management-applications-table th:nth-child(5),
 .management-applications-table td:nth-child(5) {
-  width: 21%;
+  width: 20%;
 }
 
 .management-applications-table th:nth-child(6),
 .management-applications-table td:nth-child(6) {
-  width: 224px;
+  width: 18%;
 }
 
 .application-action-list {
@@ -581,6 +581,7 @@ p {
 }
 
 .application-action-list .button {
+  min-width: 0;
   width: 100%;
   padding-inline: 14px;
 }

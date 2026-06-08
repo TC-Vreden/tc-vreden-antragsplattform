@@ -700,7 +700,6 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                         className="button secondary"
                         type="button"
                         onClick={() => toggleDetails(application.id)}
-                        style={{ minWidth: 190 }}
                       >
                         {showDetails ? "Details ausblenden" : "Details anzeigen"}
                       </button>
@@ -711,7 +710,6 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           type="button"
                           disabled={Boolean(localState?.loading)}
                           onClick={() => startEditing(application.id)}
-                          style={{ minWidth: 190 }}
                         >
                           {editing ? "Bearbeitung geöffnet" : "Antrag bearbeiten"}
                         </button>
@@ -723,7 +721,6 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           type="button"
                           disabled={Boolean(localState?.loading)}
                           onClick={() => handleMatch(application.id)}
-                          style={{ minWidth: 190 }}
                         >
                           {localState?.loading
                             ? "Abgleich läuft..."
@@ -739,7 +736,6 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           type="button"
                           disabled={Boolean(localState?.loading)}
                           onClick={() => toggleCandidates(application.id)}
-                          style={{ minWidth: 190 }}
                         >
                           {showCandidates
                             ? "Antrag ausblenden"
@@ -760,7 +756,6 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                                 : "Legt aus diesem Antrag eine neue Person in eBuSy an."
                           }
                           onClick={() => handleCreateEbusy(application.id)}
-                          style={{ minWidth: 190 }}
                         >
                           {localState?.loading
                             ? "Anlage läuft..."
@@ -783,7 +778,6 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                             : "Löscht den gespeicherten Antrag aus der Verwaltung."
                         }
                         onClick={() => handleDelete(application.id)}
-                        style={{ minWidth: 190 }}
                       >
                         Eintrag löschen
                       </button>
