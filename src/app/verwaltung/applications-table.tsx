@@ -784,7 +784,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                         onClick={() => handleDelete(application.id)}
                         style={{ minWidth: 190 }}
                       >
-                        {transferred ? "Eintrag löschen" : "Testeintrag löschen"}
+                        Eintrag löschen
                       </button>
                       ) : null}
                     </div>
