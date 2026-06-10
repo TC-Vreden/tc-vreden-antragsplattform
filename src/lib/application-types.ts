@@ -77,7 +77,7 @@ export type ApplicationMatchPayload = {
     | "person_created"
     | "created_in_ebusy"
     | "error";
-  source?: "mock" | "live";
+  source?: "mock" | "live" | "test_lab";
   message?: string;
   candidates: ApplicationMatchCandidate[];
   createdPerson?: {

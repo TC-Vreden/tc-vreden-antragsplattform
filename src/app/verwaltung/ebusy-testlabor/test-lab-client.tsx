@@ -92,6 +92,10 @@ function scenarioSupportsMembership(scenario: EbusyTestScenario | undefined) {
   return Boolean(scenario.membershipTest);
 }
 
+function isMembershipExtensionScenario(scenario: EbusyTestScenario | undefined) {
+  return scenario?.kind === "single" && scenario.application.request_type === "membership_extension";
+}
+
 export function EbusyTestLabClient({
   scenarios,
   writeEnabled,
@@ -107,6 +111,7 @@ export function EbusyTestLabClient({
   const isBusy = Boolean(loadingAction) || batchLoading;
   const selectedScenario = scenarios.find((scenario) => scenario.id === selectedScenarioId);
   const selectedScenarioIsMulti = selectedScenario?.kind === "multi";
+  const selectedScenarioIsMembershipExtension = isMembershipExtensionScenario(selectedScenario);
   const selectedScenarioHasAttributes = scenarioSupportsAttributes(selectedScenario);
   const selectedScenarioHasMembership = scenarioSupportsMembership(selectedScenario);
 
@@ -277,20 +282,26 @@ export function EbusyTestLabClient({
             disabled={isBusy || !canCreateManagementApplication}
             onClick={() => runAction("create_management_application")}
           >
-            {getActionLabel(
-              "create_management_application",
-              loadingAction === "create_management_application"
-            )}
+            {selectedScenarioIsMembershipExtension
+              ? loadingAction === "create_management_application"
+                ? "Erweiterungsantrag wird angelegt..."
+                : "Erweiterungsantrag in Verwaltung anlegen"
+              : getActionLabel(
+                  "create_management_application",
+                  loadingAction === "create_management_application"
+                )}
           </button>
-          <button
-            className="button"
-            type="button"
-            disabled={isBusy || !canRunLiveActions}
-            onClick={() => runAction("create_person")}
-          >
-            {getActionLabel("create_person", loadingAction === "create_person", selectedScenarioIsMulti)}
-          </button>
-          {selectedScenarioHasAttributes ? (
+          {!selectedScenarioIsMembershipExtension ? (
+            <button
+              className="button"
+              type="button"
+              disabled={isBusy || !canRunLiveActions}
+              onClick={() => runAction("create_person")}
+            >
+              {getActionLabel("create_person", loadingAction === "create_person", selectedScenarioIsMulti)}
+            </button>
+          ) : null}
+          {!selectedScenarioIsMembershipExtension && selectedScenarioHasAttributes ? (
             <button
               className="button"
               type="button"
@@ -304,7 +315,7 @@ export function EbusyTestLabClient({
               )}
             </button>
           ) : null}
-          {selectedScenarioHasMembership ? (
+          {!selectedScenarioIsMembershipExtension && selectedScenarioHasMembership ? (
             <button
               className="button"
               type="button"
@@ -318,7 +329,7 @@ export function EbusyTestLabClient({
               )}
             </button>
           ) : null}
-          {selectedScenarioHasAttributes && selectedScenarioHasMembership ? (
+          {!selectedScenarioIsMembershipExtension && selectedScenarioHasAttributes && selectedScenarioHasMembership ? (
             <button
               className="button"
               type="button"
@@ -334,7 +345,15 @@ export function EbusyTestLabClient({
           ) : null}
         </div>
 
-        {!writeEnabled ? (
+        {selectedScenarioIsMembershipExtension ? (
+          <div className="hint-box" style={{ marginTop: 16 }}>
+            <strong>Erweiterungsworkflow</strong>
+            <p style={{ margin: "8px 0 0" }}>
+              Dieses Szenario legt nur den Erweiterungsantrag in der Verwaltung an. Die neue
+              Person wird erst über den Verwaltungsbutton nach eBuSy übertragen.
+            </p>
+          </div>
+        ) : !writeEnabled ? (
           <div className="warning-box" style={{ marginTop: 16 }}>
             <strong>Live-Schreibtest gesperrt</strong>
             <p style={{ margin: "8px 0 0" }}>

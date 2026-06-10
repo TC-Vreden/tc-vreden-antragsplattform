@@ -1,4 +1,8 @@
-import type { ApplicationRow } from "@/lib/application-types";
+import type {
+  ApplicationMatchPayload,
+  ApplicationMatchSummary,
+  ApplicationRow
+} from "@/lib/application-types";
 import { getMembershipLabel } from "@/lib/application-options";
 import { sendApplicationReceivedNotification } from "@/lib/application-notification-email";
 import { getMailEnv } from "@/lib/mail";
@@ -131,6 +135,7 @@ type EbusyTestCreatedPerson = NonNullable<EbusyTestLabResult["createdPersons"]>[
 type EbusyTestCreatedMembership = NonNullable<EbusyTestLabResult["createdMemberships"]>[number];
 
 const TEST_MARKER = "AUTOMATISCHER EBUSY-TEST - darf gelöscht werden";
+const DEFAULT_EXTENSION_PAYER_PERSON_ID = "886";
 const SIMPLE_ACTIVE_TENNIS_MEMBERSHIP: EbusyMembershipWriteConfig = {
   moduleId: 4,
   sectionIds: [1],
@@ -449,6 +454,82 @@ function getTestApplicantEmail(runId: string, fallback: string) {
   );
 }
 
+function getPersonDisplayName(person: EbusyPerson, fallback: string) {
+  return `${person.firstname ?? ""} ${person.lastname ?? ""}`.trim() || fallback;
+}
+
+function getPersonEmail(person: EbusyPerson, fallback: string) {
+  return (
+    person.contact?.email ??
+    person.user?.email ??
+    person.user?.username ??
+    person.user?.name ??
+    fallback
+  );
+}
+
+function getExtensionPayerPersonId(application: ApplicationRow) {
+  return (
+    application.ebusy_person_id?.trim() ||
+    process.env.EBUSY_TEST_EXTENSION_PAYER_PERSON_ID?.trim() ||
+    DEFAULT_EXTENSION_PAYER_PERSON_ID
+  );
+}
+
+async function buildMembershipExtensionManagementFixture(application: ApplicationRow) {
+  const payerPersonId = getExtensionPayerPersonId(application);
+  const payerPerson = await getEbusyPersonById(payerPersonId);
+  const externalPersonId = String(payerPerson.id ?? payerPersonId);
+  const displayName = getPersonDisplayName(payerPerson, `${application.first_name} ${application.last_name}`.trim());
+  const payerEmail = getPersonEmail(payerPerson, application.email);
+  const matchPayload: ApplicationMatchPayload = {
+    status: "match_found",
+    source: "test_lab",
+    message:
+      `Test-Hauptmitglied für die Mitgliedschaftserweiterung wurde fest verknüpft: ${displayName} (${externalPersonId}).`,
+    candidates: [
+      {
+        externalPersonId,
+        matchScore: 100,
+        matchReason: "Fest hinterlegter Testzahler für das Erweiterungs-Testlabor",
+        displayName,
+        email: payerEmail,
+        birthDate: payerPerson.birthday,
+        personCode: payerPerson.code ?? "",
+        customerId: payerPerson.customerId ?? ""
+      }
+    ]
+  };
+
+  return {
+    application: {
+      ...application,
+      salutation: payerPerson.salutation ?? application.salutation,
+      first_name: payerPerson.firstname ?? application.first_name,
+      last_name: payerPerson.lastname ?? application.last_name,
+      birth_date: payerPerson.birthday ?? application.birth_date,
+      email: payerEmail,
+      phone: payerPerson.contact?.phone ?? application.phone,
+      mobile: payerPerson.contact?.mobile ?? application.mobile,
+      street: payerPerson.address?.street ?? application.street,
+      postal_code: payerPerson.address?.postcode ?? application.postal_code,
+      city: payerPerson.address?.city ?? application.city,
+      ebusy_match_status: "match_found",
+      ebusy_person_id: externalPersonId,
+      ebusy_match_payload: matchPayload
+    } satisfies ApplicationRow,
+    matchPayload,
+    matchSummary: {
+      status: "match_found",
+      message:
+        `Bestehendes Test-Hauptmitglied ist verknüpft: ${displayName} (${externalPersonId}).`,
+      externalPersonId,
+      candidateCount: 1
+    } satisfies ApplicationMatchSummary,
+    payerPerson
+  };
+}
+
 function normalizeFamilyMembersForManagement(application: ApplicationRow) {
   const mainApplicantName = `${application.first_name} ${application.last_name}`.trim();
 
@@ -477,7 +558,17 @@ async function createManagementApplicationTest(
 ): Promise<EbusyTestLabResult> {
   const runId = createTestRunId();
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
-  const application = getManagementApplicationForScenario(scenario, runId);
+  let application = getManagementApplicationForScenario(scenario, runId);
+  const requestType = application.request_type ?? "new_membership";
+  const extensionFixture =
+    requestType === "membership_extension"
+      ? await buildMembershipExtensionManagementFixture(application)
+      : null;
+
+  if (extensionFixture) {
+    application = extensionFixture.application;
+  }
+
   const applicantEmail = getTestApplicantEmail(runId, application.email);
   const familyMembers = normalizeFamilyMembersForManagement({
     ...application,
@@ -487,7 +578,7 @@ async function createManagementApplicationTest(
   const supabase = getSupabaseAdminClient();
   const insertPayload = {
     source: "test_lab",
-    request_type: "new_membership",
+    request_type: requestType,
     status: "submitted",
     salutation: application.salutation,
     first_name: application.first_name,
@@ -518,19 +609,22 @@ async function createManagementApplicationTest(
     guardian_consent: application.guardian_consent,
     notes: [
       application.notes,
-      `Testlabor-Verwaltungsworkflow ${runId}: Antrag wurde absichtlich nur bis zur Verwaltungsoberfläche angelegt. Nach Prüfung kann er dort nach eBuSy übernommen werden.`
+      requestType === "membership_extension"
+        ? `Testlabor-Erweiterungsworkflow ${runId}: Antrag wurde wie über das Erweiterungsformular erzeugt. Das bestehende Hauptmitglied ist bereits mit eBuSy verknüpft; neue Zusatzpersonen werden erst bei der Übernahme in der Verwaltung nach eBuSy geschrieben.`
+        : `Testlabor-Verwaltungsworkflow ${runId}: Antrag wurde absichtlich nur bis zur Verwaltungsoberfläche angelegt. Nach Prüfung kann er dort nach eBuSy übernommen werden.`
     ]
       .filter(Boolean)
       .join("\n"),
-    ebusy_match_status: "pending",
-    ebusy_person_id: null,
-    ebusy_match_payload: {
-      status: "pending",
-      source: "test_lab",
-      message:
-        "Testantrag wurde im eBuSy-Testlabor angelegt. Bitte den automatischen Abgleich prüfen.",
-      candidates: []
-    }
+    ebusy_match_status: extensionFixture ? "match_found" : "pending",
+    ebusy_person_id: extensionFixture?.matchSummary.externalPersonId ?? null,
+    ebusy_match_payload:
+      extensionFixture?.matchPayload ?? {
+        status: "pending",
+        source: "test_lab",
+        message:
+          "Testantrag wurde im eBuSy-Testlabor angelegt. Bitte den automatischen Abgleich prüfen.",
+        candidates: []
+      }
   };
 
   const { data, error } = await supabase
@@ -543,11 +637,11 @@ async function createManagementApplicationTest(
     throw new Error(error?.message ?? "Supabase hat keinen Testantrag zurückgegeben.");
   }
 
-  const matchSummary = await matchApplicationWithEbusy(data.id);
+  const matchSummary = extensionFixture?.matchSummary ?? (await matchApplicationWithEbusy(data.id));
   const notificationResult = await sendApplicationReceivedNotification({
     applicationId: data.id,
     createdAt: data.created_at,
-    requestType: "new_membership",
+    requestType,
     salutation: application.salutation,
     firstName: application.first_name,
     lastName: application.last_name,
@@ -576,7 +670,9 @@ async function createManagementApplicationTest(
       kind: scenario.kind
     },
     message:
-      "Testantrag wurde in Supabase angelegt, in der Verwaltung sichtbar gemacht und per normalem eBuSy-Abgleich geprüft. Es wurde keine Person in eBuSy angelegt.",
+      requestType === "membership_extension"
+        ? "Erweiterungs-Testantrag wurde in Supabase angelegt und in der Verwaltung sichtbar gemacht. Das bestehende Hauptmitglied ist bereits als eBuSy-Zahler verknüpft. Neue Personen werden erst angelegt, wenn du den Antrag in der Verwaltung übernimmst."
+        : "Testantrag wurde in Supabase angelegt, in der Verwaltung sichtbar gemacht und per normalem eBuSy-Abgleich geprüft. Es wurde keine Person in eBuSy angelegt.",
     payload: sanitizePayload({
       runId,
       insertPayload,
@@ -585,7 +681,9 @@ async function createManagementApplicationTest(
     }),
     checks: [],
     cleanupHint:
-      "Der Testantrag kann in der Verwaltung bearbeitet, erneut abgeglichen, nach eBuSy übernommen und danach aus der Verwaltung gelöscht werden. In eBuSy angelegte Testpersonen müssen separat geprüft und ggf. manuell entfernt werden.",
+      requestType === "membership_extension"
+        ? "Der Erweiterungs-Testantrag kann in der Verwaltung geprüft und über 'Erweiterung übernehmen' nach eBuSy geschrieben werden. Dabei neu angelegte Zusatzpersonen müssen nach der Prüfung in eBuSy manuell gelöscht werden; das bestehende Hauptmitglied bleibt unverändert."
+        : "Der Testantrag kann in der Verwaltung bearbeitet, erneut abgeglichen, nach eBuSy übernommen und danach aus der Verwaltung gelöscht werden. In eBuSy angelegte Testpersonen müssen separat geprüft und ggf. manuell entfernt werden.",
     managementApplication: {
       id: data.id,
       createdAt: data.created_at,
@@ -761,6 +859,51 @@ export const ebusyTestScenarios: EbusyTestScenario[] = [
       consideredActive: true,
       status: "ACTIVE"
     }
+  },
+  {
+    kind: "single",
+    id: "membership_extension_child",
+    title: "Mitgliedschaft erweitern: Kind hinzufügen",
+    description:
+      "Legt einen Erweiterungsantrag wie über das neue Formular an: vorhandenes Test-Hauptmitglied als Zahler plus ein neues Kind. Der Antrag landet zuerst in der Verwaltung. Die neue Person, das Benutzerkonto, der Hauptzahlerbezug und die einfache Mitgliedschaft entstehen erst, wenn der Antrag dort übernommen wird.",
+    application: createBaseApplication({
+      id: "tcv-test-extension-child-0001",
+      request_type: "membership_extension",
+      salutation: "MALE",
+      first_name: "TCV Testperson",
+      last_name: "Erwachsen",
+      birth_date: "1990-01-01",
+      email: "tcv-testperson-erwachsen@example.com",
+      phone: "02861 000000",
+      mobile: "015100000000",
+      street: "Testweg 1",
+      postal_code: "48691",
+      city: "Vreden",
+      membership_kind: "adult_child",
+      accepts_sepa: false,
+      iban: null,
+      account_holder: null,
+      account_holder_address: null,
+      ebusy_match_status: "match_found",
+      ebusy_person_id: DEFAULT_EXTENSION_PAYER_PERSON_ID,
+      family_members: [
+        {
+          relation: "child",
+          salutation: "FEMALE",
+          firstName: "TCV Erweiterung",
+          lastName: "Kind",
+          birthDate: "2017-06-10",
+          email: "",
+          mobile: "",
+          street: "Testweg 1",
+          postalCode: "48691",
+          city: "Vreden",
+          legalRepresentative: "TCV Testperson Erwachsen"
+        }
+      ],
+      notes:
+        `${TEST_MARKER}\nErweiterungsformular-Test: bestehendes Hauptmitglied bleibt unverändert; neues Kind soll erst aus der Verwaltung nach eBuSy übernommen werden.`
+    })
   },
   {
     kind: "multi",
@@ -1321,6 +1464,39 @@ async function runSingleEbusyTestLabAction(
   const application = createRunApplication(scenario.application);
   const mode = process.env.EBUSY_MATCH_MODE ?? "mock";
   const writeEnabled = process.env.EBUSY_TEST_LAB_WRITE_ENABLED === "true";
+
+  if (application.request_type === "membership_extension") {
+    const baseResult = {
+      action: input.action,
+      mode,
+      writeEnabled,
+      scenario: {
+        id: scenario.id,
+        title: scenario.title,
+        membershipLabel: getMembershipLabel(application.membership_kind),
+        kind: scenario.kind
+      },
+      payload: sanitizePayload({
+        application,
+        safetyNote:
+          "Mitgliedschaftserweiterung: Der direkte Live-Test ist gesperrt. Bitte den Erweiterungsantrag in der Verwaltung anlegen und dort übernehmen."
+      })
+    };
+
+    if (input.action === "dry_run") {
+      return {
+        ...baseResult,
+        message:
+          "Erweiterungs-Datenpaket wurde vorbereitet. Es wurde keine Person in eBuSy angelegt. Für den vollständigen Test bitte den Erweiterungsantrag in der Verwaltung anlegen.",
+        checks: []
+      };
+    }
+
+    throw new Error(
+      "Dieses Testszenario wird über die Verwaltung getestet. Bitte 'Erweiterungsantrag in Verwaltung anlegen' verwenden."
+    );
+  }
+
   const personPayload = buildEbusyPersonPayloadFromApplication(application);
   const attributePayload = scenario.attributeAssignments?.length
     ? buildEbusyAttributePayload(scenario.attributeAssignments)
