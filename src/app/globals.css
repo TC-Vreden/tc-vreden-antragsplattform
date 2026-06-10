@@ -681,6 +681,14 @@ p {
   padding-inline: 14px;
 }
 
+.application-action-hint {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: -2px 0 0;
+}
+
 .candidate-table {
   min-width: 980px;
   margin-top: 10px;

@@ -215,7 +215,7 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
         {membershipExtension ? (
           <p style={{ margin: "8px 0 0" }}>
             Änderungen speichern nur den Antrag in der Verwaltung. Die neue Person wird erst über
-            „Erweiterung übernehmen“ in eBuSy angelegt und mit dem bestehenden Hauptzahler
+            „Neue Person in eBuSy anlegen“ in eBuSy angelegt und mit dem bestehenden Hauptzahler
             verknüpft.
           </p>
         ) : (

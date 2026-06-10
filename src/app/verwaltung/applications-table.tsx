@@ -141,6 +141,14 @@ function getAdditionalMembersSummary(application: ApplicationRow) {
     .join(", ");
 }
 
+function getMembershipExtensionTakeoverLabel(application: ApplicationRow) {
+  const count = application.family_members?.length ?? 0;
+
+  return count === 1
+    ? "Neue Person in eBuSy anlegen"
+    : "Neue Personen in eBuSy anlegen";
+}
+
 function isMultiPersonApplication(application: ApplicationRow) {
   return isMultiPersonMembership(application.membership_kind) || hasAdditionalMembers(application);
 }
@@ -171,6 +179,22 @@ function canCreateEbusyPerson(application: ApplicationRow) {
   }
 
   return ["no_match", "needs_review", "multiple_matches"].includes(application.ebusy_match_status);
+}
+
+function getMembershipExtensionActionHint(application: ApplicationRow, candidateCount: number) {
+  if (!isMembershipExtension(application) || isTransferredApplication(application)) {
+    return null;
+  }
+
+  if (application.ebusy_match_status === "match_found" && application.ebusy_person_id) {
+    return "Nächster Schritt: neue Person in eBuSy anlegen.";
+  }
+
+  if (candidateCount > 0) {
+    return "Erst das bestehende Hauptmitglied auswählen.";
+  }
+
+  return "Erst das bestehende Hauptmitglied in eBuSy suchen.";
 }
 
 function DetailItem({ label, value }: { label: string; value: ReactNode }) {
@@ -455,7 +479,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
     const membershipExtension = isMembershipExtension(application);
     const confirmMessage = multiPersonApplication
       ? membershipExtension
-        ? `Soll die Mitgliedschaftserweiterung für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nDas bestehende Hauptmitglied wird nicht aktualisiert. Die hinzuzufügenden Personen werden neu angelegt, dem Hauptzahler zugeordnet und mit einfacher Mitgliedschaft versehen. Attribute und Beitrag des Hauptmitglieds müssen danach in eBuSy manuell geprüft werden.`
+        ? `Sollen die neu hinzuzufügenden Personen für ${displayName} jetzt wirklich in eBuSy angelegt werden?\n\nDas bestehende Hauptmitglied wird nicht aktualisiert. Die neuen Personen werden angelegt, dem Hauptzahler zugeordnet und mit einfacher Mitgliedschaft versehen. Attribute und Beitrag des Hauptmitglieds müssen danach in eBuSy manuell geprüft werden.`
         : `Soll der Mehrpersonen-Antrag für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nBei einem bestehenden eBuSy-Treffer wird die Hauptperson aktualisiert. Zusatzpersonen werden angelegt, dem Hauptzahler zugeordnet und mit Attribut Mitgliedsbeiträge NEU sowie einfacher Mitgliedschaft versehen.`
       : application.ebusy_person_id
         ? `Soll für ${displayName} die vorhandene eBuSy-Person aktualisiert und um Attribute sowie Mitgliedschaft ergänzt werden? Es wird kein neues Benutzerkonto angelegt.`
@@ -692,6 +716,10 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
             const multiPersonApplication = isMultiPersonApplication(application);
             const membershipExtension = isMembershipExtension(application);
             const transferred = isTransferredApplication(application);
+            const extensionActionHint = getMembershipExtensionActionHint(
+              application,
+              candidates.length
+            );
 
             return (
               <Fragment key={application.id}>
@@ -777,15 +805,19 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           onClick={() => handleMatch(application.id)}
                         >
                           {localState?.loading
-                            ? "Abgleich läuft..."
+                            ? "Suche läuft..."
                             : application.ebusy_match_status === "pending"
                               ? membershipExtension
-                                ? "Hauptmitglied abgleichen"
+                                ? "Hauptmitglied in eBuSy suchen"
                                 : "Mit eBuSy abgleichen"
                               : membershipExtension
-                                ? "Hauptmitglied erneut prüfen"
+                                ? "Hauptmitglied neu suchen"
                                 : "Erneut abgleichen"}
                         </button>
+                      ) : null}
+
+                      {extensionActionHint ? (
+                        <p className="application-action-hint">{extensionActionHint}</p>
                       ) : null}
 
                       {candidates.length > 0 ? (
@@ -796,19 +828,23 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           onClick={() => toggleCandidates(application.id)}
                         >
                           {showCandidates
-                            ? "Treffer ausblenden"
-                            : `eBuSy-Treffer prüfen (${candidates.length})`}
+                            ? membershipExtension
+                              ? "Hauptmitglied-Treffer ausblenden"
+                              : "Treffer ausblenden"
+                            : membershipExtension
+                              ? `Hauptmitglied auswählen (${candidates.length})`
+                              : `eBuSy-Treffer prüfen (${candidates.length})`}
                         </button>
                       ) : null}
 
                       {permissions.canTakeoverEbusy && canCreateEbusyPerson(application) ? (
                         <button
-                          className="button secondary"
+                          className={membershipExtension ? "button" : "button secondary"}
                           type="button"
                           disabled={Boolean(localState?.loading)}
                           title={
                             membershipExtension
-                              ? "Übernimmt nur die hinzuzufügenden Personen nach eBuSy. Das bestehende Hauptmitglied bleibt unverändert."
+                              ? "Legt nur die neu hinzuzufügenden Personen in eBuSy an. Das bestehende Hauptmitglied bleibt unverändert."
                               : multiPersonApplication
                               ? "Übernimmt Hauptperson und Zusatzpersonen nach eBuSy und setzt den Hauptzahlerbezug für Zusatzpersonen."
                               : application.ebusy_person_id
@@ -820,7 +856,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           {localState?.loading
                             ? "Anlage läuft..."
                             : membershipExtension
-                              ? "Erweiterung übernehmen"
+                              ? getMembershipExtensionTakeoverLabel(application)
                               : multiPersonApplication
                               ? "Mehrpersonen übernehmen"
                               : application.ebusy_person_id
@@ -1104,7 +1140,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
             {isMembershipExtension(application) ? (
               <p style={{ margin: "8px 0 0" }}>
                 Bitte hier das vorhandene Hauptmitglied auswählen. Die neu hinzuzufügende Person
-                wird erst über „Erweiterung übernehmen“ in eBuSy angelegt.
+                wird erst über „Neue Person in eBuSy anlegen“ in eBuSy angelegt.
               </p>
             ) : null}
             <div className="table-scroll">
@@ -1139,7 +1175,9 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           disabled={Boolean(localState?.loading)}
                           onClick={() => handleSelectCandidate(application.id, candidate)}
                         >
-                          Treffer verknüpfen
+                          {isMembershipExtension(application)
+                            ? "Hauptmitglied auswählen"
+                            : "Treffer verknüpfen"}
                         </button>
                         ) : (
                           "Keine Berechtigung"
