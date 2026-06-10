@@ -1128,65 +1128,58 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
     candidates: ApplicationMatchCandidate[],
     localState: LocalState | undefined
   ) {
+    const membershipExtension = isMembershipExtension(application);
+
     return (
       <tr>
         <td className="application-expanded-cell" colSpan={6}>
-          <div style={{ padding: "8px 0" }}>
-            <strong>
-              {isMembershipExtension(application)
+          <div className="candidate-panel">
+            <div className="candidate-panel-header">
+              <strong>
+                {membershipExtension
                 ? "Mögliche eBuSy-Treffer für das bestehende Mitglied"
                 : "Mögliche eBuSy-Treffer"}
-            </strong>
-            {isMembershipExtension(application) ? (
-              <p style={{ margin: "8px 0 0" }}>
-                Bitte hier das vorhandene Hauptmitglied auswählen. Die neu hinzuzufügende Person
-                wird erst über „Neue Person in eBuSy anlegen“ in eBuSy angelegt.
+              </strong>
+              <span>{candidates.length} Treffer</span>
+            </div>
+            {membershipExtension ? (
+              <p className="candidate-panel-note">
+                Bitte das vorhandene Hauptmitglied auswählen. Danach kann die neu hinzuzufügende
+                Person über „Neue Person in eBuSy anlegen“ angelegt werden.
               </p>
             ) : null}
-            <div className="table-scroll">
-              <table className="table candidate-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>eBuSy-ID</th>
-                    <th>Geburtsdatum</th>
-                    <th>E-Mail</th>
-                    <th>Mitgliedsnummer</th>
-                    <th>Treffergrund</th>
-                    <th>Aktion</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {candidates.map((candidate) => (
-                    <tr
-                      key={`${application.id}-${candidate.externalPersonId}-${candidate.matchReason}`}
-                    >
-                      <td>{candidate.displayName ?? "-"}</td>
-                      <td>{candidate.externalPersonId}</td>
-                      <td>{candidate.birthDate ?? "-"}</td>
-                      <td>{candidate.email ?? "-"}</td>
-                      <td>{candidate.membershipNumber ?? "-"}</td>
-                      <td>{candidate.matchReason}</td>
-                      <td>
-                        {permissions.canTakeoverEbusy ? (
-                        <button
-                          className="button candidate-action-button"
-                          type="button"
-                          disabled={Boolean(localState?.loading)}
-                          onClick={() => handleSelectCandidate(application.id, candidate)}
-                        >
-                          {isMembershipExtension(application)
-                            ? "Hauptmitglied auswählen"
-                            : "Treffer verknüpfen"}
-                        </button>
-                        ) : (
-                          "Keine Berechtigung"
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="candidate-card-list">
+              {candidates.map((candidate) => (
+                <div
+                  className="candidate-card"
+                  key={`${application.id}-${candidate.externalPersonId}-${candidate.matchReason}`}
+                >
+                  <div className="candidate-card-main">
+                    <strong>{candidate.displayName ?? "-"}</strong>
+                    <span>eBuSy-ID {candidate.externalPersonId}</span>
+                  </div>
+                  <div className="candidate-card-details">
+                    <DetailItem label="Geburtsdatum" value={candidate.birthDate ?? "-"} />
+                    <DetailItem label="E-Mail" value={candidate.email ?? "-"} />
+                    <DetailItem label="Mitgliedsnummer" value={candidate.membershipNumber ?? "-"} />
+                    <DetailItem label="Treffergrund" value={candidate.matchReason} />
+                  </div>
+                  <div className="candidate-card-action">
+                    {permissions.canTakeoverEbusy ? (
+                      <button
+                        className="button candidate-action-button"
+                        type="button"
+                        disabled={Boolean(localState?.loading)}
+                        onClick={() => handleSelectCandidate(application.id, candidate)}
+                      >
+                        {membershipExtension ? "Hauptmitglied auswählen" : "Treffer verknüpfen"}
+                      </button>
+                    ) : (
+                      <span className="candidate-permission-note">Keine Berechtigung</span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </td>
