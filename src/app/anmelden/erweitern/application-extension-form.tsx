@@ -420,8 +420,7 @@ export function ApplicationExtensionForm({ content }: ApplicationExtensionFormPr
 
       <h2 style={{ fontSize: "1.15rem" }}>Bestehendes Hauptmitglied</h2>
       <p style={{ marginTop: -8 }}>
-        Diese Angaben helfen dem Verein, die vorhandene eBuSy-Person sicher zuzuordnen. Das
-        bestehende Mitglied wird durch diesen Antrag nicht automatisch geändert.
+        Diese Angaben benötigt der Verein, um das vorhandene Mitglied sicher zuzuordnen.
       </p>
 
       <div className="field">
