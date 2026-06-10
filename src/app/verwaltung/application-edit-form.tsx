@@ -127,6 +127,7 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
   const [form, setForm] = useState<ApplicationEditPayload>(() => createForm(application));
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const membershipExtension = application.request_type === "membership_extension";
   const showReducedProofUntil = isReducedContributionMembership(form.membership_kind);
 
   function updateField<K extends keyof ApplicationEditPayload>(
@@ -206,17 +207,32 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
   return (
     <form onSubmit={handleSubmit} style={{ display: "grid", gap: 18, padding: "14px 0" }}>
       <div className="warning-box">
-        <strong>Antrag vor der eBuSy-Übernahme bearbeiten</strong>
-        <p style={{ margin: "8px 0 0" }}>
-          Änderungen speichern den Antrag erneut als offenen Prüffall. Bitte danach den eBuSy-Abgleich
-          neu starten, damit keine alten Treffer mit korrigierten Daten vermischt werden.
-        </p>
+        <strong>
+          {membershipExtension
+            ? "Erweiterungsantrag vor der eBuSy-Übernahme bearbeiten"
+            : "Antrag vor der eBuSy-Übernahme bearbeiten"}
+        </strong>
+        {membershipExtension ? (
+          <p style={{ margin: "8px 0 0" }}>
+            Änderungen speichern nur den Antrag in der Verwaltung. Die neue Person wird erst über
+            „Erweiterung übernehmen“ in eBuSy angelegt und mit dem bestehenden Hauptzahler
+            verknüpft.
+          </p>
+        ) : (
+          <p style={{ margin: "8px 0 0" }}>
+            Änderungen speichern den Antrag erneut als offenen Prüffall. Bitte danach den
+            eBuSy-Abgleich neu starten, damit keine alten Treffer mit korrigierten Daten vermischt
+            werden.
+          </p>
+        )}
       </div>
 
       {errorMessage ? <div className="warning-box">{errorMessage}</div> : null}
 
       <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Hauptperson</legend>
+        <legend style={legendStyle}>
+          {membershipExtension ? "Bestehendes Mitglied / Hauptzahler" : "Hauptperson"}
+        </legend>
         <div className="grid grid-2">
           <SelectField
             label="Anrede"
@@ -237,7 +253,9 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
       </fieldset>
 
       <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Mitgliedschaft</legend>
+        <legend style={legendStyle}>
+          {membershipExtension ? "Gewünschte Erweiterung" : "Mitgliedschaft"}
+        </legend>
         <div className="grid grid-2">
           <SelectField
             label="Mitgliedschaftsart"
@@ -265,7 +283,9 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
       </fieldset>
 
       <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Zusatzpersonen</legend>
+        <legend style={legendStyle}>
+          {membershipExtension ? "Neu hinzuzufügende Personen" : "Zusatzpersonen"}
+        </legend>
         {form.family_members.length === 0 ? (
           <p style={{ color: "var(--text-muted)", margin: 0 }}>Keine Zusatzpersonen erfasst.</p>
         ) : (
@@ -307,23 +327,33 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
         </button>
       </fieldset>
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>SEPA und gesetzliche Vertreter</legend>
-        <div className="grid grid-2">
-          <TextField label="Kontoinhaber" value={form.account_holder} onChange={(value) => updateField("account_holder", value)} />
-          <TextField label="IBAN" value={form.iban} onChange={(value) => updateField("iban", value)} />
-          <TextField
-            label="Anschrift Kontoinhaber"
-            value={form.account_holder_address}
-            onChange={(value) => updateField("account_holder_address", value)}
-          />
-          <CheckboxField label="SEPA-Mandat bestätigt" checked={form.accepts_sepa} onChange={(checked) => updateField("accepts_sepa", checked)} />
-          <TextField label="Gesetzlicher Vertreter" value={form.guardian_name} onChange={(value) => updateField("guardian_name", value)} />
-          <TextField label="Vertreter E-Mail" type="email" value={form.guardian_email} onChange={(value) => updateField("guardian_email", value)} />
-          <TextField label="Vertreter Telefon" value={form.guardian_phone} onChange={(value) => updateField("guardian_phone", value)} />
-          <CheckboxField label="Vertreter-Zustimmung" checked={form.guardian_consent} onChange={(checked) => updateField("guardian_consent", checked)} />
+      {membershipExtension ? (
+        <div className="hint-box">
+          <strong>Zahlung und SEPA</strong>
+          <p style={{ margin: "8px 0 0" }}>
+            Für eine Mitgliedschaftserweiterung werden keine neuen SEPA-Daten aus dem Formular
+            übernommen. Die Zahlung läuft über das vorhandene Hauptmitglied in eBuSy.
+          </p>
         </div>
-      </fieldset>
+      ) : (
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>SEPA und gesetzliche Vertreter</legend>
+          <div className="grid grid-2">
+            <TextField label="Kontoinhaber" value={form.account_holder} onChange={(value) => updateField("account_holder", value)} />
+            <TextField label="IBAN" value={form.iban} onChange={(value) => updateField("iban", value)} />
+            <TextField
+              label="Anschrift Kontoinhaber"
+              value={form.account_holder_address}
+              onChange={(value) => updateField("account_holder_address", value)}
+            />
+            <CheckboxField label="SEPA-Mandat bestätigt" checked={form.accepts_sepa} onChange={(checked) => updateField("accepts_sepa", checked)} />
+            <TextField label="Gesetzlicher Vertreter" value={form.guardian_name} onChange={(value) => updateField("guardian_name", value)} />
+            <TextField label="Vertreter E-Mail" type="email" value={form.guardian_email} onChange={(value) => updateField("guardian_email", value)} />
+            <TextField label="Vertreter Telefon" value={form.guardian_phone} onChange={(value) => updateField("guardian_phone", value)} />
+            <CheckboxField label="Vertreter-Zustimmung" checked={form.guardian_consent} onChange={(checked) => updateField("guardian_consent", checked)} />
+          </div>
+        </fieldset>
+      )}
 
       <fieldset style={fieldsetStyle}>
         <legend style={legendStyle}>Einwilligungen und Hinweise</legend>
@@ -341,7 +371,11 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button className="button" type="submit" disabled={saving}>
-          {saving ? "Speichern..." : "Änderungen speichern"}
+          {saving
+            ? "Speichern..."
+            : membershipExtension
+              ? "Antragsdaten speichern"
+              : "Änderungen speichern"}
         </button>
         <button className="button secondary" type="button" onClick={onCancel} disabled={saving}>
           Abbrechen

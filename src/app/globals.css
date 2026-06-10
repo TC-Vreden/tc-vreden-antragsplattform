@@ -9,6 +9,8 @@
   --accent: #ffde00;
   --accent-soft: #fff5a8;
   --danger: #a84e4e;
+  --border: var(--line);
+  --text-muted: var(--muted);
 }
 
 * {
@@ -272,7 +274,9 @@ p {
 
 .field input,
 .field select,
-.field textarea {
+.field textarea,
+.input,
+.textarea {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -283,7 +287,9 @@ p {
 
 .field input:focus,
 .field select:focus,
-.field textarea:focus {
+.field textarea:focus,
+.input:focus,
+.textarea:focus {
   outline: 2px solid rgba(255, 222, 0, 0.45);
   border-color: rgba(255, 222, 0, 0.85);
 }
@@ -310,6 +316,31 @@ p {
   background: #fff7ba;
   color: var(--brand-strong);
   font-size: 0.9rem;
+}
+
+.request-type-badge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 8px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.request-type-badge.is-extension {
+  border: 1px solid rgba(255, 222, 0, 0.8);
+  background: #fff5a8;
+  color: #3f3300;
+}
+
+.request-type-badge.is-new {
+  border: 1px solid rgba(30, 30, 28, 0.16);
+  background: #f4f3ef;
+  color: var(--brand-strong);
 }
 
 .hint-box {
@@ -645,6 +676,61 @@ p {
   min-width: 0;
   width: 100%;
   padding-inline: 14px;
+}
+
+.candidate-table {
+  min-width: 980px;
+  margin-top: 10px;
+  table-layout: fixed;
+}
+
+.candidate-table th,
+.candidate-table td {
+  vertical-align: top;
+}
+
+.candidate-table th:nth-child(1),
+.candidate-table td:nth-child(1) {
+  width: 16%;
+}
+
+.candidate-table th:nth-child(2),
+.candidate-table td:nth-child(2) {
+  width: 10%;
+}
+
+.candidate-table th:nth-child(3),
+.candidate-table td:nth-child(3) {
+  width: 12%;
+}
+
+.candidate-table th:nth-child(4),
+.candidate-table td:nth-child(4) {
+  width: 22%;
+}
+
+.candidate-table th:nth-child(5),
+.candidate-table td:nth-child(5) {
+  width: 13%;
+}
+
+.candidate-table th:nth-child(6),
+.candidate-table td:nth-child(6) {
+  width: 15%;
+}
+
+.candidate-table th:nth-child(7),
+.candidate-table td:nth-child(7) {
+  width: 12%;
+}
+
+.candidate-action-button {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .audit-table-scroll {

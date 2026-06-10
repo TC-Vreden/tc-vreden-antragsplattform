@@ -125,6 +125,22 @@ function getRequestTypeLabel(application: ApplicationRow) {
   return isMembershipExtension(application) ? "Mitgliedschaft erweitern" : "Neuanmeldung";
 }
 
+function getPrimaryPersonLabel(application: ApplicationRow) {
+  return isMembershipExtension(application) ? "Bestehendes Mitglied / Hauptzahler" : "Antragsteller";
+}
+
+function getAdditionalMembersSummary(application: ApplicationRow) {
+  if (!hasAdditionalMembers(application)) {
+    return isMembershipExtension(application)
+      ? "Keine neu hinzuzufügende Person erfasst"
+      : "Keine Zusatzperson erfasst";
+  }
+
+  return application.family_members
+    .map((member) => `${displayValue(member.firstName)} ${displayValue(member.lastName)}`.trim())
+    .join(", ");
+}
+
 function isMultiPersonApplication(application: ApplicationRow) {
   return isMultiPersonMembership(application.membership_kind) || hasAdditionalMembers(application);
 }
@@ -146,6 +162,10 @@ function canCreateEbusyPerson(application: ApplicationRow) {
     return false;
   }
 
+  if (isMembershipExtension(application)) {
+    return Boolean(application.ebusy_person_id) && application.ebusy_match_status === "match_found";
+  }
+
   if (application.ebusy_person_id) {
     return application.ebusy_match_status === "match_found";
   }
@@ -159,6 +179,16 @@ function DetailItem({ label, value }: { label: string; value: ReactNode }) {
       <strong>{label}</strong>
       <div style={{ color: "var(--text-muted)", marginTop: 3 }}>{value}</div>
     </div>
+  );
+}
+
+function RequestTypeBadge({ application }: { application: ApplicationRow }) {
+  const membershipExtension = isMembershipExtension(application);
+
+  return (
+    <span className={`request-type-badge ${membershipExtension ? "is-extension" : "is-new"}`}>
+      {getRequestTypeLabel(application)}
+    </span>
   );
 }
 
@@ -668,12 +698,19 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                 <tr>
                   <td>{formatDate(application.created_at)}</td>
                   <td>
+                    <RequestTypeBadge application={application} />
                     <strong>
                       {application.first_name} {application.last_name}
                     </strong>
                     <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
-                      {getRequestTypeLabel(application)}
-                      <br />
+                      {membershipExtension ? (
+                        <>
+                          {getPrimaryPersonLabel(application)}
+                          <br />
+                          Neu dazu: {getAdditionalMembersSummary(application)}
+                          <br />
+                        </>
+                      ) : null}
                       Vorgang: {application.id}
                       {application.ebusy_person_id
                         ? ` - eBuSy-ID: ${application.ebusy_person_id}`
@@ -742,8 +779,12 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           {localState?.loading
                             ? "Abgleich läuft..."
                             : application.ebusy_match_status === "pending"
-                              ? "Mit eBuSy abgleichen"
-                              : "Erneut abgleichen"}
+                              ? membershipExtension
+                                ? "Hauptmitglied abgleichen"
+                                : "Mit eBuSy abgleichen"
+                              : membershipExtension
+                                ? "Hauptmitglied erneut prüfen"
+                                : "Erneut abgleichen"}
                         </button>
                       ) : null}
 
@@ -755,8 +796,8 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           onClick={() => toggleCandidates(application.id)}
                         >
                           {showCandidates
-                            ? "Antrag ausblenden"
-                            : `Antrag ansehen (${candidates.length})`}
+                            ? "Treffer ausblenden"
+                            : `eBuSy-Treffer prüfen (${candidates.length})`}
                         </button>
                       ) : null}
 
@@ -842,17 +883,18 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
         <td colSpan={6} style={{ background: "#fffdf6" }}>
           <div style={{ display: "grid", gap: 18, padding: "10px 0" }}>
             {isMembershipExtension(application) && !transferred ? (
-              <div className="warning-box">
-                <strong>Mitgliedschaft erweitern</strong>
+              <div className="hint-box">
+                <strong>Mitgliedschaft erweitern: erst prüfen, dann übernehmen</strong>
                 <p style={{ margin: "8px 0 0" }}>
-                  Das bestehende Hauptmitglied dient nur als eBuSy-Zuordnung und wird bei der
-                  Übernahme nicht aktualisiert. Nach der Übernahme müssen Beitrag und
-                  Familien-/Hauptzahlerlogik in eBuSy manuell geprüft werden.
+                  Oben steht das vorhandene Mitglied. Unten stehen die neu hinzuzufügenden
+                  Personen. Bei der Übernahme wird das bestehende Mitglied nicht geändert; die
+                  neuen Personen werden mit Benutzerkonto, Hauptzahlerbezug und einfacher
+                  Mitgliedschaft in eBuSy angelegt.
                 </p>
               </div>
             ) : null}
 
-            {isMultiPersonApplication(application) && !transferred ? (
+            {!isMembershipExtension(application) && isMultiPersonApplication(application) && !transferred ? (
               <div className="warning-box">
                 <strong>Mehrpersonen-Antrag</strong>
                 <p style={{ margin: "8px 0 0" }}>
@@ -865,7 +907,11 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
             ) : null}
 
             <DetailSection
-              title={isMembershipExtension(application) ? "Bestehendes Hauptmitglied" : "Hauptperson"}
+              title={
+                isMembershipExtension(application)
+                  ? "1. Bestehendes Mitglied / Hauptzahler"
+                  : "Hauptperson"
+              }
             >
               <DetailItem label="Anrede" value={getApplicationSalutationLabel(application)} />
               <DetailItem label="Vorname" value={application.first_name} />
@@ -875,6 +921,22 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
               <DetailItem label="Festnetz" value={displayValue(application.phone)} />
               <DetailItem label="Mobil" value={displayValue(application.mobile)} />
               <DetailItem label="Adresse" value={formatAddress(application)} />
+              {isMembershipExtension(application) ? (
+                <>
+                  <DetailItem
+                    label="eBuSy-Zuordnung"
+                    value={
+                      application.ebusy_person_id
+                        ? `Verknüpft mit eBuSy-ID ${application.ebusy_person_id}`
+                        : "Noch nicht sicher verknüpft"
+                    }
+                  />
+                  <DetailItem
+                    label="Prüfstatus"
+                    value={getStatusLabel(application.ebusy_match_status)}
+                  />
+                </>
+              ) : null}
             </DetailSection>
 
             <DetailSection title="Mitgliedschaft">
@@ -906,7 +968,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
             <DetailSection
               title={
                 isMembershipExtension(application)
-                  ? "Neu hinzuzufügende Personen"
+                  ? "2. Neu hinzuzufügende Personen"
                   : "Zusatzpersonen / Familienmitglieder"
               }
             >
@@ -953,23 +1015,42 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
               )}
             </DetailSection>
 
-            <DetailSection title="Minderjährige / gesetzliche Vertreter">
-              <DetailItem label="Vertreter" value={displayValue(application.guardian_name)} />
-              <DetailItem label="E-Mail" value={displayValue(application.guardian_email)} />
-              <DetailItem label="Telefon" value={displayValue(application.guardian_phone)} />
-              <DetailItem label="Zustimmung" value={yesNo(application.guardian_consent)} />
-            </DetailSection>
+            {!isMembershipExtension(application) ? (
+              <DetailSection title="Minderjährige / gesetzliche Vertreter">
+                <DetailItem label="Vertreter" value={displayValue(application.guardian_name)} />
+                <DetailItem label="E-Mail" value={displayValue(application.guardian_email)} />
+                <DetailItem label="Telefon" value={displayValue(application.guardian_phone)} />
+                <DetailItem label="Zustimmung" value={yesNo(application.guardian_consent)} />
+              </DetailSection>
+            ) : null}
 
-            <DetailSection title="SEPA / Zahlung">
-              <DetailItem label="Kontoinhaber" value={displayValue(application.account_holder)} />
-              <DetailItem label="IBAN" value={formatIbanForInternalDisplay(application.iban)} />
-              <DetailItem label="Kreditinstitut" value="Nicht im Formular erfasst" />
-              <DetailItem
-                label="Anschrift Kontoinhaber"
-                value={displayValue(application.account_holder_address)}
-              />
-              <DetailItem label="SEPA-Mandat bestätigt" value={yesNo(application.accepts_sepa)} />
-            </DetailSection>
+            {isMembershipExtension(application) ? (
+              <DetailSection title="Zahlung / Hauptzahler">
+                <DetailItem
+                  label="SEPA"
+                  value="Wird nicht aus dem Erweiterungsformular übernommen."
+                />
+                <DetailItem
+                  label="Hauptzahler"
+                  value={
+                    application.ebusy_person_id
+                      ? `Vorhandenes eBuSy-Mitglied ${application.ebusy_person_id}`
+                      : "Bitte zuerst passenden eBuSy-Treffer verknüpfen"
+                  }
+                />
+              </DetailSection>
+            ) : (
+              <DetailSection title="SEPA / Zahlung">
+                <DetailItem label="Kontoinhaber" value={displayValue(application.account_holder)} />
+                <DetailItem label="IBAN" value={formatIbanForInternalDisplay(application.iban)} />
+                <DetailItem label="Kreditinstitut" value="Nicht im Formular erfasst" />
+                <DetailItem
+                  label="Anschrift Kontoinhaber"
+                  value={displayValue(application.account_holder_address)}
+                />
+                <DetailItem label="SEPA-Mandat bestätigt" value={yesNo(application.accepts_sepa)} />
+              </DetailSection>
+            )}
 
             <DetailSection title="Einwilligungen">
               <DetailItem
@@ -985,7 +1066,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
               <DetailItem label="Hinweise" value={displayValue(application.notes)} />
             </DetailSection>
 
-            <DetailSection title="eBuSy">
+            <DetailSection title={isMembershipExtension(application) ? "Übernahme in eBuSy" : "eBuSy"}>
               <DetailItem label="Match-Status" value={getStatusLabel(application.ebusy_match_status)} />
               <DetailItem label="eBuSy-ID" value={displayValue(application.ebusy_person_id)} />
               <DetailItem label="Kandidaten" value={`${candidates.length}`} />
@@ -1015,48 +1096,60 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
       <tr>
         <td colSpan={6} style={{ background: "#fffdf6" }}>
           <div style={{ padding: "8px 0" }}>
-            <strong>Mögliche eBuSy-Treffer</strong>
-            <table className="table" style={{ marginTop: 10 }}>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>eBuSy-ID</th>
-                  <th>Geburtsdatum</th>
-                  <th>E-Mail</th>
-                  <th>Mitgliedsnummer</th>
-                  <th>Treffergrund</th>
-                  <th>Aktion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {candidates.map((candidate) => (
-                  <tr
-                    key={`${application.id}-${candidate.externalPersonId}-${candidate.matchReason}`}
-                  >
-                    <td>{candidate.displayName ?? "-"}</td>
-                    <td>{candidate.externalPersonId}</td>
-                    <td>{candidate.birthDate ?? "-"}</td>
-                    <td>{candidate.email ?? "-"}</td>
-                    <td>{candidate.membershipNumber ?? "-"}</td>
-                    <td>{candidate.matchReason}</td>
-                    <td>
-                      {permissions.canTakeoverEbusy ? (
-                      <button
-                        className="button"
-                        type="button"
-                        disabled={Boolean(localState?.loading)}
-                        onClick={() => handleSelectCandidate(application.id, candidate)}
-                      >
-                        Diesen Treffer verknüpfen
-                      </button>
-                      ) : (
-                        "Keine Berechtigung"
-                      )}
-                    </td>
+            <strong>
+              {isMembershipExtension(application)
+                ? "Mögliche eBuSy-Treffer für das bestehende Mitglied"
+                : "Mögliche eBuSy-Treffer"}
+            </strong>
+            {isMembershipExtension(application) ? (
+              <p style={{ margin: "8px 0 0" }}>
+                Bitte hier das vorhandene Hauptmitglied auswählen. Die neu hinzuzufügende Person
+                wird erst über „Erweiterung übernehmen“ in eBuSy angelegt.
+              </p>
+            ) : null}
+            <div className="table-scroll">
+              <table className="table candidate-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>eBuSy-ID</th>
+                    <th>Geburtsdatum</th>
+                    <th>E-Mail</th>
+                    <th>Mitgliedsnummer</th>
+                    <th>Treffergrund</th>
+                    <th>Aktion</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {candidates.map((candidate) => (
+                    <tr
+                      key={`${application.id}-${candidate.externalPersonId}-${candidate.matchReason}`}
+                    >
+                      <td>{candidate.displayName ?? "-"}</td>
+                      <td>{candidate.externalPersonId}</td>
+                      <td>{candidate.birthDate ?? "-"}</td>
+                      <td>{candidate.email ?? "-"}</td>
+                      <td>{candidate.membershipNumber ?? "-"}</td>
+                      <td>{candidate.matchReason}</td>
+                      <td>
+                        {permissions.canTakeoverEbusy ? (
+                        <button
+                          className="button candidate-action-button"
+                          type="button"
+                          disabled={Boolean(localState?.loading)}
+                          onClick={() => handleSelectCandidate(application.id, candidate)}
+                        >
+                          Treffer verknüpfen
+                        </button>
+                        ) : (
+                          "Keine Berechtigung"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </td>
       </tr>
