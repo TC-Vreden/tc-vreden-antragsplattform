@@ -60,6 +60,32 @@ function textValue(value: string | null | undefined) {
   return value ?? "";
 }
 
+function displayValue(value: string | null | undefined) {
+  return value?.trim() || "-";
+}
+
+function getSalutationDisplay(value: string | null | undefined) {
+  return salutationOptions.find((option) => option.value === value)?.label ?? displayValue(value);
+}
+
+function formatDateForDisplay(value: string | null | undefined) {
+  const datePart = value?.slice(0, 10);
+
+  if (!datePart) {
+    return "-";
+  }
+
+  const [year, month, day] = datePart.split("-");
+
+  return year && month && day ? `${day}.${month}.${year}` : datePart;
+}
+
+function formatAddress(application: ApplicationRow) {
+  return [application.street, [application.postal_code, application.city].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ") || "-";
+}
+
 function createEmptyFamilyMember(): EditableFamilyMember {
   return {
     relation: "family_member",
@@ -214,9 +240,9 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
         </strong>
         {membershipExtension ? (
           <p style={{ margin: "8px 0 0" }}>
-            Änderungen speichern nur den Antrag in der Verwaltung. Die neue Person wird erst über
-            „Neue Person in eBuSy anlegen“ in eBuSy angelegt und mit dem bestehenden Hauptzahler
-            verknüpft.
+            Hier werden nur die gewünschte Erweiterung und die neu hinzuzufügenden Personen
+            bearbeitet. Das bestehende Hauptmitglied bleibt unverändert und die vorhandene
+            eBuSy-Verknüpfung bleibt beim Speichern erhalten.
           </p>
         ) : (
           <p style={{ margin: "8px 0 0" }}>
@@ -229,28 +255,56 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
 
       {errorMessage ? <div className="warning-box">{errorMessage}</div> : null}
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>
-          {membershipExtension ? "Bestehendes Mitglied / Hauptzahler" : "Hauptperson"}
-        </legend>
-        <div className="grid grid-2">
-          <SelectField
-            label="Anrede"
-            value={form.salutation}
-            onChange={(value) => updateField("salutation", value)}
-            options={salutationOptions}
-          />
-          <TextField label="Vorname" required value={form.first_name} onChange={(value) => updateField("first_name", value)} />
-          <TextField label="Nachname" required value={form.last_name} onChange={(value) => updateField("last_name", value)} />
-          <TextField label="Geburtsdatum" type="date" value={form.birth_date} onChange={(value) => updateField("birth_date", value)} />
-          <TextField label="E-Mail" required type="email" value={form.email} onChange={(value) => updateField("email", value)} />
-          <TextField label="Festnetz" required value={form.phone} onChange={(value) => updateField("phone", value)} />
-          <TextField label="Mobil" required value={form.mobile} onChange={(value) => updateField("mobile", value)} />
-          <TextField label="Straße" value={form.street} onChange={(value) => updateField("street", value)} />
-          <TextField label="PLZ" value={form.postal_code} onChange={(value) => updateField("postal_code", value)} />
-          <TextField label="Ort" value={form.city} onChange={(value) => updateField("city", value)} />
-        </div>
-      </fieldset>
+      {membershipExtension ? (
+        <section className="readonly-panel">
+          <div>
+            <strong>Bestehendes Mitglied / Hauptzahler</strong>
+            <p>
+              Diese Daten dienen nur zur Zuordnung. Sie werden hier nicht geändert und nicht nach
+              eBuSy geschrieben.
+            </p>
+          </div>
+          <div className="readonly-grid">
+            <ReadOnlyField label="Anrede" value={getSalutationDisplay(application.salutation)} />
+            <ReadOnlyField label="Vorname" value={application.first_name} />
+            <ReadOnlyField label="Nachname" value={application.last_name} />
+            <ReadOnlyField label="Geburtsdatum" value={formatDateForDisplay(application.birth_date)} />
+            <ReadOnlyField label="E-Mail" value={application.email} />
+            <ReadOnlyField label="Festnetz" value={application.phone} />
+            <ReadOnlyField label="Mobil" value={application.mobile} />
+            <ReadOnlyField label="Adresse" value={formatAddress(application)} />
+            <ReadOnlyField
+              label="eBuSy-Zuordnung"
+              value={
+                application.ebusy_person_id
+                  ? `Verknüpft mit eBuSy-ID ${application.ebusy_person_id}`
+                  : "Noch nicht verknüpft"
+              }
+            />
+          </div>
+        </section>
+      ) : (
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Hauptperson</legend>
+          <div className="grid grid-2">
+            <SelectField
+              label="Anrede"
+              value={form.salutation}
+              onChange={(value) => updateField("salutation", value)}
+              options={salutationOptions}
+            />
+            <TextField label="Vorname" required value={form.first_name} onChange={(value) => updateField("first_name", value)} />
+            <TextField label="Nachname" required value={form.last_name} onChange={(value) => updateField("last_name", value)} />
+            <TextField label="Geburtsdatum" type="date" value={form.birth_date} onChange={(value) => updateField("birth_date", value)} />
+            <TextField label="E-Mail" required type="email" value={form.email} onChange={(value) => updateField("email", value)} />
+            <TextField label="Festnetz" required value={form.phone} onChange={(value) => updateField("phone", value)} />
+            <TextField label="Mobil" required value={form.mobile} onChange={(value) => updateField("mobile", value)} />
+            <TextField label="Straße" value={form.street} onChange={(value) => updateField("street", value)} />
+            <TextField label="PLZ" value={form.postal_code} onChange={(value) => updateField("postal_code", value)} />
+            <TextField label="Ort" value={form.city} onChange={(value) => updateField("city", value)} />
+          </div>
+        </fieldset>
+      )}
 
       <fieldset style={fieldsetStyle}>
         <legend style={legendStyle}>
@@ -382,6 +436,15 @@ export function ApplicationEditForm({ application, membershipOptions, onCancel, 
         </button>
       </div>
     </form>
+  );
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="readonly-field">
+      <strong>{label}</strong>
+      <span>{displayValue(value)}</span>
+    </div>
   );
 }
 

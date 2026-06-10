@@ -108,7 +108,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     const supabase = getSupabaseAdminClient();
     const { data: existingApplication, error: lookupError } = await supabase
       .from("applications")
-      .select("status, transferred_at, ebusy_match_status")
+      .select(
+        "request_type, status, transferred_at, ebusy_match_status, ebusy_person_id"
+      )
       .eq("id", id)
       .single();
 
@@ -131,6 +133,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const input = parsed.data;
+    const membershipExtension = existingApplication.request_type === "membership_extension";
     const normalizedFamilyMembers = input.family_members.map((member) => ({
       relation: member.relation ?? "family_member",
       salutation: member.salutation ?? "",
@@ -146,7 +149,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }));
 
     const now = new Date().toISOString();
-    const updatePayload = {
+    const updatePayload: Record<string, unknown> = {
       salutation: input.salutation,
       first_name: input.first_name,
       last_name: input.last_name,
@@ -186,6 +189,30 @@ export async function PATCH(request: Request, context: RouteContext) {
       updated_at: now
     };
 
+    if (membershipExtension) {
+      delete updatePayload.salutation;
+      delete updatePayload.first_name;
+      delete updatePayload.last_name;
+      delete updatePayload.birth_date;
+      delete updatePayload.email;
+      delete updatePayload.phone;
+      delete updatePayload.mobile;
+      delete updatePayload.street;
+      delete updatePayload.postal_code;
+      delete updatePayload.city;
+      delete updatePayload.accepts_sepa;
+      delete updatePayload.iban;
+      delete updatePayload.account_holder;
+      delete updatePayload.account_holder_address;
+      delete updatePayload.guardian_name;
+      delete updatePayload.guardian_email;
+      delete updatePayload.guardian_phone;
+      delete updatePayload.guardian_consent;
+      delete updatePayload.ebusy_match_status;
+      delete updatePayload.ebusy_person_id;
+      delete updatePayload.ebusy_match_payload;
+    }
+
     const { data: updatedApplication, error: updateError } = await supabase
       .from("applications")
       .update(updatePayload)
@@ -208,7 +235,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({
-      message: "Antrag gespeichert. Bitte den eBuSy-Abgleich erneut starten.",
+      message: membershipExtension
+        ? existingApplication.ebusy_match_status === "match_found" && existingApplication.ebusy_person_id
+          ? "Antragsdaten gespeichert. Das bestehende Hauptmitglied bleibt mit eBuSy verknüpft; die neue Person kann weiter in eBuSy angelegt werden."
+          : "Antragsdaten gespeichert. Bitte das bestehende Hauptmitglied in eBuSy suchen oder auswählen."
+        : "Antrag gespeichert. Bitte den eBuSy-Abgleich erneut starten.",
       application: updatedApplication
     });
   } catch (error) {
