@@ -638,12 +638,15 @@ p {
 
 .management-applications-table th:nth-child(1),
 .management-applications-table td:nth-child(1) {
-  width: 9%;
+  width: 92px;
+  min-width: 92px;
+  overflow-wrap: normal;
+  white-space: nowrap;
 }
 
 .management-applications-table th:nth-child(2),
 .management-applications-table td:nth-child(2) {
-  width: 26%;
+  width: 25%;
 }
 
 .management-applications-table th:nth-child(3),
