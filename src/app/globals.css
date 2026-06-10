@@ -669,6 +669,43 @@ p {
   width: 18%;
 }
 
+.management-applications-table td.application-expanded-cell {
+  width: auto;
+  min-width: 0;
+  background: #fffdf6;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.application-expanded-content {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px 0;
+}
+
+.application-expanded-cell .grid {
+  min-width: 0;
+}
+
+.application-expanded-cell .hint-box,
+.application-expanded-cell .warning-box,
+.application-expanded-cell fieldset,
+.application-expanded-cell textarea,
+.application-expanded-cell input,
+.application-expanded-cell select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.application-expanded-cell p,
+.application-expanded-cell strong,
+.application-expanded-cell div,
+.application-expanded-cell label {
+  overflow-wrap: anywhere;
+}
+
 .application-action-list {
   display: grid;
   gap: 10px;

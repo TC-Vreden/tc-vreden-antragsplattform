@@ -886,7 +886,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
 
                 {editing ? (
                   <tr>
-                    <td colSpan={6} style={{ background: "#fffdf6" }}>
+                    <td className="application-expanded-cell" colSpan={6}>
                       <ApplicationEditForm
                         application={application}
                         membershipOptions={membershipOptions}
@@ -916,8 +916,8 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
   ) {
     return (
       <tr>
-        <td colSpan={6} style={{ background: "#fffdf6" }}>
-          <div style={{ display: "grid", gap: 18, padding: "10px 0" }}>
+        <td className="application-expanded-cell" colSpan={6}>
+          <div className="application-expanded-content">
             {isMembershipExtension(application) && !transferred ? (
               <div className="hint-box">
                 <strong>Mitgliedschaft erweitern: erst prüfen, dann übernehmen</strong>
@@ -1130,7 +1130,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
   ) {
     return (
       <tr>
-        <td colSpan={6} style={{ background: "#fffdf6" }}>
+        <td className="application-expanded-cell" colSpan={6}>
           <div style={{ padding: "8px 0" }}>
             <strong>
               {isMembershipExtension(application)
