@@ -34,7 +34,7 @@ type ApplicationConfirmationEmailInput = {
 };
 
 const germanTimeZone = "Europe/Berlin";
-const defaultSiteUrl = "https://tennisclub-vreden.vercel.app";
+const defaultSiteUrl = "https://verwaltung.tennisclub-vreden.de";
 
 function getBrandLogoUrl() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/u, "") || defaultSiteUrl;
@@ -89,6 +89,30 @@ function mainPersonName(application: ApplicationRow) {
   return `${application.first_name} ${application.last_name}`.trim();
 }
 
+function isMembershipExtension(application: ApplicationRow) {
+  return application.request_type === "membership_extension";
+}
+
+function getRequestTypeLabel(application: ApplicationRow) {
+  return isMembershipExtension(application) ? "Mitgliedschaft erweitern" : "Neuanmeldung";
+}
+
+function getConfirmationHeadline(application: ApplicationRow) {
+  return isMembershipExtension(application)
+    ? "Bestätigung deiner Mitgliedschaftserweiterung"
+    : "Bestätigung deiner Mitgliedschaft";
+}
+
+function getConfirmationIntro(application: ApplicationRow, settings: ApplicationMailSettings) {
+  if (isMembershipExtension(application)) {
+    return [
+      "vielen Dank für deine digitale Mitgliedschaftserweiterung. Wir haben den Antrag geprüft und die neu hinzuzufügenden Personen in der Vereinsverwaltung bearbeitet."
+    ];
+  }
+
+  return settings.confirmationIntro;
+}
+
 function buildContext(
   input: ApplicationConfirmationEmailInput,
   formContent: ApplicationFormContent
@@ -102,6 +126,7 @@ function buildContext(
     nachname: application.last_name,
     email: application.email,
     mitgliedschaft: getMembershipLabelFromContent(application.membership_kind, formContent),
+    antragsart: getRequestTypeLabel(application),
     referenznummer: application.id,
     bestaetigt_am: formatDate(transferredAt),
     club: clubContact.name
@@ -137,6 +162,7 @@ function buildHtml(
     : [];
   const applicantName = mainPersonName(application);
   const context = buildContext(input, formContent);
+  const introLines = getConfirmationIntro(application, settings);
   const reducedProofRow = isReducedContributionMembership(application.membership_kind)
     ? detailRow(
         "Nachweis Schüler:innen / Azubis / Student:innen gültig bis",
@@ -144,8 +170,15 @@ function buildHtml(
       )
     : "";
   const additionalMemberSummary = additionalMembers.length
-    ? `${additionalMembers.length} Zusatzperson(en) im Antrag erfasst.`
-    : "Keine Zusatzpersonen erfasst.";
+    ? `${additionalMembers.length} ${
+        isMembershipExtension(application) ? "neu hinzuzufügende Person(en)" : "Zusatzperson(en)"
+      } im Antrag erfasst.`
+    : isMembershipExtension(application)
+      ? "Keine neu hinzuzufügenden Personen erfasst."
+      : "Keine Zusatzpersonen erfasst.";
+  const sepaRow = isMembershipExtension(application)
+    ? ""
+    : detailRow("SEPA-Mandat", yesNo(application.accepts_sepa));
 
   return `<!doctype html>
 <html lang="de">
@@ -160,13 +193,13 @@ function buildHtml(
             <tr>
               <td style="padding:18px 20px 14px;border-bottom:4px solid #ffd800;background:#ffffff;">
                 <img src="${escapeHtml(getBrandLogoUrl())}" width="130" alt="${escapeHtml(clubContact.name)}" style="display:block;width:130px;max-width:130px;height:auto;border:0;margin:0 0 12px;" />
-                <h1 style="margin:0;color:#1f1f1d;font-family:Arial,sans-serif;font-size:24px;line-height:1.2;font-weight:700;">Bestätigung deiner Mitgliedschaft</h1>
+                <h1 style="margin:0;color:#1f1f1d;font-family:Arial,sans-serif;font-size:24px;line-height:1.2;font-weight:700;">${escapeHtml(getConfirmationHeadline(application))}</h1>
               </td>
             </tr>
             <tr>
               <td style="padding:18px 20px 20px;background:#ffffff;">
                 <p style="margin:0 0 12px;color:#1f1f1d;">Hallo ${escapeHtml(applicantName)},</p>
-                ${paragraphHtml(settings.confirmationIntro, context)}
+                ${paragraphHtml(introLines, context)}
                 <p style="margin:0 0 18px;padding:10px 12px;border:1px solid #ffd800;background:#fffbea;color:#1f1f1d;">
                   ${renderMailTemplateLines(settings.confirmationAttachmentNote, context)
                     .map((line) => escapeHtml(line))
@@ -184,7 +217,7 @@ function buildHtml(
                     ${reducedProofRow}
                     ${detailRow("Zusatzpersonen", additionalMemberSummary)}
                     ${detailRow("Bestätigt am", formatDate(transferredAt))}
-                    ${detailRow("SEPA-Mandat", yesNo(application.accepts_sepa))}
+                    ${sepaRow}
                   </tbody>
                 </table>
 
@@ -217,6 +250,7 @@ function buildText(
     : [];
   const applicantName = mainPersonName(application);
   const context = buildContext(input, formContent);
+  const introLines = getConfirmationIntro(application, settings);
   const reducedProofLine = isReducedContributionMembership(application.membership_kind)
     ? [`Nachweis Schüler:innen / Azubis / Student:innen gültig bis: ${formatDate(application.student_status_until)}`]
     : [];
@@ -224,14 +258,16 @@ function buildText(
   return [
     `Hallo ${applicantName},`,
     "",
-    ...renderMailTemplateLines(settings.confirmationIntro, context),
+    ...renderMailTemplateLines(introLines, context),
     ...renderMailTemplateLines(settings.confirmationAttachmentNote, context),
     "",
     `Mitgliedschaft: ${getMembershipLabelFromContent(application.membership_kind, formContent)}`,
     ...reducedProofLine,
     `Bestätigt am: ${formatDate(transferredAt)}`,
     `Zusatzpersonen: ${additionalMembers.length || "keine"}`,
-    `SEPA-Mandat bestätigt: ${yesNo(application.accepts_sepa)}`,
+    ...(isMembershipExtension(application)
+      ? []
+      : [`SEPA-Mandat bestätigt: ${yesNo(application.accepts_sepa)}`]),
     "",
     ...renderMailTemplateLines(settings.confirmationPdfNote, context),
     ...renderMailTemplateLines(settings.confirmationRevocationNote, context),
@@ -270,6 +306,9 @@ export async function sendApplicationConfirmationEmail(
   const pdfAttachment = await buildApplicationConfirmationPdf(input);
   const formContent = await getApplicationFormContent();
   const context = buildContext(input, formContent);
+  const subjectTemplate = isMembershipExtension(input.application)
+    ? "Bestätigung deiner Mitgliedschaftserweiterung beim TennisClub Vreden e.V."
+    : settings.confirmationSubject;
 
   return sendConfiguredMail(
     {
@@ -277,7 +316,7 @@ export async function sendApplicationConfirmationEmail(
       to: input.application.email,
       bcc: settings.confirmationBcc || undefined,
       replyTo: settings.replyTo || undefined,
-      subject: renderMailTemplate(settings.confirmationSubject, context),
+      subject: renderMailTemplate(subjectTemplate, context),
       html: buildHtml(input, formContent, settings),
       text: buildText(input, formContent, settings),
       attachments: [pdfAttachment]

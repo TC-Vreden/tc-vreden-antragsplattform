@@ -282,13 +282,14 @@ function getIsoDate(value: string | null | undefined) {
 
 function buildApplicationComment(application: ApplicationRow) {
   const applicantName = `${application.first_name} ${application.last_name}`.trim();
+  const isMembershipExtension = application.request_type === "membership_extension";
   const lines = [
-    `Digitaler Mitgliedsantrag ${application.id}.`,
+    `${isMembershipExtension ? "Digitale Mitgliedschaftserweiterung" : "Digitaler Mitgliedsantrag"} ${application.id}.`,
     application.membership_kind
       ? `Gewünschte Mitgliedschaft: ${getMembershipLabel(application.membership_kind)}.`
       : undefined,
     application.family_members?.length
-      ? `Mehrpersonen-Antrag mit ${application.family_members.length} Zusatzperson(en).`
+      ? `${isMembershipExtension ? "Erweiterung" : "Mehrpersonen-Antrag"} mit ${application.family_members.length} Zusatzperson(en).`
       : undefined,
     application.accepts_sepa ? "SEPA-Lastschrift wurde bestätigt." : undefined,
     application.accepts_photo_video

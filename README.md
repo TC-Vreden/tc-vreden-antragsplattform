@@ -5,6 +5,7 @@ Diese Web-App ist die digitale Antragsplattform des TC Vreden fuer Mitgliedsantr
 ## Aktueller Stand
 
 - digitale Neuanmeldung
+- Auswahlseite fuer Neuanmeldung oder Mitgliedschaftserweiterung
 - Speicherung in Supabase
 - interne Verwaltung mit Supabase-Benutzern, Rollen und Rechten
 - eBuSy-Abgleich und kontrollierte eBuSy-Uebernahme
@@ -33,6 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex-doctor.ps1
 Die lokale Einrichtung fuer Tokens und Secrets ist hier dokumentiert:
 
 - [Codex Routing und lokale Secrets](docs/codex-routing-und-lokale-secrets.md)
+- [Custom Domain verwaltung.tennisclub-vreden.de](docs/custom-domain-verwaltung.md)
 - [Supabase Heartbeat Cron](docs/supabase-heartbeat-cron.md)
 
 ## Lokale eBuSy-Zugangsdaten

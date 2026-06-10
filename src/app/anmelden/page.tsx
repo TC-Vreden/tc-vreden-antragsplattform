@@ -1,23 +1,32 @@
-import { TcVredenLogo } from "@/components/tc-vreden-logo";
-import { ApplicationForm } from "@/app/anmelden/application-form";
-import { getApplicationFormContent } from "@/lib/application-content";
+import Link from "next/link";
+import { PublicPageShell } from "@/components/public-page-shell";
 
-export const dynamic = "force-dynamic";
-
-export default async function AnmeldenPage() {
-  const content = await getApplicationFormContent();
-
+export default function AnmeldenPage() {
   return (
-    <main className="page-shell">
-      <section className="card">
-        <TcVredenLogo />
-        <h1 className="page-title">Neuanmeldung</h1>
-        <ApplicationForm content={content} />
-      </section>
-      <footer className="public-form-footer">
-        TennisClub Vreden e.V. <span>|</span> Ottensteiner Str. 59 <span>|</span> 48691 Vreden{" "}
-        <span>|</span> <a href="mailto:mail@tennisclub-vreden.de">mail@tennisclub-vreden.de</a>
-      </footer>
-    </main>
+    <PublicPageShell
+      title="Mitgliedschaft"
+      intro={
+        <p>
+          Bitte wähle zuerst aus, ob du neu in den Verein eintreten oder eine bestehende
+          Mitgliedschaft um weitere Personen ergänzen möchtest.
+        </p>
+      }
+    >
+      <div className="entry-options">
+        <Link className="entry-option" href="/anmelden/neuanmeldung">
+          <strong>Neuanmeldung</strong>
+          <span>
+            Für Personen, die neu Mitglied im TennisClub Vreden e.V. werden möchten.
+          </span>
+        </Link>
+        <Link className="entry-option" href="/anmelden/erweitern">
+          <strong>Mitgliedschaft erweitern</strong>
+          <span>
+            Für bestehende Mitglieder, die ein Kind, einen Partner oder weitere
+            Familienmitglieder hinzufügen möchten.
+          </span>
+        </Link>
+      </div>
+    </PublicPageShell>
   );
 }

@@ -29,6 +29,23 @@ export const membershipOptions: MembershipOption[] = [
   }
 ];
 
+export const membershipExtensionOptionValues = [
+  "adult_child",
+  "partner_active",
+  "partner_passive",
+  "family"
+] as const;
+
+export type MembershipExtensionOptionValue = (typeof membershipExtensionOptionValues)[number];
+
+export function isMembershipExtensionOption(value: string | null | undefined) {
+  return membershipExtensionOptionValues.includes(value as MembershipExtensionOptionValue);
+}
+
+export function getMembershipExtensionOptions(options: MembershipOption[] = membershipOptions) {
+  return options.filter((option) => isMembershipExtensionOption(option.value));
+}
+
 export const salutationOptions = [
   { value: "", label: "Bitte auswählen" },
   { value: "MALE", label: "Herr" },

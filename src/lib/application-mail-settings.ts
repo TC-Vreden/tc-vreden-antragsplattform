@@ -85,7 +85,7 @@ export const defaultApplicationMailSettings: ApplicationMailSettings = {
   smtpPort: getMailEnv("SMTP_PORT") ?? "465",
   smtpSecure: envSmtpSecure(),
   smtpUser: getMailEnv("SMTP_USER") ?? "",
-  notificationSubject: "Neuer Mitgliedsantrag: {name}",
+  notificationSubject: "Neuer Antrag ({antragsart}): {name}",
   notificationIntro: [
     "Im Verwaltungsportal liegt ein neuer Mitgliedsantrag zur Prüfung bereit.",
     "Bitte prüfe die Daten und führe anschließend die Übernahme in der Verwaltung aus."

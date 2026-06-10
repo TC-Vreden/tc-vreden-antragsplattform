@@ -1,6 +1,6 @@
 # Codex Routing und lokale Secrets
 
-Stand: 28.05.2026
+Stand: 10.06.2026
 
 Diese Datei beschreibt die lokale Codex-Einrichtung fuer die TC-Vreden Antragsplattform. Das Projekt ist strikt vom Filter.Shop Cockpit getrennt.
 
@@ -11,7 +11,8 @@ Diese Datei beschreibt die lokale Codex-Einrichtung fuer die TC-Vreden Antragspl
 - Vercel-Projekt: `tennisclub-vreden`
 - Vercel-Scope: `tc-vredens-projects`
 - Supabase-Projekt: `xftnhnojaizyaecvtxcq`
-- Live-URL: `https://tennisclub-vreden.vercel.app`
+- Live-URL bis DNS-Umstellung: `https://tennisclub-vreden.vercel.app`
+- Ziel-Domain nach DNS-Umstellung: `https://verwaltung.tennisclub-vreden.de`
 
 Massgeblich sind immer die lokalen Routing-Dateien:
 

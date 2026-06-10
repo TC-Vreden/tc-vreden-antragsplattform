@@ -1,7 +1,11 @@
+export type ApplicationRequestType = "new_membership" | "membership_extension";
+
 export type ApplicationRow = {
   id: string;
   created_at: string;
   updated_at: string;
+  source: string | null;
+  request_type: ApplicationRequestType;
   status: string;
   transferred_at: string | null;
   salutation: string | null;
@@ -117,6 +121,7 @@ export type ApplicationEbusyTakeoverStep = {
 };
 
 export type ApplicationInput = {
+  requestType?: ApplicationRequestType;
   salutation?: string;
   firstName: string;
   lastName: string;

@@ -152,6 +152,8 @@ function createBaseApplication(overrides: Partial<ApplicationRow>): ApplicationR
     id: "tcv-test-adult-active-0001",
     created_at: now,
     updated_at: now,
+    source: "test_lab",
+    request_type: "new_membership",
     status: "test_lab",
     transferred_at: null,
     salutation: "MALE",
@@ -545,6 +547,7 @@ async function createManagementApplicationTest(
   const notificationResult = await sendApplicationReceivedNotification({
     applicationId: data.id,
     createdAt: data.created_at,
+    requestType: "new_membership",
     salutation: application.salutation,
     firstName: application.first_name,
     lastName: application.last_name,

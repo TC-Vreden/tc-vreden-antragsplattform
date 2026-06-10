@@ -221,7 +221,9 @@ class ConfirmationPdfWriter {
     private readonly regularFont: PDFFont,
     private readonly boldFont: PDFFont,
     private readonly generatedAt: string,
-    private readonly logoImage: PDFImage | null
+    private readonly logoImage: PDFImage | null,
+    private readonly headerTitle: string,
+    private readonly headerSubtitle: string
   ) {
     this.page = this.addPage();
   }
@@ -518,14 +520,14 @@ class ConfirmationPdfWriter {
       });
     }
 
-    page.drawText("Nachweis Mitgliedsantrag", {
+    page.drawText(pdfText(this.headerTitle), {
       x: headerTextX,
       y: 790,
       size: 14,
       font: this.boldFont,
       color: black
     });
-    page.drawText("Bestätigung deines digitalen Mitgliedsantrags", {
+    page.drawText(pdfText(this.headerSubtitle), {
       x: headerTextX,
       y: 773,
       size: 9.2,
@@ -554,8 +556,9 @@ async function embedClubLogo(document: PDFDocument) {
 function buildConsentRows(application: ApplicationRow): FieldRow[] {
   const confirmedBy = mainPersonName(application);
   const createdAt = formatDate(application.created_at);
+  const rows: FieldRow[] = [];
 
-  const rows: FieldRow[] = [
+  rows.push(
     {
       label: "Satzung / Beitragsordnung / Platzpflegeordnung",
       value: `${yesNo(application.accepts_statutes)} | bestätigt am ${createdAt} durch ${confirmedBy}`
@@ -563,11 +566,17 @@ function buildConsentRows(application: ApplicationRow): FieldRow[] {
     {
       label: "Datenschutzerklärung nach DSGVO",
       value: `${yesNo(application.accepts_privacy)} | bestätigt am ${createdAt} durch ${confirmedBy}`
-    },
-    {
+    }
+  );
+
+  if (!isMembershipExtension(application)) {
+    rows.push({
       label: "SEPA-Lastschriftmandat",
       value: `${yesNo(application.accepts_sepa)} | bestätigt am ${createdAt} durch ${confirmedBy}`
-    },
+    });
+  }
+
+  rows.push(
     {
       label: "Foto / Video",
       value: `${yesNo(application.accepts_photo_video)} | bestätigt am ${createdAt} durch ${confirmedBy}`
@@ -576,7 +585,7 @@ function buildConsentRows(application: ApplicationRow): FieldRow[] {
       label: "WhatsApp / Mobilnummer",
       value: `${yesNo(application.accepts_whatsapp)} | bestätigt am ${createdAt} durch ${confirmedBy}`
     }
-  ];
+  );
 
   if (hasGuardianInformation(application)) {
     rows.push({
@@ -595,6 +604,30 @@ function hasGuardianInformation(application: ApplicationRow) {
       application.guardian_phone ||
       application.guardian_consent
   );
+}
+
+function isMembershipExtension(application: ApplicationRow) {
+  return application.request_type === "membership_extension";
+}
+
+function getConfirmationTitle(application: ApplicationRow) {
+  return isMembershipExtension(application)
+    ? "Nachweis Mitgliedschaftserweiterung"
+    : "Nachweis Mitgliedsantrag";
+}
+
+function getConfirmationSubtitle(application: ApplicationRow) {
+  return isMembershipExtension(application)
+    ? "Bestätigung deiner digitalen Mitgliedschaftserweiterung"
+    : "Bestätigung deines digitalen Mitgliedsantrags";
+}
+
+function getConfirmationIntro(application: ApplicationRow) {
+  if (isMembershipExtension(application)) {
+    return "Vielen Dank für deine digitale Mitgliedschaftserweiterung. Wir haben den Antrag geprüft und die neu hinzuzufügenden Personen in der Vereinsverwaltung bearbeitet.";
+  }
+
+  return confirmationMailPreview.intro;
 }
 
 function getApplicantVisibleNotes(notes: string | null | undefined) {
@@ -641,26 +674,36 @@ export async function buildApplicationConfirmationPdf(
     regularFont,
     boldFont,
     generatedAt,
-    logoImage
+    logoImage,
+    getConfirmationTitle(application),
+    getConfirmationSubtitle(application)
   );
   const additionalMembers = Array.isArray(application.family_members)
     ? application.family_members
     : [];
   const formContent = await getApplicationFormContent();
   const confirmationDocumentLinks = getConfirmationDocumentLinks(formContent);
-  const confirmationLegalSections = getConfirmationLegalSections(formContent);
+  const confirmationLegalSections = getConfirmationLegalSections(formContent).filter(
+    (section) => !isMembershipExtension(application) || section.title !== "SEPA-Lastschriftmandat"
+  );
 
-  document.setTitle(`Mitgliedsantrag ${mainPersonName(application)}`);
+  document.setTitle(
+    `${isMembershipExtension(application) ? "Mitgliedschaftserweiterung" : "Mitgliedsantrag"} ${mainPersonName(application)}`
+  );
   document.setAuthor(clubContact.name);
-  document.setSubject("Digitale Mitgliedsantragsbestätigung");
+  document.setSubject(
+    isMembershipExtension(application)
+      ? "Digitale Bestätigung der Mitgliedschaftserweiterung"
+      : "Digitale Mitgliedsantragsbestätigung"
+  );
   document.setProducer("TC Vreden Antragsplattform");
   document.setCreator("TC Vreden Antragsplattform");
   document.setCreationDate(new Date(generatedAt));
 
   writer.section(`Bestätigung vom ${formatDate(generatedAt)}`);
-  writer.paragraph(confirmationMailPreview.intro, { highlight: true });
+  writer.paragraph(getConfirmationIntro(application), { highlight: true });
 
-  writer.section("Hauptperson");
+  writer.section(isMembershipExtension(application) ? "Bestehendes Hauptmitglied" : "Hauptperson");
   writer.fields([
     { label: "Anrede", value: getSalutationLabel(application.salutation) },
     { label: "Name", value: mainPersonName(application) },
@@ -689,20 +732,26 @@ export async function buildApplicationConfirmationPdf(
   writer.fields(membershipRows, membershipRows.length > 1 ? 1 : 2);
 
   if (additionalMembers.length === 0) {
-    writer.section("Zusatzpersonen / Familienmitglieder");
+    writer.section(
+      isMembershipExtension(application)
+        ? "Neu hinzuzufügende Personen"
+        : "Zusatzpersonen / Familienmitglieder"
+    );
     writer.paragraph("Keine Zusatzpersonen erfasst.");
   } else {
     additionalMembers.forEach((member, index) => addAdditionalMember(writer, member, index));
   }
 
-  writer.section("SEPA / Zahlung");
-  writer.fields([
-    { label: "Kontoinhaber", value: application.account_holder },
-    { label: "IBAN", value: formatIban(application.iban) },
-    { label: "Anschrift Kontoinhaber", value: application.account_holder_address },
-    { label: "SEPA-Mandat bestätigt", value: yesNo(application.accepts_sepa) },
-    { label: "SEPA-Mandatsdatum / digital bestätigt am", value: formatDate(application.created_at) }
-  ]);
+  if (!isMembershipExtension(application)) {
+    writer.section("SEPA / Zahlung");
+    writer.fields([
+      { label: "Kontoinhaber", value: application.account_holder },
+      { label: "IBAN", value: formatIban(application.iban) },
+      { label: "Anschrift Kontoinhaber", value: application.account_holder_address },
+      { label: "SEPA-Mandat bestätigt", value: yesNo(application.accepts_sepa) },
+      { label: "SEPA-Mandatsdatum / digital bestätigt am", value: formatDate(application.created_at) }
+    ]);
+  }
 
   if (hasGuardianInformation(application)) {
     writer.section("Minderjährige / gesetzliche Vertreter");
@@ -739,7 +788,7 @@ export async function buildApplicationConfirmationPdf(
     filenameDate(generatedAt),
     safeFilePart(application.last_name, "Nachname"),
     safeFilePart(application.first_name, "Vorname"),
-    "Mitgliedsantrag",
+    isMembershipExtension(application) ? "Mitgliedschaftserweiterung" : "Mitgliedsantrag",
     "TennisClub",
     "Vreden"
   ]

@@ -58,6 +58,10 @@ function getAdditionalMemberRole(member: ApplicationAdditionalMember): EbusyMult
   return "family_member";
 }
 
+function isMembershipExtensionRequest(row: ApplicationRow) {
+  return row.request_type === "membership_extension";
+}
+
 function getRoleLabel(role: EbusyMultiPersonRole) {
   switch (role) {
     case "main":
@@ -227,6 +231,33 @@ function validateAdditionalMember(member: ApplicationAdditionalMember, index: nu
   }
 
   return `Zusatzperson ${index + 1} ist unvollständig: ${missingFields.join(", ")} fehlt.`;
+}
+
+function validateMembershipExtensionMember(member: ApplicationAdditionalMember, index: number) {
+  const role = getAdditionalMemberRole(member);
+  const missingFields = [
+    ["Anrede", member.salutation],
+    ["Vorname", member.firstName],
+    ["Nachname", member.lastName],
+    ["Geburtsdatum", member.birthDate],
+    ["Straße", member.street],
+    ["PLZ", member.postalCode],
+    ["Ort", member.city],
+    ...(role === "child" || isMinorByBirthDate(member.birthDate)
+      ? [["Gesetzliche Vertreter", member.legalRepresentative]]
+      : [
+          ["E-Mail", member.email],
+          ["Mobilnummer", member.mobile]
+        ])
+  ]
+    .filter(([, value]) => !getStringValue(value))
+    .map(([label]) => label);
+
+  if (missingFields.length === 0) {
+    return null;
+  }
+
+  return `Neu hinzuzufügende Person ${index + 1} ist unvollständig: ${missingFields.join(", ")} fehlt.`;
 }
 
 function buildMultiPersonTakeoverPlan(
@@ -856,6 +887,369 @@ async function createMultiPersonApplicationInEbusy(
   };
 }
 
+async function createMembershipExtensionInEbusy(
+  applicationId: string,
+  row: ApplicationRow
+): Promise<ApplicationMatchSummary> {
+  const existingPayload = row.ebusy_match_payload as ApplicationMatchPayload | null;
+  const takeoverConfig = getProductionEbusyMultiPersonTakeoverConfig(row.membership_kind);
+
+  if (!takeoverConfig) {
+    return {
+      status: "error",
+      message:
+        "Diese Erweiterungsart ist noch nicht für die automatische eBuSy-Übernahme freigegeben."
+    };
+  }
+
+  if (!row.ebusy_person_id || row.ebusy_match_status !== "match_found") {
+    return {
+      status: "error",
+      message:
+        "Bitte zuerst das bestehende Hauptmitglied sicher mit einer eBuSy-Person verknüpfen."
+    };
+  }
+
+  if (!row.family_members?.length) {
+    return {
+      status: "error",
+      message:
+        "Die Mitgliedschaftserweiterung enthält keine neu hinzuzufügenden Personen."
+    };
+  }
+
+  const validationErrors = row.family_members
+    .map((member, index) => validateMembershipExtensionMember(member, index))
+    .filter((message): message is string => Boolean(message));
+
+  if (validationErrors.length > 0) {
+    return {
+      status: "error",
+      message: validationErrors.join(" ")
+    };
+  }
+
+  const payerPersonId = Number(row.ebusy_person_id);
+
+  if (!Number.isInteger(payerPersonId)) {
+    return {
+      status: "error",
+      message:
+        "Die eBuSy-ID des bestehenden Hauptmitglieds konnte nicht als Zahl verarbeitet werden."
+    };
+  }
+
+  const createdPeople: ApplicationCreatedEbusyPerson[] = [];
+  const createdMemberships: ApplicationCreatedEbusyMembership[] = [];
+  const takeoverSteps: ApplicationEbusyTakeoverStep[] = [];
+  const takeoverWarnings = [
+    "Das bestehende Hauptmitglied wurde nicht automatisch aktualisiert.",
+    "Attribute und Beitrag des Hauptmitglieds müssen in eBuSy manuell geprüft bzw. angepasst werden.",
+    "Für Mitgliedschaftserweiterungen werden aktuell keine Attribute automatisch gesetzt."
+  ];
+  let mainPayerPaymentDetails: EbusyPaymentDetailsPayload = {};
+
+  try {
+    const mainPayerPerson = await getEbusyPersonById(row.ebusy_person_id);
+
+    mainPayerPaymentDetails = getPaymentDetailsFromPerson(mainPayerPerson);
+    createdPeople.push(
+      getCreatedPersonDetails(
+        "main",
+        "Bestehendes Hauptmitglied / Zahler",
+        row.ebusy_person_id,
+        mainPayerPerson,
+        getDisplayName(row)
+      )
+    );
+    takeoverSteps.push({
+      memberId: "main",
+      roleLabel: "Bestehendes Hauptmitglied / Zahler",
+      step: "person",
+      status: "skipped",
+      message:
+        "Vorhandenes Hauptmitglied wurde nur als Hauptzahler gelesen und nicht aktualisiert."
+    });
+  } catch (error) {
+    return {
+      status: "error",
+      message:
+        error instanceof Error
+          ? `Das bestehende Hauptmitglied konnte in eBuSy nicht gelesen werden: ${error.message}`
+          : "Das bestehende Hauptmitglied konnte in eBuSy nicht gelesen werden."
+    };
+  }
+
+  for (const [index, member] of row.family_members.entries()) {
+    const role = getAdditionalMemberRole(member);
+    const memberId = `${role}-${index + 1}`;
+    const roleLabel = getRoleLabel(role);
+    const memberApplication = buildAdditionalMemberApplication(row, member, memberId);
+    const memberConfig = getEbusyMultiPersonMemberConfig(takeoverConfig, role);
+    const fallbackName = getDisplayName(memberApplication);
+    let createdPerson: Awaited<ReturnType<typeof createEbusyPersonFromApplication>>;
+    let readBackPerson: EbusyPerson | null = null;
+
+    try {
+      createdPerson = await createEbusyPersonFromApplication(memberApplication);
+      readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
+      createdPeople.push(
+        getCreatedPersonDetails(
+          memberId,
+          roleLabel,
+          createdPerson.externalPersonId,
+          readBackPerson,
+          createdPerson.displayName || fallbackName
+        )
+      );
+      takeoverSteps.push({
+        memberId,
+        roleLabel,
+        step: "person",
+        status: "success",
+        message: `Person und Benutzer angelegt: ${createdPerson.displayName} (${createdPerson.externalPersonId}).`
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unbekannter Personenfehler";
+      const failedPayload: ApplicationMatchPayload = {
+        status: "error",
+        source: "live",
+        message: `Mitgliedschaftserweiterung abgebrochen: ${roleLabel} konnte nicht angelegt werden: ${reason}`,
+        candidates: existingPayload?.candidates ?? [],
+        createdPeople,
+        createdMemberships,
+        takeoverSteps: [
+          ...takeoverSteps,
+          {
+            memberId,
+            roleLabel,
+            step: "person",
+            status: "error",
+            message: reason
+          }
+        ],
+        takeoverWarnings
+      };
+
+      await updateApplicationAfterTakeover(applicationId, {
+        status: row.status,
+        ebusy_match_status: "error",
+        ebusy_person_id: row.ebusy_person_id,
+        ebusy_match_payload: failedPayload
+      });
+
+      return {
+        status: "error",
+        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy prüfen.`,
+        externalPersonId: row.ebusy_person_id,
+        matchPayload: failedPayload
+      };
+    }
+
+    try {
+      if (memberConfig.payerRelation) {
+        await setEbusyPersonPaidBy(
+          createdPerson.externalPersonId,
+          {
+            id: payerPersonId,
+            moduleIds: memberConfig.payerRelation.moduleIds,
+            paysForVouchersAndCoupons: memberConfig.payerRelation.paysForVouchersAndCoupons,
+            paysForCustomPurchases: memberConfig.payerRelation.paysForCustomPurchases
+          },
+          mainPayerPaymentDetails
+        );
+        readBackPerson = await getEbusyPersonById(createdPerson.externalPersonId);
+
+        const currentPerson = createdPeople.find((person) => person.memberId === memberId);
+
+        if (currentPerson) {
+          updateCreatedPersonDetails(currentPerson, readBackPerson, fallbackName);
+        }
+
+        takeoverSteps.push({
+          memberId,
+          roleLabel,
+          step: "payer",
+          status: "success",
+          message: `Hauptzahler gesetzt: ${createdPeople[0]?.displayName ?? row.ebusy_person_id}.`
+        });
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unbekannter Hauptzahlerfehler";
+      const failedPayload: ApplicationMatchPayload = {
+        status: "error",
+        source: "live",
+        message: `Mitgliedschaftserweiterung abgebrochen: Hauptzahler für ${roleLabel} konnte nicht gesetzt werden: ${reason}`,
+        candidates: existingPayload?.candidates ?? [],
+        createdPeople,
+        createdMemberships,
+        takeoverSteps: [
+          ...takeoverSteps,
+          {
+            memberId,
+            roleLabel,
+            step: "payer",
+            status: "error",
+            message: reason
+          }
+        ],
+        takeoverWarnings
+      };
+
+      await updateApplicationAfterTakeover(applicationId, {
+        status: row.status,
+        ebusy_match_status: "error",
+        ebusy_person_id: row.ebusy_person_id,
+        ebusy_match_payload: failedPayload
+      });
+
+      return {
+        status: "error",
+        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy prüfen.`,
+        externalPersonId: row.ebusy_person_id,
+        matchPayload: failedPayload
+      };
+    }
+
+    takeoverSteps.push({
+      memberId,
+      roleLabel,
+      step: "attributes",
+      status: "skipped",
+      message: "Attribute werden für Mitgliedschaftserweiterungen noch nicht automatisch gesetzt."
+    });
+
+    try {
+      const personId = Number(createdPerson.externalPersonId);
+
+      if (!Number.isInteger(personId)) {
+        throw new Error(
+          `eBuSy-ID ${createdPerson.externalPersonId} konnte nicht als Zahl verarbeitet werden.`
+        );
+      }
+
+      const membershipPayload = buildEbusyMembershipPayloadForApplication(
+        memberApplication,
+        personId,
+        memberConfig.membership,
+        readBackPerson?.customerId,
+        "Digitale Mitgliedschaftserweiterung"
+      );
+      const createdMembership = await createEbusyMembership(
+        memberConfig.membership.moduleId,
+        membershipPayload
+      );
+
+      await getEbusyMembershipsByPersonId(memberConfig.membership.moduleId, personId);
+
+      createdMemberships.push({
+        memberId,
+        roleLabel,
+        externalMembershipId: createdMembership.externalMembershipId,
+        displayName: createdMembership.displayName,
+        personId: createdPerson.externalPersonId,
+        membershipNumber: readBackPerson?.customerId
+      });
+      takeoverSteps.push({
+        memberId,
+        roleLabel,
+        step: "membership",
+        status: "success",
+        message: `Einfache Mitgliedschaft erstellt: ${createdMembership.displayName}.`
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unbekannter Mitgliedschaftsfehler";
+      const failedPayload: ApplicationMatchPayload = {
+        status: "error",
+        source: "live",
+        message: `Mitgliedschaftserweiterung abgebrochen: Mitgliedschaft für ${roleLabel} konnte nicht erstellt werden: ${reason}`,
+        candidates: existingPayload?.candidates ?? [],
+        createdPeople,
+        createdMemberships,
+        takeoverSteps: [
+          ...takeoverSteps,
+          {
+            memberId,
+            roleLabel,
+            step: "membership",
+            status: "error",
+            message: reason
+          }
+        ],
+        takeoverWarnings
+      };
+
+      await updateApplicationAfterTakeover(applicationId, {
+        status: row.status,
+        ebusy_match_status: "error",
+        ebusy_person_id: row.ebusy_person_id,
+        ebusy_match_payload: failedPayload
+      });
+
+      return {
+        status: "error",
+        message: `${failedPayload.message}. Bereits angelegte Teilpersonen bitte in eBuSy prüfen.`,
+        externalPersonId: row.ebusy_person_id,
+        matchPayload: failedPayload
+      };
+    }
+  }
+
+  const firstNewPerson = createdPeople.find((person) => person.memberId !== "main");
+  const newPeopleCount = Math.max(createdPeople.length - 1, 0);
+  const message = `${newPeopleCount} neue Person(en) mit Benutzerkonto, Hauptzahlerbezug und einfacher Mitgliedschaft wurden in eBuSy angelegt. Das bestehende Hauptmitglied wurde nicht automatisch geändert; Beitrag und Attribute bitte in eBuSy manuell prüfen.`;
+  const transferredAt = new Date().toISOString();
+  const nextPayload: ApplicationMatchPayload = {
+    status: "created_in_ebusy",
+    source: "live",
+    message,
+    candidates: existingPayload?.candidates ?? [],
+    createdPerson: firstNewPerson
+      ? {
+          externalPersonId: firstNewPerson.externalPersonId,
+          displayName: firstNewPerson.displayName
+        }
+      : undefined,
+    createdPeople,
+    createdMemberships,
+    takeoverSteps,
+    takeoverWarnings
+  };
+  const updateError = await updateApplicationAfterTakeover(applicationId, {
+    status: "transferred_to_ebusy",
+    transferred_at: transferredAt,
+    ebusy_match_status: "created_in_ebusy",
+    ebusy_person_id: row.ebusy_person_id,
+    ebusy_match_payload: nextPayload
+  });
+
+  if (updateError) {
+    return {
+      status: "created_in_ebusy",
+      message: `${message} Achtung: Die lokale Verknüpfung konnte nicht gespeichert werden: ${updateError.message}`,
+      externalPersonId: row.ebusy_person_id,
+      matchPayload: nextPayload
+    };
+  }
+
+  const confirmationEmailResult: ApplicationConfirmationEmailResult =
+    await sendApplicationConfirmationEmail({
+      application: row,
+      transferredAt,
+      matchPayload: nextPayload
+    }).catch((error) => ({
+      status: "failed",
+      reason: error instanceof Error ? error.message : "Unbekannter Mailfehler"
+    }));
+
+  return {
+    status: "created_in_ebusy",
+    message: appendConfirmationEmailMessage(message, confirmationEmailResult),
+    externalPersonId: row.ebusy_person_id,
+    matchPayload: nextPayload
+  };
+}
+
 export async function createApplicationPersonInEbusy(
   applicationId: string
 ): Promise<ApplicationMatchSummary> {
@@ -875,6 +1269,10 @@ export async function createApplicationPersonInEbusy(
   }
 
   const row = application as ApplicationRow;
+
+  if (isMembershipExtensionRequest(row)) {
+    return createMembershipExtensionInEbusy(applicationId, row);
+  }
 
   if (isMultiPersonMembership(row.membership_kind)) {
     return createMultiPersonApplicationInEbusy(applicationId, row);

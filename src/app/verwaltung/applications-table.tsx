@@ -117,6 +117,14 @@ function hasAdditionalMembers(application: ApplicationRow) {
   return (application.family_members ?? []).length > 0;
 }
 
+function isMembershipExtension(application: ApplicationRow) {
+  return application.request_type === "membership_extension";
+}
+
+function getRequestTypeLabel(application: ApplicationRow) {
+  return isMembershipExtension(application) ? "Mitgliedschaft erweitern" : "Neuanmeldung";
+}
+
 function isMultiPersonApplication(application: ApplicationRow) {
   return isMultiPersonMembership(application.membership_kind) || hasAdditionalMembers(application);
 }
@@ -414,8 +422,11 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
     }
 
     const multiPersonApplication = isMultiPersonApplication(application);
+    const membershipExtension = isMembershipExtension(application);
     const confirmMessage = multiPersonApplication
-      ? `Soll der Mehrpersonen-Antrag für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nBei einem bestehenden eBuSy-Treffer wird die Hauptperson aktualisiert. Zusatzpersonen werden angelegt, dem Hauptzahler zugeordnet und mit Attribut Mitgliedsbeiträge NEU sowie einfacher Mitgliedschaft versehen.`
+      ? membershipExtension
+        ? `Soll die Mitgliedschaftserweiterung für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nDas bestehende Hauptmitglied wird nicht aktualisiert. Die hinzuzufügenden Personen werden neu angelegt, dem Hauptzahler zugeordnet und mit einfacher Mitgliedschaft versehen. Attribute und Beitrag des Hauptmitglieds müssen danach in eBuSy manuell geprüft werden.`
+        : `Soll der Mehrpersonen-Antrag für ${displayName} jetzt wirklich nach eBuSy übernommen werden?\n\nBei einem bestehenden eBuSy-Treffer wird die Hauptperson aktualisiert. Zusatzpersonen werden angelegt, dem Hauptzahler zugeordnet und mit Attribut Mitgliedsbeiträge NEU sowie einfacher Mitgliedschaft versehen.`
       : application.ebusy_person_id
         ? `Soll für ${displayName} die vorhandene eBuSy-Person aktualisiert und um Attribute sowie Mitgliedschaft ergänzt werden? Es wird kein neues Benutzerkonto angelegt.`
         : `Soll für ${displayName} jetzt wirklich eine neue Person mit Attributen und einfacher Mitgliedschaft in eBuSy angelegt werden?`;
@@ -649,6 +660,7 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
             const showDetails = Boolean(localState?.detailsExpanded);
             const editing = Boolean(localState?.editing);
             const multiPersonApplication = isMultiPersonApplication(application);
+            const membershipExtension = isMembershipExtension(application);
             const transferred = isTransferredApplication(application);
 
             return (
@@ -660,6 +672,8 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                       {application.first_name} {application.last_name}
                     </strong>
                     <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
+                      {getRequestTypeLabel(application)}
+                      <br />
                       Vorgang: {application.id}
                       {application.ebusy_person_id
                         ? ` - eBuSy-ID: ${application.ebusy_person_id}`
@@ -668,14 +682,17 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                   </td>
                   <td>{getMembershipLabelFromOptions(application.membership_kind, membershipOptions)}</td>
                   <td>
-                    {multiPersonApplication ? (
+                    {membershipExtension ? (
+                      <strong>Mitgliedschaft erweitern</strong>
+                    ) : multiPersonApplication ? (
                       <strong>Mehrpersonen-Antrag</strong>
                     ) : (
                       "Einzelperson"
                     )}
                     {hasAdditionalMembers(application) ? (
                       <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
-                        {application.family_members.length} Zusatzperson(en)
+                        {application.family_members.length}{" "}
+                        {membershipExtension ? "neu hinzuzufügende Person(en)" : "Zusatzperson(en)"}
                       </div>
                     ) : null}
                   </td>
@@ -749,7 +766,9 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                           type="button"
                           disabled={Boolean(localState?.loading)}
                           title={
-                            multiPersonApplication
+                            membershipExtension
+                              ? "Übernimmt nur die hinzuzufügenden Personen nach eBuSy. Das bestehende Hauptmitglied bleibt unverändert."
+                              : multiPersonApplication
                               ? "Übernimmt Hauptperson und Zusatzpersonen nach eBuSy und setzt den Hauptzahlerbezug für Zusatzpersonen."
                               : application.ebusy_person_id
                                 ? "Aktualisiert die vorhandene eBuSy-Person und legt Attribute sowie Mitgliedschaft an."
@@ -759,7 +778,9 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                         >
                           {localState?.loading
                             ? "Anlage läuft..."
-                            : multiPersonApplication
+                            : membershipExtension
+                              ? "Erweiterung übernehmen"
+                              : multiPersonApplication
                               ? "Mehrpersonen übernehmen"
                               : application.ebusy_person_id
                                 ? "Treffer übernehmen"
@@ -820,6 +841,17 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
       <tr>
         <td colSpan={6} style={{ background: "#fffdf6" }}>
           <div style={{ display: "grid", gap: 18, padding: "10px 0" }}>
+            {isMembershipExtension(application) && !transferred ? (
+              <div className="warning-box">
+                <strong>Mitgliedschaft erweitern</strong>
+                <p style={{ margin: "8px 0 0" }}>
+                  Das bestehende Hauptmitglied dient nur als eBuSy-Zuordnung und wird bei der
+                  Übernahme nicht aktualisiert. Nach der Übernahme müssen Beitrag und
+                  Familien-/Hauptzahlerlogik in eBuSy manuell geprüft werden.
+                </p>
+              </div>
+            ) : null}
+
             {isMultiPersonApplication(application) && !transferred ? (
               <div className="warning-box">
                 <strong>Mehrpersonen-Antrag</strong>
@@ -832,7 +864,9 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
               </div>
             ) : null}
 
-            <DetailSection title="Hauptperson">
+            <DetailSection
+              title={isMembershipExtension(application) ? "Bestehendes Hauptmitglied" : "Hauptperson"}
+            >
               <DetailItem label="Anrede" value={getApplicationSalutationLabel(application)} />
               <DetailItem label="Vorname" value={application.first_name} />
               <DetailItem label="Nachname" value={application.last_name} />
@@ -853,7 +887,11 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
                 label="Familienbezug"
                 value={
                   hasAdditionalMembers(application)
-                    ? `${application.family_members.length} Zusatzperson(en)`
+                    ? `${application.family_members.length} ${
+                        isMembershipExtension(application)
+                          ? "neu hinzuzufügende Person(en)"
+                          : "Zusatzperson(en)"
+                      }`
                     : "Kein Familienbezug erfasst"
                 }
               />
@@ -865,7 +903,13 @@ export function ApplicationsTable({ applications, membershipOptions, permissions
               ) : null}
             </DetailSection>
 
-            <DetailSection title="Zusatzpersonen / Familienmitglieder">
+            <DetailSection
+              title={
+                isMembershipExtension(application)
+                  ? "Neu hinzuzufügende Personen"
+                  : "Zusatzpersonen / Familienmitglieder"
+              }
+            >
               {hasAdditionalMembers(application) ? (
                 <div style={{ gridColumn: "1 / -1", display: "grid", gap: 10 }}>
                   {application.family_members.map((member, index) => (

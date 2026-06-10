@@ -12,6 +12,7 @@ import {
   type MailTemplateContext
 } from "@/lib/application-mail-settings";
 import type { ApplicationAdditionalMember } from "@/lib/application-types";
+import type { ApplicationRequestType } from "@/lib/application-types";
 import {
   getAdminPortalUrl,
   sendConfiguredMail,
@@ -23,6 +24,7 @@ export type ApplicationNotificationResult = MailDeliveryResult;
 export type ApplicationReceivedNotificationInput = {
   applicationId: string;
   createdAt: string;
+  requestType?: ApplicationRequestType;
   salutation?: string | null;
   firstName: string;
   lastName: string;
@@ -76,6 +78,10 @@ function yesNo(value: boolean) {
   return value ? "Ja" : "Nein";
 }
 
+function getRequestTypeLabel(requestType: ApplicationRequestType | undefined) {
+  return requestType === "membership_extension" ? "Mitgliedschaft erweitern" : "Neuanmeldung";
+}
+
 function buildAddress(input: ApplicationReceivedNotificationInput) {
   return [input.street, [input.postalCode, input.city].filter(Boolean).join(" ")]
     .filter(Boolean)
@@ -108,6 +114,7 @@ function buildContext(
 ): MailTemplateContext {
   const name = `${input.firstName} ${input.lastName}`.trim();
   const membership = getMembershipLabelFromContent(input.membershipKind, formContent);
+  const requestTypeLabel = getRequestTypeLabel(input.requestType);
 
   return {
     name,
@@ -115,6 +122,7 @@ function buildContext(
     nachname: input.lastName,
     email: input.email,
     mitgliedschaft: membership,
+    antragsart: requestTypeLabel,
     referenznummer: input.applicationId,
     eingang: formatDate(input.createdAt),
     verwaltungslink: adminPortalUrl ?? "interne Verwaltungsadresse öffnen",
@@ -136,6 +144,7 @@ function buildHtml(
 ) {
   const context = buildContext(input, adminPortalUrl, formContent);
   const membershipLabel = String(context.mitgliedschaft ?? "-");
+  const requestTypeLabel = String(context.antragsart ?? "-");
   const applicantName = String(context.name ?? "-");
   const address = buildAddress(input);
   const additionalMembers = buildAdditionalMembersSummary(input.familyMembers);
@@ -154,7 +163,7 @@ function buildHtml(
             <tr>
               <td style="padding:18px 20px 14px;border-bottom:4px solid #ffd800;background:#ffffff;">
                 <p style="margin:0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b5900;">TennisClub Vreden e.V.</p>
-                <h1 style="margin:6px 0 0;font-size:23px;line-height:1.25;color:#1d1d1b;">Neuer Mitgliedsantrag eingegangen</h1>
+                <h1 style="margin:6px 0 0;font-size:23px;line-height:1.25;color:#1d1d1b;">Neuer Antrag eingegangen</h1>
               </td>
             </tr>
             <tr>
@@ -164,6 +173,7 @@ function buildHtml(
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:14px;margin-top:12px;">
                   <tbody>
                     <tr><td style="width:170px;padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Referenznummer</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(input.applicationId)}</td></tr>
+                    <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Antragsart</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(requestTypeLabel)}</td></tr>
                     <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Eingang</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(formatDate(input.createdAt))}</td></tr>
                     <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Hauptperson</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(applicantName)}</td></tr>
                     <tr><td style="padding:8px 0;border-top:1px solid #eee;font-weight:700;vertical-align:top;">Geburtsdatum</td><td style="padding:8px 0;border-top:1px solid #eee;">${escapeHtml(formatDate(input.birthDate))}</td></tr>
@@ -200,11 +210,12 @@ function buildText(
   const footer = renderMailTemplateLines(settings.notificationFooter, context);
 
   return [
-    "Neuer Mitgliedsantrag eingegangen",
+    "Neuer Antrag eingegangen",
     "",
     ...intro,
     "",
     `Referenznummer: ${input.applicationId}`,
+    `Antragsart: ${context.antragsart}`,
     `Eingang: ${formatDate(input.createdAt)}`,
     `Hauptperson: ${input.firstName} ${input.lastName}`,
     `Geburtsdatum: ${formatDate(input.birthDate)}`,
