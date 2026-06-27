@@ -135,6 +135,145 @@ function Invoke-TextCommand {
   }
 }
 
+function Get-BlockedProxyEnvNames {
+  $proxyNames = @(
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "GIT_HTTP_PROXY",
+    "GIT_HTTPS_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy"
+  )
+  $blockedNames = @()
+
+  foreach ($name in $proxyNames) {
+    $value = [Environment]::GetEnvironmentVariable($name, "Process")
+
+    if ($value -and ($value -match "127\.0\.0\.1:9" -or $value -match "localhost:9" -or $value -match "\[::1\]:9")) {
+      $blockedNames += $name
+    }
+  }
+
+  return $blockedNames
+}
+
+function Invoke-WithTemporaryProcessEnvironment {
+  param(
+    [string[]]$ClearNames = @(),
+    [hashtable]$SetValues = @{},
+    [scriptblock]$ScriptBlock
+  )
+
+  $names = @()
+
+  foreach ($name in @($ClearNames)) {
+    if ($name -and $names -notcontains $name) {
+      $names += $name
+    }
+  }
+
+  foreach ($entry in $SetValues.GetEnumerator()) {
+    $name = [string]$entry.Key
+
+    if ($name -and $names -notcontains $name) {
+      $names += $name
+    }
+  }
+
+  $previousValues = @{}
+
+  foreach ($name in $names) {
+    $previousValues[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
+  }
+
+  try {
+    foreach ($name in @($ClearNames)) {
+      if ($name) {
+        [Environment]::SetEnvironmentVariable($name, $null, "Process")
+      }
+    }
+
+    foreach ($entry in $SetValues.GetEnumerator()) {
+      [Environment]::SetEnvironmentVariable([string]$entry.Key, [string]$entry.Value, "Process")
+    }
+
+    & $ScriptBlock
+  } finally {
+    foreach ($name in $names) {
+      [Environment]::SetEnvironmentVariable($name, $previousValues[$name], "Process")
+    }
+  }
+}
+
+function Invoke-WithProjectCliEnvironment {
+  param([scriptblock]$ScriptBlock)
+
+  Invoke-WithTemporaryProcessEnvironment `
+    -ClearNames (Get-BlockedProxyEnvNames) `
+    -SetValues @{
+      "CI" = "1"
+      "DO_NOT_TRACK" = "1"
+      "NEXT_TELEMETRY_DISABLED" = "1"
+      "NO_UPDATE_NOTIFIER" = "1"
+      "VERCEL_TELEMETRY_DISABLED" = "1"
+    } `
+    -ScriptBlock $ScriptBlock
+}
+
+function Get-VercelGlobalConfigDir {
+  $path = Join-Path ([IO.Path]::GetTempPath()) "tc-vreden-vercel-global-config"
+
+  if (-not (Test-Path -Path $path)) {
+    New-Item -ItemType Directory -Path $path -Force | Out-Null
+  }
+
+  return $path
+}
+
+function Invoke-VercelTextCommand {
+  param([string[]]$Arguments)
+
+  $vercelArgs = @("exec", "--", "vercel", "--global-config", (Get-VercelGlobalConfigDir)) + $Arguments
+
+  Invoke-WithProjectCliEnvironment {
+    Invoke-TextCommand "npm.cmd" $vercelArgs
+  }
+}
+
+function Get-GitHubTokenEnvName {
+  if (Test-ObjectProperty $Config.github "tokenEnv" -and $Config.github.tokenEnv) {
+    return [string]$Config.github.tokenEnv
+  }
+
+  return "TCVREDEN_GITHUB_TOKEN"
+}
+
+function Invoke-GitHubTextCommand {
+  param(
+    [string]$Token,
+    [string[]]$Arguments
+  )
+
+  $basicAuth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("x-access-token:$Token"))
+  $gitArgs = @(
+    "-c",
+    "http.sslBackend=openssl",
+    "-c",
+    "http.extraHeader=Authorization: Basic $basicAuth"
+  ) + $Arguments
+
+  Invoke-WithTemporaryProcessEnvironment `
+    -ClearNames (Get-BlockedProxyEnvNames) `
+    -SetValues @{
+      "GIT_SSL_BACKEND" = "openssl"
+    } `
+    -ScriptBlock {
+      Invoke-TextCommand "git" $gitArgs
+    }
+}
+
 function Get-ExpectedConfigValue {
   param(
     [object]$Object,
@@ -159,6 +298,15 @@ Add-Check "Git remote" $remoteOk "Expected $($Config.github.remoteName) -> $($Co
 $branchResult = Invoke-TextCommand "git" @("branch", "--show-current")
 $branchOk = $branchResult.ExitCode -eq 0 -and $branchResult.Text -eq $Config.defaultBranch
 Add-Check "Git branch" $branchOk "Expected $($Config.defaultBranch); actual: $($branchResult.Text)"
+
+$githubTokenName = Get-GitHubTokenEnvName
+$hasGithubToken = Test-ProcessEnvValue $githubTokenName
+Add-Check "GitHub token" $hasGithubToken "Project-local GitHub token env var: $githubTokenName"
+
+if ($hasGithubToken) {
+  $githubHead = Invoke-GitHubTextCommand -Token ([Environment]::GetEnvironmentVariable($githubTokenName, "Process")) -Arguments @("ls-remote", [string]$Config.github.remoteUrl, "HEAD")
+  Add-Check "GitHub token access" ($githubHead.ExitCode -eq 0) "GitHub token must read repository HEAD with OpenSSL Git transport."
+}
 
 $npmCommand = Get-Command "npm.cmd" -ErrorAction SilentlyContinue
 Add-Check "Node/npm" ($null -ne $npmCommand) "npm.cmd available for project scripts and npx-style CLI execution."
@@ -207,7 +355,7 @@ if ($SkipVercel) {
   Add-Check "Vercel token" $hasVercelToken $vercelTokenMessage
 
   if ($hasVercelToken) {
-    $vercelWhoami = Invoke-TextCommand "npm.cmd" @("exec", "--", "vercel", "whoami", "--token", [Environment]::GetEnvironmentVariable($vercelTokenName, "Process"))
+    $vercelWhoami = Invoke-VercelTextCommand @("whoami", "--token", [Environment]::GetEnvironmentVariable($vercelTokenName, "Process"))
     Add-Check "Vercel token login" ($vercelWhoami.ExitCode -eq 0) "Vercel CLI whoami must succeed with the project-local token."
   }
 }

@@ -20,13 +20,17 @@ export function getSupabaseAnonKey() {
   return anonKey;
 }
 
-export function getSupabaseInsertClient() {
+export function getSupabasePublicClient() {
   return createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     auth: {
       persistSession: false,
       autoRefreshToken: false
     }
   });
+}
+
+export function getSupabaseInsertClient() {
+  return getSupabasePublicClient();
 }
 
 export function getSupabaseAdminClient() {

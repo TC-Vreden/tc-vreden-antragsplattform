@@ -1,4 +1,4 @@
-export const handbookDate = "04.06.2026";
+export const handbookDate = "27.06.2026";
 
 export type HandbookSection = {
   title: string;
@@ -141,7 +141,7 @@ export const handbookPages: HandbookPage[] = [
       {
         title: "Projektanker",
         rows: [
-          ["Lokaler Ordner", "F:\\Onedrive\\Dokumente\\Codex\\TC-Vreden\\webapp-prototyp"],
+          ["Lokaler Ordner", "C:\\Codex-Projekte\\TC-Vreden\\webapp-prototyp"],
           ["GitHub", "https://github.com/TC-Vreden/tc-vreden-antragsplattform.git"],
           ["Vercel", "tennisclub-vreden im Scope tc-vredens-projects"],
           ["Supabase", "xftnhnojaizyaecvtxcq / tennisclub-vreden"],
@@ -165,15 +165,18 @@ export const handbookPages: HandbookPage[] = [
         bullets: [
           "Vor Release: scripts/codex-doctor.ps1 muss grün sein.",
           "Fertige Releases laufen über scripts/codex-release.ps1.",
-          "Der Release-Pfad prüft Routing, Lint, Build, Supabase-Migrationen, Git Push, Vercel Deploy, Live-Check und Handy-Benachrichtigung.",
+          "Der Release-Pfad prüft Routing, GitHub-Token, Lint, TypeScript, lokalen Compile-Build, Supabase-Migrationen, Git Push, Vercel Deploy, Live-Check und Handy-Benachrichtigung.",
+          "Git Push nutzt den projektlokalen TCVREDEN_GITHUB_TOKEN aus .deploy.local.ps1 und OpenSSL-Git-Transport, damit keine globalen GitHub- oder Windows-Credential-Manager-Logins nötig sind.",
+          "Der lokale Codex-Build nutzt eine temporäre Kopie, weil die Sandbox rekursive Next-Verzeichnislöschungen und Worker-Prozesse blockieren kann. Der vollständige Production-Build mit statischer Generierung läuft beim Vercel-Deploy remote.",
+          "Falls das lokale PowerShell-ntfy-Skript am Windows-HTTP-Stack scheitert, sendet der Release-Pfad die Handy-Benachrichtigung über Node fetch und das lokale NTFY_TOPIC.",
           "Keine globalen CLI-Logins als Quelle der Wahrheit verwenden; maßgeblich sind .codex-project.json, .deploy.local.ps1, .vercel/project.json und Git-Remote."
         ]
       },
       {
         title: "Supabase Heartbeat",
         body: [
-          "Vercel ruft täglich /api/cron/supabase-heartbeat auf. Die Route ist mit CRON_SECRET geschützt und aktualisiert genau eine Zeile in system_heartbeat.",
-          "Ziel ist, das Supabase-Free-Projekt durch minimale echte Aktivität wach zu halten. Das ersetzt keine Pro-Plan-Garantie, ist aber für den Vereinsbetrieb pragmatisch."
+          "Vercel ruft täglich um 01:00 UTC /api/cron/supabase-heartbeat auf. Die Route ist mit CRON_SECRET geschützt und aktualisiert die feste Zeile `supabase-free-plan-heartbeat` in system_heartbeat.",
+          "Seit 25.06.2026 schreibt der Heartbeat zusätzlich über einen anon/RPC-Aufruf `touch_system_heartbeat()`, damit Supabase neben dem Service-Role-Upsert auch normale API-Aktivität sieht. Das ersetzt keine Pro-Plan-Garantie, ist aber für den Vereinsbetrieb pragmatisch."
         ]
       }
     ]

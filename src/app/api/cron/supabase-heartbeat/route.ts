@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdminClient } from "@/lib/supabase-server";
+import { getSupabaseAdminClient, getSupabasePublicClient } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,40 +22,61 @@ function isAuthorizedCronRequest(request: NextRequest) {
   return authorization === `Bearer ${expectedSecret}`;
 }
 
+async function writeServiceRoleHeartbeat(request: NextRequest, triggeredAt: string) {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("system_heartbeat")
+    .upsert(
+      {
+        id: HEARTBEAT_ID,
+        updated_at: triggeredAt,
+        source: "vercel-cron-service-role",
+        last_result: "ok",
+        details: {
+          triggeredAt,
+          userAgent: request.headers.get("user-agent")
+        }
+      },
+      { onConflict: "id" }
+    )
+    .select("id, updated_at")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+async function writePublicRpcHeartbeat() {
+  const supabase = getSupabasePublicClient();
+  const { data, error } = await supabase.rpc("touch_system_heartbeat");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Array.isArray(data) ? data[0] : data;
+}
+
 export async function GET(request: NextRequest) {
   try {
     if (!isAuthorizedCronRequest(request)) {
       return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = getSupabaseAdminClient();
     const triggeredAt = new Date().toISOString();
-    const { data, error } = await supabase
-      .from("system_heartbeat")
-      .upsert(
-        {
-          id: HEARTBEAT_ID,
-          updated_at: triggeredAt,
-          source: "vercel-cron",
-          last_result: "ok",
-          details: {
-            triggeredAt,
-            userAgent: request.headers.get("user-agent")
-          }
-        },
-        { onConflict: "id" }
-      )
-      .select("id, updated_at")
-      .single();
-
-    if (error) {
-      throw new Error(error.message);
-    }
+    const serviceRoleHeartbeat = await writeServiceRoleHeartbeat(request, triggeredAt);
+    const publicRpcHeartbeat = await writePublicRpcHeartbeat();
 
     return NextResponse.json({
       ok: true,
-      id: data?.id ?? HEARTBEAT_ID,
-      updatedAt: data?.updated_at ?? triggeredAt
+      id: publicRpcHeartbeat?.id ?? serviceRoleHeartbeat?.id ?? HEARTBEAT_ID,
+      updatedAt:
+        publicRpcHeartbeat?.updated_at ?? serviceRoleHeartbeat?.updated_at ?? triggeredAt,
+      serviceRoleUpdatedAt: serviceRoleHeartbeat?.updated_at ?? triggeredAt,
+      publicRpcUpdatedAt: publicRpcHeartbeat?.updated_at ?? null
     });
   } catch (error) {
     return NextResponse.json(

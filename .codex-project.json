@@ -6,6 +6,7 @@
   "github": {
     "remoteName": "origin",
     "remoteUrl": "https://github.com/TC-Vreden/tc-vreden-antragsplattform.git",
+    "tokenEnv": "TCVREDEN_GITHUB_TOKEN",
     "releaseExcludePaths": []
   },
   "vercel": {
@@ -59,6 +60,6 @@
     ]
   },
   "notifications": {
-    "command": "F:\\Onedrive\\Dokumente\\Codex\\scripts\\notify-phone.cmd"
+    "command": "C:\\Codex-Projekte\\TC-Vreden\\_codex-scripts\\notify-phone.cmd"
   }
 }

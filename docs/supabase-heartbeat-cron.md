@@ -1,17 +1,22 @@
 # Supabase Heartbeat Cron
 
-Stand: 28.05.2026
+Stand: 25.06.2026
 
-Supabase Free-Projekte koennen nach Inaktivitaet pausiert werden. Dieses Projekt nutzt deshalb einen sehr kleinen Vercel Cron Job, der einmal taeglich eine einzelne Zeile in Supabase aktualisiert.
+Supabase Free-Projekte koennen nach Inaktivitaet pausiert werden. Dieses Projekt nutzt deshalb einen sehr kleinen Vercel Cron Job, der einmal taeglich eine technische Heartbeat-Zeile in Supabase aktualisiert.
 
 ## Umsetzung
 
 - Route: `/api/cron/supabase-heartbeat`
 - Tabelle: `public.system_heartbeat`
-- Vercel-Zeitplan: `0 6 * * *`
+- Vercel-Zeitplan: `0 1 * * *`
 - Schutz: `Authorization: Bearer <CRON_SECRET>`
+- Supabase-Zugriff:
+  - serverseitiger Service-Role-Upsert auf `system_heartbeat`
+  - zusaetzlicher anon/RPC-Aufruf `touch_system_heartbeat()`
 
 Der Cron schreibt keine fachlichen Mitgliedsdaten. Er aktualisiert nur die feste Zeile `supabase-free-plan-heartbeat`.
+
+Am 25.06.2026 kam trotz aktivem Service-Role-Heartbeat eine Supabase-Warnung wegen drohender Free-Plan-Pause. Deshalb laeuft der Cron jetzt frueher am Tag und nutzt zusaetzlich einen anonymen RPC-Aufruf. Das erzeugt eine normale Supabase-API-Aktivitaet ohne Zugriff auf Mitgliedsdaten. Eine Garantie gegen Free-Plan-Pausen ist das weiterhin nicht; die einzige Supabase-seitig garantierte Loesung ist ein bezahlter Plan.
 
 ## Einrichtung
 
