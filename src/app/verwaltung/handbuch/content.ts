@@ -167,6 +167,7 @@ export const handbookPages: HandbookPage[] = [
           "Fertige Releases laufen über scripts/codex-release.ps1.",
           "Der Release-Pfad prüft Routing, GitHub-Token, Lint, TypeScript, lokalen Compile-Build, Supabase-Migrationen, Git Push, Vercel Deploy, Live-Check und Handy-Benachrichtigung.",
           "Git Push nutzt den projektlokalen TCVREDEN_GITHUB_TOKEN aus .deploy.local.ps1 und OpenSSL-Git-Transport, damit keine globalen GitHub- oder Windows-Credential-Manager-Logins nötig sind.",
+          "Wenn Codex den lokalen .git-Index in der Sandbox nicht beschreiben darf, erstellt das Release-Skript automatisch einen temporären Git-Klon, kopiert den Arbeitsstand ohne lokale Secret-Dateien hinein und pusht von dort.",
           "Der lokale Codex-Build nutzt eine temporäre Kopie, weil die Sandbox rekursive Next-Verzeichnislöschungen und Worker-Prozesse blockieren kann. Der vollständige Production-Build mit statischer Generierung läuft beim Vercel-Deploy remote.",
           "Falls das lokale PowerShell-ntfy-Skript am Windows-HTTP-Stack scheitert, sendet der Release-Pfad die Handy-Benachrichtigung über Node fetch und das lokale NTFY_TOPIC.",
           "Keine globalen CLI-Logins als Quelle der Wahrheit verwenden; maßgeblich sind .codex-project.json, .deploy.local.ps1, .vercel/project.json und Git-Remote."

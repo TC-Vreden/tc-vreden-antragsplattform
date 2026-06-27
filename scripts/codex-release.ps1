@@ -460,6 +460,61 @@ function Test-NoSecretFilesStaged {
   }
 }
 
+$script:UseTempGitRelease = $false
+$script:ReleaseBranch = ""
+
+function Invoke-TemporaryGitCommitAndPush {
+  param(
+    [string]$Branch,
+    [string]$Message
+  )
+
+  $sourcePath = [string]$ProjectRoot
+  $tempParent = Join-Path ([IO.Path]::GetTempPath()) ((Get-ProjectSlug) + "-git-" + [guid]::NewGuid().ToString("N"))
+  $tempRepo = Join-Path $tempParent "repo"
+  $previousLocation = (Get-Location).Path
+
+  if (-not $Message) {
+    $Message = "Automated TC-Vreden release"
+  }
+
+  if (-not $Branch) {
+    $Branch = [string]$Config.defaultBranch
+  }
+
+  New-Item -ItemType Directory -Path $tempParent -Force | Out-Null
+
+  try {
+    Invoke-GitHubExternal @("clone", "--branch", $Branch, "--single-branch", [string]$Config.github.remoteUrl, $tempRepo)
+
+    $excludeDirs = @(".git", "node_modules", ".next", ".next-codex-*", ".temp")
+    $excludeFiles = @(".env", ".env.local", ".env.*.local", ".deploy.local.ps1", "*.log", "tsconfig.tsbuildinfo")
+    & robocopy $sourcePath $tempRepo /E /XD $excludeDirs /XF $excludeFiles /NFL /NDL /NJH /NJS /NP | Out-Null
+    $copyExitCode = $LASTEXITCODE
+
+    if ($copyExitCode -gt 7) {
+      throw "robocopy failed with exit code $copyExitCode"
+    }
+
+    Set-Location $tempRepo
+    Invoke-External "git" @("config", "user.name", "Codex")
+    Invoke-External "git" @("config", "user.email", "codex@tc-vreden.local")
+    Invoke-External "git" @("add", "--all")
+
+    Test-NoSecretFilesStaged
+    $staged = & git diff --cached --name-only
+
+    if ($staged) {
+      Invoke-External "git" @("commit", "-m", $Message)
+      Invoke-GitHubExternal @("push", "origin", "HEAD:$Branch")
+    } else {
+      Write-Host "No staged changes to commit in temporary Git clone."
+    }
+  } finally {
+    Set-Location $previousLocation
+  }
+}
+
 try {
   Invoke-Step "Project routing check" {
     $doctorArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $PSScriptRoot "codex-doctor.ps1"), "-Quiet")
@@ -514,33 +569,58 @@ try {
 
   if (-not $NoCommit) {
     Invoke-Step "Commit changes" {
-      Invoke-External "git" @("add", "--all")
+      $script:ReleaseBranch = (& git branch --show-current).Trim()
 
-      $excludePaths = @()
-      if ($Config.github.PSObject.Properties.Name -contains "releaseExcludePaths" -and $Config.github.releaseExcludePaths) {
-        $excludePaths = @($Config.github.releaseExcludePaths)
+      if (-not $script:ReleaseBranch) {
+        $script:ReleaseBranch = [string]$Config.defaultBranch
       }
 
-      foreach ($excludedPath in $excludePaths) {
-        & git restore --staged -- $excludedPath 2>$null
-      }
+      try {
+        Invoke-External "git" @("add", "--all")
 
-      Test-NoSecretFilesStaged
-      $staged = & git diff --cached --name-only
-
-      if ($staged) {
-        if (-not $CommitMessage) {
-          $CommitMessage = "Automated TC-Vreden release"
+        $excludePaths = @()
+        if ($Config.github.PSObject.Properties.Name -contains "releaseExcludePaths" -and $Config.github.releaseExcludePaths) {
+          $excludePaths = @($Config.github.releaseExcludePaths)
         }
 
-        Invoke-External "git" @("commit", "-m", $CommitMessage)
-      } else {
-        Write-Host "No staged changes to commit."
+        foreach ($excludedPath in $excludePaths) {
+          & git restore --staged -- $excludedPath 2>$null
+        }
+
+        Test-NoSecretFilesStaged
+        $staged = & git diff --cached --name-only
+
+        if ($staged) {
+          if (-not $CommitMessage) {
+            $CommitMessage = "Automated TC-Vreden release"
+          }
+
+          Invoke-External "git" @("commit", "-m", $CommitMessage)
+        } else {
+          Write-Host "No staged changes to commit."
+        }
+      } catch {
+        $message = $_.Exception.Message
+
+        if ($message -match "git add --all|index\.lock|Permission denied|Access is denied|nicht autorisierten|Zugriff verweigert") {
+          Write-Warning "Local Git index is not writable in this environment. Falling back to a temporary Git clone for commit and push."
+          $script:UseTempGitRelease = $true
+        } else {
+          throw
+        }
       }
     }
   }
 
-  if (-not $NoPush) {
+  if ($script:UseTempGitRelease) {
+    if ($NoPush) {
+      throw "Local Git index is not writable and -NoPush prevents the temporary Git release fallback."
+    }
+
+    Invoke-Step "Commit and push from temporary Git clone" {
+      Invoke-TemporaryGitCommitAndPush -Branch $script:ReleaseBranch -Message $CommitMessage
+    }
+  } elseif (-not $NoPush) {
     Invoke-Step "Push to GitHub" {
       $branch = (& git branch --show-current).Trim()
 
