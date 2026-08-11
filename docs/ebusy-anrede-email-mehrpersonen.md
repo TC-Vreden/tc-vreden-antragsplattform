@@ -4,8 +4,8 @@ Stand: 08.05.2026
 
 ## Anrede
 
-Die lokale OpenAPI-Datei `F:\Onedrive\Dokumente\Codex\TC-Vreden\Daten\openapi.json`
-enthält im `Personendeskriptor` das Feld `salutation`.
+Die lokal abgelegte eBuSy-OpenAPI-Datei enthält im `Personendeskriptor` das Feld
+`salutation`.
 
 Zulässige Werte laut OpenAPI:
 

@@ -136,12 +136,12 @@ export const handbookPages: HandbookPage[] = [
     title: "Betrieb",
     audience: "Betrieb",
     summary:
-      "Architektur, Tabellen, Secrets, Release-Pfad, Supabase-Heartbeat und Projekttrennung.",
+      "Architektur, Tabellen, Secrets, lokale Checks, Deployment und Supabase-Heartbeat.",
     sections: [
       {
         title: "Projektanker",
         rows: [
-          ["Lokaler Ordner", "C:\\Codex-Projekte\\TC-Vreden\\webapp-prototyp"],
+          ["Lokaler Clone", "Beliebiger lokaler Git-Clone des Repositories"],
           ["GitHub", "https://github.com/TC-Vreden/tc-vreden-antragsplattform.git"],
           ["Vercel", "tennisclub-vreden im Scope tc-vredens-projects"],
           ["Supabase", "xftnhnojaizyaecvtxcq / tennisclub-vreden"],
@@ -161,16 +161,14 @@ export const handbookPages: HandbookPage[] = [
         ]
       },
       {
-        title: "Release-Pfad",
+        title: "Checks und Deployment",
         bullets: [
-          "Vor Release: scripts/codex-doctor.ps1 muss grün sein.",
-          "Fertige Releases laufen über scripts/codex-release.ps1.",
-          "Der Release-Pfad prüft Routing, GitHub-Token, Lint, TypeScript, lokalen Compile-Build, Supabase-Migrationen, Git Push, Vercel Deploy, Live-Check und Handy-Benachrichtigung.",
-          "Git Push nutzt den projektlokalen TCVREDEN_GITHUB_TOKEN aus .deploy.local.ps1 und OpenSSL-Git-Transport, damit keine globalen GitHub- oder Windows-Credential-Manager-Logins nötig sind.",
-          "Wenn Codex den lokalen .git-Index in der Sandbox nicht beschreiben darf, erstellt das Release-Skript automatisch einen temporären Git-Klon, kopiert den Arbeitsstand ohne lokale Secret-Dateien hinein und pusht von dort.",
-          "Der lokale Codex-Build nutzt eine temporäre Kopie, weil die Sandbox rekursive Next-Verzeichnislöschungen und Worker-Prozesse blockieren kann. Der vollständige Production-Build mit statischer Generierung läuft beim Vercel-Deploy remote.",
-          "Falls das lokale PowerShell-ntfy-Skript am Windows-HTTP-Stack scheitert, sendet der Release-Pfad die Handy-Benachrichtigung über Node fetch und das lokale NTFY_TOPIC.",
-          "Keine globalen CLI-Logins als Quelle der Wahrheit verwenden; maßgeblich sind .codex-project.json, .deploy.local.ps1, .vercel/project.json und Git-Remote."
+          "Vor Push oder Deployment laufen npm run lint, npm run typecheck und npm run build.",
+          "Git-Arbeit erfolgt über den normalen Repository-Workflow auf main oder über bewusst angelegte Feature-Branches.",
+          "Deployments laufen über die GitHub-/Vercel-Projektverknüpfung oder bei Bedarf über die normale Vercel CLI.",
+          "Lokale Runtime-Werte liegen in .env.local. Produktive Secrets liegen als Vercel Environment Variables.",
+          "Alte projektlokale Prüf-/Release-Skripte, lokale Token-Loader und temporäre Git-Fallbacks sind nicht mehr Teil des Betriebswegs.",
+          "Datenbankänderungen werden als Supabase-Migrationen versioniert und vor dem Deployment angewendet."
         ]
       },
       {

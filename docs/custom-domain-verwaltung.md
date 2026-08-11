@@ -86,8 +86,8 @@ Intern:
 https://verwaltung.tennisclub-vreden.de/verwaltung
 ```
 
-## Release-Hinweis
+## Betriebs-Hinweis
 
-Die lokale Projektdatei `.codex-project.json` prüft den Live-Healthcheck vorerst noch gegen die
-Vercel-URL. Erst wenn der DNS-Eintrag aktiv ist und die neue Domain zuverlässig antwortet, sollte
-`liveUrl` auf `https://verwaltung.tennisclub-vreden.de` umgestellt werden.
+Nach Aenderungen an `NEXT_PUBLIC_SITE_URL` oder `ADMIN_PORTAL_URL` ist ein neues
+Production-Deployment noetig, damit Mails, Logo-URLs und Serverpfade die aktuellen
+Werte verwenden.

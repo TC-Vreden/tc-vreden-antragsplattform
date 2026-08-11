@@ -1,49 +1,48 @@
-# Webapp-Prototyp
+# TC-Vreden Antragsplattform
 
-Diese Web-App ist die digitale Antragsplattform des TC Vreden fuer Mitgliedsantraege, interne Pruefung und eBuSy-Uebernahme.
+Digitale Antragsplattform des TC Vreden fuer Mitgliedsantraege, interne Pruefung und eBuSy-Uebernahme.
 
-## Aktueller Stand
+## Funktionen
 
-- digitale Neuanmeldung
-- Auswahlseite fuer Neuanmeldung oder Mitgliedschaftserweiterung
-- Speicherung in Supabase
+- digitale Neuanmeldung und Mitgliedschaftserweiterung
+- Speicherung und Statusverwaltung in Supabase
 - interne Verwaltung mit Supabase-Benutzern, Rollen und Rechten
 - eBuSy-Abgleich und kontrollierte eBuSy-Uebernahme
 - PDF-Zusammenfassung und Bestaetigungs-E-Mail nach erfolgreicher eBuSy-Uebernahme
 - optional interne Eingangsmail nach oeffentlicher Antragstellung
 
-## Vor dem lokalen Start
-
-- Dependencies installieren
-- `.env.local` auf Basis von `.env.example` anlegen
-- Supabase-, eBuSy- und Mail-ENV passend zum freigegebenen Projekt setzen
-- vor Deployments den lokalen Doctor ausfuehren
-
-## Hinweis
-
-Die Dateien sind bewusst so angelegt, dass Test-/Pruefstrecken und produktive eBuSy-Schreibzugriffe getrennt bleiben.
-
-## Codex-Projekt-Routing
-
-Dieses Repository ist strikt an das TC-Vreden-Projekt gebunden. Vor Releases oder Deployments muss der lokale Doctor gruen sein:
+## Lokaler Start
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex-doctor.ps1
+npm ci
+Copy-Item .env.example .env.local
+notepad .env.local
+npm run dev
 ```
 
-Die lokale Einrichtung fuer Tokens und Secrets ist hier dokumentiert:
+Die Werte in `.env.local` muessen zum freigegebenen Supabase-, eBuSy- und Mail-Setup passen. `.env.local` ist gitignored und darf nicht committed werden.
 
-- [Codex Routing und lokale Secrets](docs/codex-routing-und-lokale-secrets.md)
+## Pruefung Vor Push Oder Deployment
+
+```powershell
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Deployments laufen nicht mehr ueber projektlokale Sonder-Skripte. Nutze einen normalen GitHub-/Vercel-Workflow oder die Vercel CLI mit dem korrekt verlinkten Projekt.
+
+## Projektziele
+
+Die Dateien sind bewusst so angelegt, dass lokale Tests, produktive eBuSy-Schreibzugriffe und geheime Zugangsdaten getrennt bleiben. Produktive Secrets gehoeren in Vercel Environment Variables, lokale Secrets in `.env.local`.
+
+## Weitere Dokumentation
+
 - [Custom Domain verwaltung.tennisclub-vreden.de](docs/custom-domain-verwaltung.md)
 - [Supabase Heartbeat Cron](docs/supabase-heartbeat-cron.md)
+- [Supabase- und Vercel-Einrichtung](docs/supabase-vercel-einrichtung.md)
 
-## Lokale eBuSy-Zugangsdaten
-
-Lokale Zugangsdaten gehoeren in `.env.local`.
-
-Diese Datei ist durch `.gitignore` vom Repository ausgeschlossen und soll nicht nach GitHub hochgeladen werden.
-
-## Schutz interner Bereiche
+## Schutz Interner Bereiche
 
 Interne Seiten werden primaer ueber Supabase Auth, interne Benutzerrollen und Berechtigungen geschuetzt.
 

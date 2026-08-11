@@ -31,7 +31,7 @@ So geht es:
 2. Links auf `SQL Editor`.
 3. `New query` oder `New SQL snippet` anklicken.
 4. Den Inhalt aus dieser Datei einfuegen:
-   - [schema.sql](F:/Onedrive/Dokumente/Codex/TC-Vreden/webapp-prototyp/supabase/schema.sql)
+   - [`supabase/schema.sql`](../supabase/schema.sql)
 5. `Run` klicken.
 
 Ergebnis:
@@ -64,18 +64,20 @@ So geht es:
 3. Auf `Environment Variables`.
 4. Jede Variable einzeln anlegen.
 
-## Naechster Schritt 3: GitHub-Repository mit Projektdateien fuellen
+## Naechster Schritt 3: Repository klonen und lokal starten
 
-Sobald lokal Git sauber funktioniert oder ihr die Dateien anderweitig hochladet, sollte der Inhalt von:
+Auf einem neuen Rechner reicht der normale GitHub-Workflow:
 
-- [webapp-prototyp](F:/Onedrive/Dokumente/Codex/TC-Vreden/webapp-prototyp)
+```powershell
+git clone https://github.com/TC-Vreden/tc-vreden-antragsplattform.git
+cd tc-vreden-antragsplattform
+npm ci
+Copy-Item .env.example .env.local
+notepad .env.local
+npm run dev
+```
 
-in das GitHub-Repository uebernommen werden.
-
-Wenn ihr lokal noch kein Git sauber nutzen koennt, gibt es zwei Wege:
-
-- spaeter mit installiertem Git normal pushen
-- oder Dateien direkt ueber die GitHub-Weboberflaeche hochladen
+Die lokalen Secrets stehen in `.env.local`; produktive Secrets stehen in Vercel Environment Variables.
 
 ## Was danach direkt moeglich ist
 

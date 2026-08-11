@@ -1,0 +1,13 @@
+.env
+.env.local
+.env.*.local
+.deploy.local.ps1
+.codex-project.json
+.codex/
+.agents/
+.next/
+.next-codex-*/
+node_modules/
+supabase/.temp/
+*.log
+tsconfig.tsbuildinfo

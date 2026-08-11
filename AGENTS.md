@@ -1,39 +1,33 @@
-# TC-Vreden Deployment Routing
+# TC-Vreden Antragsplattform
 
-- This project is the TC-Vreden Antragsplattform, not the Filter.Shop Cockpit.
+## Start Check
 
-## Required Start Check
-
-Before changing files, verify the local routing from this project folder:
+Before changing files, verify the local project context:
 
 - `git status --short --branch`
 - `git remote -v`
-- `.codex-project.json`
-- `.vercel\project.json`
 
-Expected routing:
+Expected GitHub remote:
 
-- GitHub: `https://github.com/TC-Vreden/tc-vreden-antragsplattform.git`
-- Vercel project: `tennisclub-vreden`
-- Vercel scope: `tc-vredens-projects`
-- Supabase project ref: `xftnhnojaizyaecvtxcq`
-- Live URL: `https://tennisclub-vreden.vercel.app`
+- `https://github.com/TC-Vreden/tc-vreden-antragsplattform.git`
 
-## Release Rules
+If the local path or Git remote does not match this project, stop and report the mismatch.
 
-- Before release/deployment work, run `.\scripts\codex-doctor.ps1` from this project folder.
-- For normal finished implementation work, use `.\scripts\codex-release.ps1 -CommitMessage "..."` so lint, build, Supabase migrations, Git push, Vercel deploy, live check, and phone notification happen in one project-routed flow.
-- Do not rely on global Vercel or Supabase CLI login state. The release scripts load `.deploy.local.ps1` and use the TC-Vreden project profile from `.codex-project.json`.
-- If `.deploy.local.ps1` is missing or the doctor fails, do not deploy.
-- `.deploy.local.ps1` is local-only and gitignored. Never commit tokens, DB passwords, DB URLs, API keys, or passwords.
+## Standard Workflow
 
-## Strict Project Separation
+- Use normal Git operations from this repository.
+- Use `npm ci` after a fresh clone or dependency changes.
+- Use `npm run lint`, `npm run typecheck`, and `npm run build` before pushing meaningful changes.
+- Do not rely on project-specific release helpers or local token loader scripts.
+- Deployments should be explicit through GitHub/Vercel project configuration or a normal Vercel CLI flow.
 
-- Never edit, commit, push, deploy, or read credentials from the Filter.Shop Cockpit project in this thread.
-- Do not copy Filter.Shop variables, Supabase refs, Vercel project IDs, scripts, routes, or documentation into this project unless Alexander explicitly asks for a comparison.
-- If any Git, Vercel, Supabase, or local path points away from this TC-Vreden folder, stop and report the mismatch.
+## Secrets And Environment
 
-## Documentation Rule
+- Runtime configuration belongs in `.env.local` locally and in Vercel environment variables for hosted deployments.
+- Never commit `.env.local`, tokens, DB passwords, DB URLs, API keys, service-role keys, SMTP passwords, or eBuSy passwords.
+- Keep `.env.example` current when runtime environment variables change.
+
+## Documentation
 
 - Keep the internal documentation under `/verwaltung/handbuch` in sync with every meaningful feature, workflow, operations, eBuSy, PDF/email, database, release, or permission change.
 - When adding or changing behavior, update the user-facing documentation and, when relevant, the technical/operations documentation in the same commit.

@@ -31,12 +31,17 @@ Ein lokales Secret kann so erzeugt werden:
 [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
 ```
 
-Danach laeuft der normale Release-Pfad:
+Vor Push oder Deployment sollten die normalen Projektchecks laufen:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex-doctor.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\codex-release.ps1 -CommitMessage "TC-Vreden: add Supabase heartbeat cron"
+npm run lint
+npm run typecheck
+npm run build
 ```
+
+Falls sich die Datenbankstruktur aendert, muessen die zugehoerigen Supabase-Migrationen
+vor dem Deployment angewendet werden. Das Deployment selbst laeuft ueber den normalen
+GitHub-/Vercel-Workflow.
 
 ## Manueller Test nach Deployment
 
